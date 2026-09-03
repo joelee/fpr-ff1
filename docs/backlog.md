@@ -4,13 +4,6 @@ This file tracks high-level feature ideas and technical debt for `fpr-ff1`.
 
 ## Active Items
 
-### Before 1.0
-
-- Run CI for the first time. The 3.13 and 3.14 legs and the macOS and Windows legs have never
-  executed; only 3.12 on macOS has been verified locally.
-- Claim the `fpr-ff1` name on PyPI and configure Trusted Publishing for it. The name is currently
-  unclaimed (verified 2026-08-21: both PyPI JSON and simple-index endpoints return 404).
-
 ### 2.0
 
 - Optional accelerated backend. Opt-in only; the pure-Python implementation stays the reference
@@ -42,13 +35,18 @@ This file tracks high-level feature ideas and technical debt for `fpr-ff1`.
 - CI across Python 3.12/3.13/3.14 on Linux, macOS and Windows, with PyPI Trusted Publishing.
 - `SECURITY.md`, `CHANGELOG.md`, README FF3 rationale and migration guide.
 
+- CI executed across the full 9-leg matrix (Python 3.12/3.13/3.14 on Linux, macOS and Windows);
+  first green release-gate run at v0.1.0.
+- Claimed `fpr-ff1` on PyPI, configured Trusted Publishing, and published v0.1.0 (2026-09-03)
+  with provenance attestations on both artifacts.
+
 ## Decided
 
 - **Migration shim: guide only** (2026-08-21). No `compat` layer ships. The README migration
   section plus bidirectional interoperability tests carry it. A shim would be a permanent
   CamelCase second API mirroring a deprecated library, against the "small surface" rule.
-- **`0.1.0` was never published** (verified 2026-08-21). The C1 fix therefore needs no disclosure
-  framing; stages 1–4 fold into the first published release.
+- **v0.1.0 shipped the S-expansion fix** (published 2026-09-03), so no disclosure framing was
+  needed; the pre-release fixes folded into the first published release as planned.
 
 ## Dropped Items
 
