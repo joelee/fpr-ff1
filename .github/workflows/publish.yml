@@ -1,0 +1,41 @@
+name: Publish
+
+# Publishes to PyPI via Trusted Publishing (OIDC).  No API tokens are stored
+# in this repository; configure the publisher at
+# https://pypi.org/manage/project/fpr-ff1/settings/publishing/
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    # Never publish something that has not passed the full matrix.
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: quality
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/fpr-ff1
+    permissions:
+      id-token: write # required for Trusted Publishing
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Build
+        run: uv build
+
+      - name: Check metadata
+        run: uvx twine check dist/*
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

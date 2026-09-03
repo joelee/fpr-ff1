@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  # Allows publish.yml to reuse this workflow as a release gate.
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Turn a missing differential oracle into a hard failure.  Those tests are
+  # the only coverage for radices without published NIST vectors, so a silent
+  # skip would look exactly like a pass.
+  FPR_FF1_REQUIRE_ORACLE: "1"
+
+jobs:
+  quality:
+    name: ${{ matrix.os }} / py${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.12", "3.13", "3.14"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Sync dependencies
+        run: uv sync --all-extras --dev --python ${{ matrix.python-version }}
+
+      - name: Format check
+        run: uv run ruff format --check .
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Type check
+        run: uv run pyright
+
+      # FPR_FF1_REQUIRE_ORACLE (set at workflow level) makes a missing oracle
+      # raise at collection time, so this run cannot pass with the
+      # differential and interoperability suites silently skipped.
+      - name: Test with 100% coverage gate
+        run: uv run pytest
+
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Build
+        run: uv build
+
+      - name: Check metadata
+        run: uvx twine check dist/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: distributions
+          path: dist/
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    env:
+      # Pinned so a scanner update cannot turn a release red without warning.
+      GITLEAKS_VERSION: "8.30.1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # The gitleaks CLI is used rather than gitleaks/gitleaks-action, which
+      # rejects `release` events outright ("ERROR: The [release] event is not
+      # yet supported").  publish.yml reuses this workflow as its release gate,
+      # so the action failed there and blocked publishing.  The CLI has no
+      # event restrictions and runs the same command as `just secrets`.
+      - name: Install gitleaks
+        run: |
+          curl -sSfL \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin gitleaks
+          gitleaks version
+
+      - name: Scan for secrets
+        run: gitleaks dir . --redact --exit-code 1

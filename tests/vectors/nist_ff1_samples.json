@@ -1,0 +1,87 @@
+{
+  "source": "NIST SP 800-38G FF1 Sample Vectors",
+  "url": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Standards-and-Guidelines/documents/examples/FF1samples.pdf",
+  "vectors": [
+    {
+      "name": "AES-128 radix 10 no tweak",
+      "key": "2B7E151628AED2A6ABF7158809CF4F3C",
+      "radix": 10,
+      "alphabet": "0123456789",
+      "tweak": "",
+      "plaintext": "0123456789",
+      "ciphertext": "2433477484"
+    },
+    {
+      "name": "AES-128 radix 10 with tweak",
+      "key": "2B7E151628AED2A6ABF7158809CF4F3C",
+      "radix": 10,
+      "alphabet": "0123456789",
+      "tweak": "39383736353433323130",
+      "plaintext": "0123456789",
+      "ciphertext": "6124200773"
+    },
+    {
+      "name": "AES-128 radix 36 with tweak",
+      "key": "2B7E151628AED2A6ABF7158809CF4F3C",
+      "radix": 36,
+      "alphabet": "0123456789abcdefghijklmnopqrstuvwxyz",
+      "tweak": "3737373770717273373737",
+      "plaintext": "0123456789abcdefghi",
+      "ciphertext": "a9tv40mll9kdu509eum"
+    },
+    {
+      "name": "AES-192 radix 10 no tweak",
+      "key": "2B7E151628AED2A6ABF7158809CF4F3CEF4359D8D580AA4F",
+      "radix": 10,
+      "alphabet": "0123456789",
+      "tweak": "",
+      "plaintext": "0123456789",
+      "ciphertext": "2830668132"
+    },
+    {
+      "name": "AES-192 radix 10 with tweak",
+      "key": "2B7E151628AED2A6ABF7158809CF4F3CEF4359D8D580AA4F",
+      "radix": 10,
+      "alphabet": "0123456789",
+      "tweak": "39383736353433323130",
+      "plaintext": "0123456789",
+      "ciphertext": "2496655549"
+    },
+    {
+      "name": "AES-192 radix 36 with tweak",
+      "key": "2B7E151628AED2A6ABF7158809CF4F3CEF4359D8D580AA4F",
+      "radix": 36,
+      "alphabet": "0123456789abcdefghijklmnopqrstuvwxyz",
+      "tweak": "3737373770717273373737",
+      "plaintext": "0123456789abcdefghi",
+      "ciphertext": "xbj3kv35jrawxv32ysr"
+    },
+    {
+      "name": "AES-256 radix 10 no tweak",
+      "key": "2B7E151628AED2A6ABF7158809CF4F3CEF4359D8D580AA4F7F036D6F04FC6A94",
+      "radix": 10,
+      "alphabet": "0123456789",
+      "tweak": "",
+      "plaintext": "0123456789",
+      "ciphertext": "6657667009"
+    },
+    {
+      "name": "AES-256 radix 10 with tweak",
+      "key": "2B7E151628AED2A6ABF7158809CF4F3CEF4359D8D580AA4F7F036D6F04FC6A94",
+      "radix": 10,
+      "alphabet": "0123456789",
+      "tweak": "39383736353433323130",
+      "plaintext": "0123456789",
+      "ciphertext": "1001623463"
+    },
+    {
+      "name": "AES-256 radix 36 with tweak",
+      "key": "2B7E151628AED2A6ABF7158809CF4F3CEF4359D8D580AA4F7F036D6F04FC6A94",
+      "radix": 36,
+      "alphabet": "0123456789abcdefghijklmnopqrstuvwxyz",
+      "tweak": "3737373770717273373737",
+      "plaintext": "0123456789abcdefghi",
+      "ciphertext": "xs8a0azh2avyalyzuwd"
+    }
+  ]
+}

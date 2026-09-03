@@ -1,0 +1,21 @@
+# Normalise line endings to LF in the repository and on checkout, on every
+# platform.
+#
+# Without this, Windows checkouts get CRLF (git's core.autocrlf defaults to
+# true on GitHub's Windows runners) while `[tool.ruff.format] line-ending`
+# is "lf", so `ruff format --check` reports every file as needing reformatting
+# and the Windows CI leg fails before it runs a single test.
+* text=auto eol=lf
+
+# Test fixtures are compared byte-for-byte against transcribed NIST values;
+# never let any tool rewrite them.
+tests/vectors/*.json text eol=lf
+
+# Lockfiles and generated artefacts.
+uv.lock text eol=lf
+
+# Anything genuinely binary, so git does not attempt conversion.
+*.png binary
+*.jpg binary
+*.gz binary
+*.whl binary
