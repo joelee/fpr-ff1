@@ -4,11 +4,11 @@
 
 **Please do not open a public issue for security problems.**
 
-Report privately through either channel:
+Report privately through **GitHub private vulnerability reporting** —
+[open a draft advisory](https://github.com/joelee/fpr-ff1/security/advisories/new).
 
-1. **GitHub private vulnerability reporting** (preferred) —
-   [open a draft advisory](https://github.com/joelee/fpr-ff1/security/advisories/new).
-2. **Email** — oss-dev@joeworks.com.
+An email disclosure channel may be added once it has a published PGP key; until then, GitHub
+private reporting is the only accepted channel.
 
 Please include the version, the radix, key size and input length involved, and a reproducer if
 you have one. A correctness bug that produces wrong ciphertext counts as a security issue here:

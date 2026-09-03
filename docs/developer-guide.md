@@ -102,6 +102,10 @@ uv build
 gitleaks dir . --redact
 ```
 
+The secret scan is pinned to **gitleaks 8.30.1** in CI (`GITLEAKS_VERSION` in
+`.github/workflows/ci.yml`, mirrored as `gitleaks_version` in the `justfile` — keep the two in
+sync). The CI pin is authoritative; `just secrets` warns if a locally installed version differs.
+
 ## Release Notes
 
 Releases follow Semantic Versioning. Any change to accepted inputs or produced outputs is a major version bump.
