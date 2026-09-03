@@ -46,7 +46,7 @@ round-trips perfectly — `decrypt(encrypt(x)) == x` — while producing ciphert
 implementation can read. By the time anyone notices, the data is written. So conformance here is
 not a checkbox; it is the entire product, and it is evidenced rather than asserted.
 
-**708 tests. 100% line and branch coverage, enforced — the build fails below it.**
+**The full suite — NIST sample vectors, per-round intermediate-value conformance for every round of every sample, differential tests against an independent implementation, exhaustive bijectivity sweeps, and a malformed-input sweep — runs in CI with 100% line and branch coverage enforced. The build fails below it.**
 
 ### Conformance is proven at the round level, not just the output level
 
@@ -102,7 +102,7 @@ stays readable, and a rollback strands nothing. See [Migrating](#migrating-from-
 
 Passing the published sample vectors is **conformance evidence, not FIPS validation**. This package
 is not FIPS 140 validated and makes no such claim. It also does not attempt key zeroization, and
-offers no constant-time guarantee — see [`SECURITY.md`](SECURITY.md) for the full statement of
+offers no constant-time guarantee — see [`SECURITY.md`](https://github.com/joelee/fpr-ff1/blob/main/SECURITY.md) for the full statement of
 limitations.
 
 ## Why FF1 only — and why FF3 is excluded
@@ -235,6 +235,16 @@ padded, coerced or clamped.
 `AlphabetError` signals malformed *configuration* (caught at construction); `ValueRangeError`
 signals malformed *data* (caught per call). They are deliberately distinct so callers can handle
 a programming error differently from a bad input record.
+
+### Thread safety
+
+`FF1` instances are **not thread-safe**. The instance caches a single ECB encryptor for the
+S-expansion step, and pyca/cryptography documents concurrent `update()` calls on a shared
+`CipherContext` as producing indeterminate results — sharing one instance across threads can
+silently produce wrong ciphertext. Create one instance per thread, or serialise access with a
+lock. There is no module-level or global state, so any number of *separate* instances may be used
+concurrently; a web service handling concurrent requests should construct one `FF1` per thread
+(construction is cheap) rather than sharing one.
 
 ## Migrating from `ubiq_security_fpe`
 

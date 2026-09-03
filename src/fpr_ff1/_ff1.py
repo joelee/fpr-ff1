@@ -120,7 +120,15 @@ class _Aes(NamedTuple):
 
 
 class FF1:
-    """FF1 format-preserving encryption primitive and string wrapper."""
+    """FF1 format-preserving encryption primitive and string wrapper.
+
+    Thread safety: instances are **not** thread-safe. The instance caches a
+    single ECB encryptor for the step 6.iii S-expansion, and pyca/cryptography
+    documents concurrent ``update()`` calls on a shared ``CipherContext`` as
+    producing indeterminate results. Create one instance per thread, or
+    serialise access with a lock. There is no module-level or global state, so
+    any number of *separate* instances may be used concurrently.
+    """
 
     # SP 800-38G requires "minlen <= n <= maxlen < 2**32", so the largest
     # admissible length is 2**32 - 1, not 2**32.  Failing closed on the

@@ -26,3 +26,7 @@
 ## Secrets
 
 The library does not generate, store, derive, or manage keys. Callers are responsible for key material. Python `bytes` are immutable and the interpreter may copy them during garbage collection; the library makes no key-zeroization claims.
+
+## Thread safety
+
+`FF1` instances are **not thread-safe**. The instance caches a single ECB encryptor for the S-expansion step, and pyca/cryptography documents concurrent `update()` calls on a shared `CipherContext` as producing indeterminate results — sharing one instance across threads can silently produce wrong ciphertext. Create one instance per thread, or serialise access with a lock. There is no module-level or global state, so any number of *separate* instances may be used concurrently.
