@@ -46,6 +46,8 @@ Out of scope:
 
 ## Known limitations
 
+**Pickling an instance serialises the key.** `FF1` instances support `pickle` and `copy.deepcopy` (rebuilt on the far side from the serialised key), so they can be passed to `multiprocessing` workers or broadcast by PySpark. That convenience has an inherent consequence: the AES key crosses the pickle boundary and may land in a temp file, a socket, or worker memory. Pickling an instance is the caller's decision to expose key material through that channel; if your threat model does not allow it, construct a fresh instance per process from your secret store instead.
+
 **Key material is not zeroized.** Python `bytes` are immutable and the garbage collector may copy
 them, so a key cannot be reliably erased from process memory. This package makes no attempt to do
 so and no claim that it does. If your threat model includes memory disclosure, keep key material

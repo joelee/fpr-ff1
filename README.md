@@ -177,6 +177,13 @@ scope, and no release will add key management.
 | `tweak` | Default tweak used when not supplied per call. |
 | `min_tweak_len` / `max_tweak_len` | Optional per-instance tweak length bounds. |
 
+The package exports `fpr_ff1.__version__` — the version of the installed distribution. Callers
+recording which build produced a dataset should capture it alongside their data.
+
+Instances are picklable and deep-copyable (the cipher objects are rebuilt on the far side), so an
+`FF1` can be passed to `multiprocessing` workers or broadcast by PySpark. Note that pickling an
+instance serialises the key — see [`SECURITY.md`](https://github.com/joelee/fpr-ff1/blob/main/SECURITY.md).
+
 ### Numeral interface
 
 The primitive interface works on integers in `[0, radix)`.

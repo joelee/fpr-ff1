@@ -177,6 +177,10 @@ class FF1:
                 f"got {radix!r}"
             )
 
+        # Retained deliberately: the sole reader is __setstate__, which
+        # rebuilds the cipher configuration after unpickling.  Without it the
+        # key would have no second reference and instances could not be
+        # serialised (review 00003 H3).
         self._key = key
         self._radix = radix
 
@@ -219,6 +223,36 @@ class FF1:
         algorithm = algorithms.AES(key)
         self._aes = _Aes(
             algorithm=algorithm,
+            cbc_zero_iv=modes.CBC(b"\x00" * 16),
+        )
+
+    def __getstate__(self) -> dict[str, object]:
+        """Serialise configuration only; cipher objects are rebuilt, never sent.
+
+        Dropping ``_aes`` keeps the pickle payload free of opaque library
+        state and makes the payload stable across ``cryptography`` versions.
+        The key *is* serialised -- pickling an instance sends key material
+        across the process/temp-file/socket boundary at the caller's
+        direction; see SECURITY.md.
+        """
+        state = self.__dict__.copy()
+        del state["_aes"]
+        return state
+
+    def __setstate__(self, state: dict[str, object]) -> None:
+        """Rebuild the cipher configuration from the serialised key."""
+        self.__dict__.update(state)
+        key = state["_key"]
+        # A raise rather than an assert: asserts vanish under ``python -O``,
+        # and a non-bytes key here would otherwise surface later as an
+        # opaque cryptography error (or worse, from outside the FF1Error
+        # hierarchy entirely).
+        if not isinstance(key, bytes):  # pyright: ignore[reportUnnecessaryIsInstance]
+            raise KeyLengthError(
+                f"unpickled FF1 state must carry a bytes key, got {type(key).__name__}"
+            )
+        self._aes = _Aes(
+            algorithm=algorithms.AES(key),
             cbc_zero_iv=modes.CBC(b"\x00" * 16),
         )
 
