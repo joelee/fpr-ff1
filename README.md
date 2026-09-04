@@ -147,9 +147,11 @@ and a major version.
 
 ## Supported Python versions
 
-**3.12, 3.13 and 3.14.** The upper bound in `requires-python` is deliberate: it matches the
-versions actually exercised in CI on Linux, macOS and Windows. It is raised as part of a release
-once a newer Python is in the matrix and green, rather than being left open and assumed to work.
+**3.12, 3.13 and 3.14** are the versions exercised in CI on Linux, macOS and Windows (stated in
+the trove classifiers). `requires-python` is `>=3.12` with no upper bound: a capped
+`requires-python` becomes a hard resolution failure on future interpreters — a claim that they
+*don't* work, which cannot be known in advance — so the floor rises as the CI matrix grows rather
+than the ceiling punishing users of new Pythons.
 
 ## Roadmap
 

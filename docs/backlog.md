@@ -14,7 +14,9 @@ This file tracks high-level feature ideas and technical debt for `fpr-ff1`.
 
 - Track SP 800-38G Rev. 1. It is still a second public draft; if it is finalised with limits that
   differ from the 2PD, that is a breaking change requiring a major version.
-- Raise the `requires-python` upper bound as new Python versions enter the CI matrix and pass.
+- Raise the `requires-python` floor as new Python versions enter the CI matrix and pass. The
+  upper-bound cap policy was retired at 1.0.0 (review 00003 B4): a cap becomes a hard resolution
+  failure on future interpreters, so classifiers state the tested versions instead.
 
 ## Completed Items
 

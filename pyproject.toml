@@ -9,9 +9,11 @@ description = "Format-preserving encryption: NIST SP 800-38G FF1 for Python."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-# Upper bound matches the tested CI matrix exactly (3.12, 3.13, 3.14).  Raising
-# it is a release-time action once a new Python is in the matrix and green.
-requires-python = ">=3.12,<3.15"
+# No upper bound: a capped requires-python turns into a hard resolution
+# failure on future interpreters (3.15 final is scheduled for October 2026),
+# which punishes users for our untested matrix.  The classifiers state the
+# versions CI actually exercises; the floor is raised as the matrix grows.
+requires-python = ">=3.12"
 keywords = [
     "ff1",
     "format-preserving-encryption",
@@ -33,7 +35,10 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "cryptography>=44.0.0",
+    # Floor set to the first release fixing PYSEC-2026-3552 (GHSA-g6cj-pr64-35w5,
+    # fixed in 50.0.0); lower floors admit known-vulnerable resolutions and
+    # trip downstream security scanners.
+    "cryptography>=50.0.0",
 ]
 
 [project.urls]

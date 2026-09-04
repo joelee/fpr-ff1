@@ -113,6 +113,14 @@ uv build
 gitleaks dir . --redact
 ```
 
+CI additionally runs a dependency-audit job (`pip-audit` against `uv.lock` and against the declared
+minimum dependency set) and installs gitleaks only after verifying the release tarball against the
+published checksums. Every action is pinned to a full commit SHA with the version in a trailing
+comment; Dependabot (`.github/dependabot.yml`) raises PRs when a pinned action or a dependency
+moves. The publish workflow downloads the distributions artifact built and checked by the release
+gate rather than rebuilding, and it verifies the release tag matches the project version before
+publishing.
+
 The secret scan is pinned to **gitleaks 8.30.1** in CI (`GITLEAKS_VERSION` in
 `.github/workflows/ci.yml`, mirrored as `gitleaks_version` in the `justfile` — keep the two in
 sync). The CI pin is authoritative; `just secrets` warns if a locally installed version differs.

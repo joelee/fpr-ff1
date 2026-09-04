@@ -29,10 +29,8 @@ jobs:
         python-version: ["3.12", "3.13", "3.14"]
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@11bd5960a326750d5838078e36cf38b85af677262 # v4.3.0
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
@@ -40,8 +38,9 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
 
+      # --locked: lock drift fails the build rather than silently resolving.
       - name: Sync dependencies
-        run: uv sync --all-extras --dev --python ${{ matrix.python-version }}
+        run: uv sync --locked --all-extras --dev --python ${{ matrix.python-version }}
 
       - name: Format check
         run: uv run ruff format --check .
@@ -58,15 +57,34 @@ jobs:
       - name: Test with 100% coverage gate
         run: uv run pytest
 
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd5960a326750d5838078e36cf38b85af677262 # v4.3.0
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+
+      # Audit the locked environment: this is what CI and the release build
+      # actually run against.  pip-audit reads uv.lock natively.
+      - name: Audit locked dependencies
+        run: uvx pip-audit -r uv.lock
+
+      # Audit the declared minimum too: a floor that admits a known-vulnerable
+      # release is a finding even when the lock resolves past it (review
+      # 00004 MAJ-02).
+      - name: Audit declared minimum dependency set
+        run: |
+          uv venv minimum-check
+          uv pip install --python minimum-check "fpr-ff1 @ ." "cryptography==50.0.0"
+          uvx pip-audit --python minimum-check/bin/python
+
   build:
     name: Build distributions
     runs-on: ubuntu-latest
     needs: quality
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@11bd5960a326750d5838078e36cf38b85af677262 # v4.3.0
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
         with:
           enable-cache: true
 
@@ -76,7 +94,7 @@ jobs:
       - name: Check metadata
         run: uvx twine check dist/*
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: distributions
           path: dist/
@@ -88,7 +106,7 @@ jobs:
       # Pinned so a scanner update cannot turn a release red without warning.
       GITLEAKS_VERSION: "8.30.1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd5960a326750d5838078e36cf38b85af677262 # v4.3.0
         with:
           fetch-depth: 0
 
@@ -97,11 +115,20 @@ jobs:
       # yet supported").  publish.yml reuses this workflow as its release gate,
       # so the action failed there and blocked publishing.  The CLI has no
       # event restrictions and runs the same command as `just secrets`.
+      #
+      # The tarball is verified against the checksums file published with the
+      # release before extraction: an unverified curl|tar in a workflow with
+      # publish authority is a supply-chain exposure (review 00003 H4).
       - name: Install gitleaks
         run: |
-          curl -sSfL \
-            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
-            | sudo tar -xz -C /usr/local/bin gitleaks
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          curl -sSfL -o gitleaks.tar.gz \
+            "${base}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfL -o checksums.txt "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          grep "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" checksums.txt > expected.sha256
+          sha256sum -c expected.sha256
+          tar -xz -C /tmp gitleaks.tar.gz
+          sudo mv /tmp/gitleaks /usr/local/bin/gitleaks
           gitleaks version
 
       - name: Scan for secrets
