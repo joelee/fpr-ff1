@@ -81,7 +81,7 @@ These are the failure modes that produce **plausible but wrong output** — ever
 - Encrypt and decrypt differ in exactly three places: `Q` built from `B` vs `A`; round order `0..9` vs `9..0`; final assignment `A, B = B, C` vs `B, A = A, C`. The parity rule `m = u if i % 2 == 0 else v` is **identical in both** — do not mirror it.
 - `S` is truncated to `d` bytes, not `d` bits.
 - The PRF is CBC-MAC with a zero IV over 16-byte-aligned input.
-- Cipher context caching: cache **one ECB encryptor** and call `update()` repeatedly (roughly 1.6x). Never call `finalize()` on it. Never cache a CBC encryptor (it carries chaining state).
+- Cipher contexts: **never cache any encryptor on the instance** — instances are thread-safe and a live context would be shared mutable state. Create the ECB encryptor locally inside the `d > 16` expansion branch (zero cost when `d <= 16`); the PRF already builds a fresh CBC encryptor per call (it carries chaining state).
 - Cite spec steps in internal docstrings, e.g. "SP 800-38G Algorithm 7, step 6.iii".
 
 ## Local development

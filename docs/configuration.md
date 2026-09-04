@@ -29,4 +29,4 @@ The library does not generate, store, derive, or manage keys. Callers are respon
 
 ## Thread safety
 
-`FF1` instances are **not thread-safe**. The instance caches a single ECB encryptor for the S-expansion step, and pyca/cryptography documents concurrent `update()` calls on a shared `CipherContext` as producing indeterminate results — sharing one instance across threads can silently produce wrong ciphertext. Create one instance per thread, or serialise access with a lock. There is no module-level or global state, so any number of *separate* instances may be used concurrently.
+`FF1` instances **are thread-safe**. No mutable state is shared between calls — every cipher context is created locally to the call that uses it — so separate calls on one instance may run concurrently and produce exactly the single-threaded results. There is no module-level or global state, so any number of instances may be used concurrently.

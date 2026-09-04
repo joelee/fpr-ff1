@@ -8,7 +8,6 @@ from typing import ClassVar, NamedTuple, SupportsIndex, cast
 
 from cryptography.hazmat.primitives.ciphers import (
     Cipher,
-    CipherContext,
     algorithms,
     modes,
 )
@@ -105,29 +104,28 @@ def _require_bytes(value: object, name: str, error: type[FF1Error]) -> bytes:
 
 
 class _Aes(NamedTuple):
-    """AES objects shared for the lifetime of one :class:`FF1` instance.
+    """Immutable AES configuration shared for the lifetime of one :class:`FF1` instance.
 
-    ``algorithm`` and ``cbc_zero_iv`` are immutable configuration, reused to
-    avoid rebuilding them on every PRF call.  ``ecb_encryptor`` is a live
-    context, but ECB carries no chaining state so repeated ``update()`` calls
-    are safe.  A CBC *encryptor* is never held here: it would carry chaining
-    state between PRF invocations.
+    ``algorithm`` and ``cbc_zero_iv`` are immutable value objects, reused to
+    avoid rebuilding them on every PRF call.  No live cipher context is held
+    here: a cached encryptor would be shared mutable state, making instances
+    unsafe across threads.  Every encryptor -- CBC for the PRF, ECB for the
+    step 6.iii expansion -- is created locally to the call that uses it.
     """
 
     algorithm: algorithms.AES
     cbc_zero_iv: modes.CBC
-    ecb_encryptor: CipherContext
 
 
 class FF1:
     """FF1 format-preserving encryption primitive and string wrapper.
 
-    Thread safety: instances are **not** thread-safe. The instance caches a
-    single ECB encryptor for the step 6.iii S-expansion, and pyca/cryptography
-    documents concurrent ``update()`` calls on a shared ``CipherContext`` as
-    producing indeterminate results. Create one instance per thread, or
-    serialise access with a lock. There is no module-level or global state, so
-    any number of *separate* instances may be used concurrently.
+    Thread safety: instances **are** thread-safe. No mutable state is shared
+    between calls -- every cipher context is created locally to the call that
+    uses it -- so separate calls on one instance may run concurrently and
+    will produce exactly the single-threaded results. There is no module-level
+    or global state either, so any number of instances may be used
+    concurrently.
     """
 
     # SP 800-38G requires "minlen <= n <= maxlen < 2**32", so the largest
@@ -215,13 +213,13 @@ class FF1:
         # (radix 2), far below _MAX_LEN, so no infeasibility check is needed.
         self._min_length = _min_length(radix)
 
-        # Cipher objects reused across calls.  Do not call finalize() on the
-        # ECB encryptor; it must stay alive for the instance's lifetime.
+        # Immutable cipher configuration, reused across calls.  No encryptor
+        # is cached: a live context would be shared mutable state, and this
+        # instance is safe to share across threads.
         algorithm = algorithms.AES(key)
         self._aes = _Aes(
             algorithm=algorithm,
             cbc_zero_iv=modes.CBC(b"\x00" * 16),
-            ecb_encryptor=Cipher(algorithm, modes.ECB()).encryptor(),
         )
 
     @property
@@ -497,6 +495,12 @@ def _ff1(
         + _encode_uint(t, 4)
     )
 
+    # Loop-invariant moduli, hoisted out of the ten rounds (review 00003
+    # M10): step 6.vi reduces modulo radix**m, and m only ever takes the
+    # values u and v.
+    radix_u = radix**u
+    radix_v = radix**v
+
     rounds = range(10) if encrypt else range(9, -1, -1)
 
     for i in rounds:
@@ -519,11 +523,18 @@ def _ff1(
         # onto R -- both mistakes produce a non-16-byte-aligned input and are
         # invisible to the NIST samples, none of which reach d > 16.
         s_block = r_block
-        j = 1
-        while len(s_block) < d:
-            xored = bytes(p ^ q for p, q in zip(r_block, _encode_uint(j, 16), strict=True))
-            s_block += aes.ecb_encryptor.update(xored)
-            j += 1
+        if len(s_block) < d:
+            # The ECB encryptor is created here, local to this call: caching
+            # one on the instance would be shared mutable state, and instances
+            # are documented as thread-safe.  The cost is zero for d <= 16
+            # (this branch never runs) and a few microseconds for the long
+            # inputs that do reach it.
+            ecb_encryptor = Cipher(aes.algorithm, modes.ECB()).encryptor()
+            j = 1
+            while len(s_block) < d:
+                xored = bytes(p ^ q for p, q in zip(r_block, _encode_uint(j, 16), strict=True))
+                s_block += ecb_encryptor.update(xored)
+                j += 1
         # Truncate to d BYTES, not d bits.
         s_block = s_block[:d]
 
@@ -536,9 +547,9 @@ def _ff1(
         # Step 6.vi: c = (NUM_radix(A) + y) mod radix**m  (decrypt subtracts
         # y from NUM_radix(B) instead)
         if encrypt:
-            c = (_num_radix(radix, a) + y) % (radix**m)
+            c = (_num_radix(radix, a) + y) % (radix_u if m == u else radix_v)
         else:
-            c = (_num_radix(radix, b_side) - y) % (radix**m)
+            c = (_num_radix(radix, b_side) - y) % (radix_u if m == u else radix_v)
 
         # Step 6.vii: C = STR^m_radix(c)
         c_block = _str_radix(c, radix, m)
