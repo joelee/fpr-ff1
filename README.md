@@ -215,6 +215,7 @@ If your alphabet comes from user input or an external source, normalise it first
 
 ```python
 import unicodedata
+
 alphabet = unicodedata.normalize("NFC", alphabet)
 ```
 
@@ -266,16 +267,19 @@ and the part that would actually be hard — identical ciphertext — is already
 ```python
 # before
 from ubiq_security_fpe import ff1
+
 ctx = ff1.Context(key, tweak, twk_min_len, twk_max_len, radix, alphabet)
 ciphertext = ctx.Encrypt(plaintext, None)
-plaintext  = ctx.Decrypt(ciphertext, None)
+plaintext = ctx.Decrypt(ciphertext, None)
 
 # after
 from fpr_ff1 import FF1
-ctx = FF1(key, radix, alphabet=alphabet, tweak=tweak,
-          min_tweak_len=twk_min_len, max_tweak_len=twk_max_len)
+
+ctx = FF1(
+    key, radix, alphabet=alphabet, tweak=tweak, min_tweak_len=twk_min_len, max_tweak_len=twk_max_len
+)
 ciphertext = ctx.encrypt(plaintext)
-plaintext  = ctx.decrypt(ciphertext)
+plaintext = ctx.decrypt(ciphertext)
 ```
 
 | `ubiq_security_fpe` | `fpr-ff1` |

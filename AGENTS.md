@@ -40,11 +40,11 @@ A single `FF1` class:
 class FF1:
     def __init__(
         self,
-        key: bytes,                      # 16, 24 or 32 bytes
+        key: bytes,  # 16, 24 or 32 bytes
         radix: int,
         *,
-        alphabet: str | None = None,     # enables the str interface
-        tweak: bytes = b"",              # default tweak
+        alphabet: str | None = None,  # enables the str interface
+        tweak: bytes = b"",  # default tweak
         min_tweak_len: int | None = None,
         max_tweak_len: int | None = None,
     ) -> None: ...
