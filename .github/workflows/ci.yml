@@ -53,9 +53,12 @@ jobs:
 
       # FPR_FF1_REQUIRE_ORACLE (set at workflow level) makes a missing oracle
       # raise at collection time, so this run cannot pass with the
-      # differential and interoperability suites silently skipped.
+      # differential and interoperability suites silently skipped.  The
+      # coverage flags are explicit here rather than in pyproject addopts so
+      # a bare `pytest` from the sdist stays runnable for packagers; the
+      # 100% floor is enforced on every CI test execution.
       - name: Test with 100% coverage gate
-        run: uv run pytest
+        run: uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100
 
   audit:
     name: Dependency audit
@@ -94,10 +97,81 @@ jobs:
       - name: Check metadata
         run: uvx twine check dist/*
 
+      # The sdist contents are pinned by [tool.hatch.build.targets.sdist] in
+      # pyproject.toml; this assertion fails the build if anything agent- or
+      # editor-local (AGENTS.md, docs/plans, docs/reviews, .opencode,
+      # .python-version) leaks back in (review 00003 L2 / review 00004
+      # LOW-02).
+      - name: Assert sdist contents
+        run: |
+          tar -tzf dist/*.tar.gz > sdist-contents.txt
+          forbidden='AGENTS.md docs/plans/ docs/reviews/ .opencode/ .python-version .codegraph'
+          for pattern in $forbidden; do
+            if grep -q "$pattern" sdist-contents.txt; then
+              echo "sdist contains forbidden path pattern: $pattern" >&2
+              grep "$pattern" sdist-contents.txt | head -5 >&2
+              exit 1
+            fi
+          done
+          echo "sdist contents clean ($(wc -l < sdist-contents.txt) files)"
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: distributions
           path: dist/
+
+  wheel-test:
+    name: Test installed wheel
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@11bd5960a326750d5838078e36cf38b85af677262 # v4.3.0
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+
+      # Source-tree tests cannot catch packaging defects: a missing py.typed
+      # or a bad packages entry would pass the whole matrix.  Install the
+      # built wheel into a clean environment and exercise the public
+      # surface from it (review 00003 M3 / review 00004 LOW-03).
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: distributions
+          path: dist/
+
+      - name: Install wheel into a clean environment
+        run: |
+          uv venv wheel-check
+          uv pip install --python wheel-check dist/*.whl
+
+      - name: Exercise the installed package
+        run: |
+          wheel-check/bin/python - <<'EOF'
+          import importlib.resources
+          from importlib.metadata import version
+
+          import fpr_ff1
+          from fpr_ff1 import FF1
+
+          # Every public symbol imports from the installed wheel.
+          for name in fpr_ff1.__all__:
+              assert getattr(fpr_ff1, name) is not None, name
+
+          # The typed-package marker ships.
+          assert importlib.resources.files("fpr_ff1").joinpath("py.typed").is_file()
+
+          # The version matches the distribution.
+          assert fpr_ff1.__version__ == version("fpr-ff1")
+
+          # A NIST sample vector round-trips through the installed wheel.
+          ff1 = FF1(
+              key=bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c"),
+              radix=10,
+              alphabet="0123456789",
+              tweak=bytes.fromhex("39383736353433323130"),
+          )
+          ciphertext = ff1.encrypt("0123456789")
+          assert ff1.decrypt(ciphertext) == "0123456789"
+          print("installed-wheel smoke test passed")
+          EOF
 
   secrets:
     name: Secret scan

@@ -47,10 +47,12 @@ typecheck:
 test:
     uv run pytest
 
-# Full suite including slow tests (bijectivity), with the 100% coverage gate.
-# Coverage flags live in pyproject addopts so a bare `pytest` is gated too.
+# Full suite with the 100% line-and-branch coverage gate.  The flags live
+# here and in CI's test step (not in pyproject addopts) so a bare `pytest`
+# from an unpacked sdist does not fail for downstream packagers who have not
+# installed pytest-cov.
 coverage:
-    uv run pytest
+    uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100
 
 # Fast inner-loop run: skips the exhaustive bijectivity sweep, no gate.
 test-fast:

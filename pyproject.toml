@@ -62,6 +62,25 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/fpr_ff1"]
 
+# Explicit sdist contents (review 00003 L2 / review 00004 LOW-02): without
+# this, hatchling ships everything it finds -- agent instructions, planning
+# and review documents, editor state, even .opencode/node_modules.  The
+# published tarball is code, tests, vectors, and user-facing docs only.
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/docs/architecture.md",
+    "/docs/backlog.md",
+    "/docs/configuration.md",
+    "/docs/developer-guide.md",
+    "/docs/directory-structure.md",
+    "/CHANGELOG.md",
+    "/SECURITY.md",
+    "/justfile",
+    "/uv.lock",
+]
+
 [tool.ruff]
 line-length = 100
 src = ["src", "tests"]
@@ -100,7 +119,10 @@ indent-style = "space"
 line-ending = "lf"
 
 [tool.pytest.ini_options]
-addopts = "--cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100"
+# No coverage flags here, deliberately (review 00003 M4): the sdist ships
+# the tests, and a bare `pytest` from an unpacked sdist must not fail for a
+# downstream packager who has not installed pytest-cov.  The 100% floor is
+# enforced by `just coverage` / `just quality` and by CI's explicit flags.
 testpaths = ["tests"]
 markers = [
     "slow: tests that take more than a few seconds",

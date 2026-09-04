@@ -23,9 +23,9 @@ just format-check    # Check formatting without writing
 just lint            # Run ruff linter
 just lint-fix        # Auto-fix ruff issues where possible
 just typecheck       # Run pyright in strict mode
-just test            # Full suite with the 100% coverage gate
+just test            # Full suite (no coverage gate; see coverage below)
 just test-fast       # Inner loop: skips the slow bijectivity sweeps, no gate
-just coverage        # Same as `just test` (gate lives in pyproject addopts)
+just coverage        # Full suite with the 100% line-and-branch coverage gate
 just quality         # format-check + lint + typecheck + full test run
 just build           # quality gate + uv build
 just secrets         # gitleaks secret scan (must be installed locally)
@@ -52,9 +52,11 @@ just quality     # before pushing
 
 ### Standards
 
-- **Coverage is 100% line and branch, enforced.** The gate lives in `pyproject.toml` `addopts`, so
-  a bare `pytest` is gated too. Every raise path must be exercised. If a branch cannot be reached,
-  delete it rather than excluding it.
+- **Coverage is 100% line and branch, enforced.** The gate is invoked by `just coverage`, `just
+  quality`, and CI's explicit pytest flags — not by `pyproject.toml` `addopts`, so a bare `pytest`
+  from an unpacked sdist stays runnable for downstream packagers who have not installed
+  `pytest-cov`. Every raise path must be exercised. If a branch cannot be reached, delete it
+  rather than excluding it.
 - Conformance fixtures belong in `tests/vectors/` as JSON. **Never inline self-generated expected
   values**, and never regenerate the NIST fixtures from this implementation — that turns a record
   of the standard into a record of whatever the code currently does.
@@ -108,18 +110,19 @@ uv sync --locked
 uv run ruff format --check .
 uv run ruff check .
 uv run pyright
-FPR_FF1_REQUIRE_ORACLE=1 uv run pytest   # coverage gate is in pyproject addopts
+FPR_FF1_REQUIRE_ORACLE=1 uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100
 uv build
 gitleaks dir . --redact
 ```
 
 CI additionally runs a dependency-audit job (`pip-audit` against `uv.lock` and against the declared
-minimum dependency set) and installs gitleaks only after verifying the release tarball against the
-published checksums. Every action is pinned to a full commit SHA with the version in a trailing
-comment; Dependabot (`.github/dependabot.yml`) raises PRs when a pinned action or a dependency
-moves. The publish workflow downloads the distributions artifact built and checked by the release
-gate rather than rebuilding, and it verifies the release tag matches the project version before
-publishing.
+minimum dependency set), installs gitleaks only after verifying the release tarball against the
+published checksums, asserts the sdist contents against a forbidden-path list, and installs the
+built wheel into a clean environment to exercise the public surface from it. Every action is
+pinned to a full commit SHA with the version in a trailing comment; Dependabot
+(`.github/dependabot.yml`) raises PRs when a pinned action or a dependency moves. The publish
+workflow downloads the distributions artifact built and checked by the release gate rather than
+rebuilding, and it verifies the release tag matches the project version before publishing.
 
 The secret scan is pinned to **gitleaks 8.30.1** in CI (`GITLEAKS_VERSION` in
 `.github/workflows/ci.yml`, mirrored as `gitleaks_version` in the `justfile` — keep the two in
