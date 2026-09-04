@@ -35,3 +35,7 @@ build/
 *.log
 .tmp/
 tmp/
+
+# Codegraph index (tool-local, per-machine; was self-ignored via a tracked
+# .codegraph/.gitignore until review 00003 L1 moved it here)
+.codegraph/

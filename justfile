@@ -65,9 +65,9 @@ build: quality
 
 secrets:
     @if command -v gitleaks >/dev/null 2>&1; then \
-        installed=$$(gitleaks version 2>/dev/null | head -1); \
-        if [ "$$installed" != "v{{gitleaks_version}}" ] && [ "$$installed" != "{{gitleaks_version}}" ]; then \
-            echo "warning: gitleaks $$installed is running; CI pins v{{gitleaks_version}} (authoritative)."; \
+        installed=$(gitleaks version 2>/dev/null | head -1); \
+        if [ "$installed" != "v{{gitleaks_version}}" ] && [ "$installed" != "{{gitleaks_version}}" ]; then \
+            echo "warning: gitleaks $installed is running; CI pins v{{gitleaks_version}} (authoritative)."; \
         fi; \
         gitleaks dir . --redact; \
     else \

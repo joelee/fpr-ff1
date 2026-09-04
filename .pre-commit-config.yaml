@@ -1,0 +1,29 @@
+# Pre-commit hooks (review 00003 M2).
+#
+# Install once per clone:  pre-commit install
+# Run against everything:  pre-commit run --all-files
+#
+# The hooks mirror `just quality`: ruff (lint), ruff-format, and the same
+# pinned gitleaks as `just secrets` and CI.  The gitleaks hook is declared
+# locally rather than through the upstream `gitleaks-system` hook id: this
+# pre-commit version mangles the upstream entry's flag passing.  It uses the
+# locally installed binary (matching `just secrets`, which warns on version
+# drift), so no Go toolchain is needed.
+#
+# Revs are pinned to full commit SHAs, consistent with the workflow pinning
+# policy; `pre-commit autoupdate` refreshes them.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 321478e58f4938179c6b86e4ddfa923d1547a49b # v0.16.6
+    hooks:
+      - id: ruff
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: gitleaks
+        name: detect hardcoded secrets (gitleaks)
+        entry: gitleaks git --pre-commit --redact --staged --verbose
+        language: system
+        pass_filenames: false
+        always_run: true

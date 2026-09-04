@@ -62,7 +62,8 @@
 ├── justfile                 # Local and CI command entry points
 ├── .gitleaks.toml           # Secret-scan allowlist
 ├── .gitattributes           # Line-ending normalisation; vector fixtures pinned to LF
-└── .gitignore               # Ignore rules (.codegraph/ is self-ignored via its own .gitignore)
+├── .pre-commit-config.yaml  # Local hooks mirroring `just quality` (ruff, ruff-format, gitleaks)
+└── .gitignore               # Ignore rules (includes the tool-local .codegraph/ index)
 ```
 
 ## Source

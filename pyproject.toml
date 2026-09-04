@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fpr-ff1"
-version = "0.1.1"
+version = "1.0.0"
 description = "Format-preserving encryption: NIST SP 800-38G FF1 for Python."
 readme = "README.md"
 license = "MIT"
@@ -27,7 +27,7 @@ keywords = [
     "cryptography",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",

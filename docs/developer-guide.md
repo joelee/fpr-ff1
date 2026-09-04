@@ -102,6 +102,19 @@ rule — every expected value comes from the independent implementation.
 
 `ruff` owns formatting and linting. Run `just quality` before review.
 
+## Pre-commit Hooks
+
+`.pre-commit-config.yaml` wires the same tools as the CI gate — ruff, ruff-format, and the pinned
+gitleaks (via the locally installed binary, so no Go toolchain) — so formatter drift and leaked
+secrets are caught at commit time. Install the hooks once per clone:
+
+```bash
+uv run pre-commit install      # hook into git's commit action
+uv run pre-commit run --all-files   # run everything once, CI-style
+```
+
+The hook revs are pinned to full commit SHAs; `uv run pre-commit autoupdate` refreshes them.
+
 ## CI/CD
 
 Use the portable command sequence in GitHub Actions, GitLab CI, Gitea Actions, or another runner:
