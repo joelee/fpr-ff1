@@ -75,7 +75,9 @@ validation. This package is not FIPS 140 validated and makes no such claim.
 
    This is at or near the noise floor for a pure-Python implementation. It is reported as measured
    rather than estimated, and it is not a guarantee — treat it as an observation about one
-   interpreter on one machine.
+   interpreter on one machine. The harness that produces this table is
+   `benchmarks/timing.py` (`just bench`); re-run it on your own interpreter and hardware rather
+   than trusting any single machine's numbers.
 
 2. **Length-dependent — larger, but public.** The step 6.iii `S`-expansion loop runs
    `ceil(d / 16) - 1` extra AES blocks, where `d` derives from the radix and input length. At radix

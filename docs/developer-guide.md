@@ -29,6 +29,7 @@ just coverage        # Full suite with the 100% line-and-branch coverage gate
 just quality         # format-check + lint + typecheck + full test run
 just build           # quality gate + uv build
 just secrets         # gitleaks secret scan (must be installed locally)
+just bench           # reproducible timing/throughput tables (benchmarks/timing.py)
 just ci              # sync + quality + build + secrets
 ```
 

@@ -75,4 +75,9 @@ secrets:
         exit 127; \
     fi
 
+# Reproducible timing/throughput harness; prints the tables published in
+# SECURITY.md and README.md (see benchmarks/timing.py).
+bench:
+    uv run python benchmarks/timing.py
+
 ci: sync quality build secrets

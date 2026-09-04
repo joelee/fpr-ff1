@@ -212,6 +212,27 @@ the two agree bit for bit — which is the point of the differential and interop
 Nothing in the roadmap changes the scope boundary above. FF3 and FF3-1 remain permanently out of
 scope, and no release will add key management.
 
+## Performance
+
+Measured on one core, CPython 3.12.13, macOS (Apple Silicon) — reproduce on your own hardware
+with `just bench` (`benchmarks/timing.py` is the harness):
+
+| Input | Throughput | Per numeral |
+|---|---|---|
+| 6 numerals, radix 10 | ~32,000 ops/s | 30.9 µs/op |
+| Instance construction | ~636,000 /s | 1.6 µs |
+| n = 100, radix 10 | — | 1.2 µs |
+| n = 1,000, radix 10 | — | 1.6 µs |
+| n = 5,000, radix 10 | — | 7.0 µs |
+| n = 20,000, radix 10 | — | 26.8 µs |
+
+The per-numeral cost climbs sharply past ~1,000 numerals: each of the ten rounds converts both
+halves of the input between a numeral sequence and a big integer, and that conversion is
+quadratic in pure Python. This is inherent to the algorithm's `NUM`/`STR` steps, not an
+implementation defect. If you are sizing a nightly job over millions of rows, measure with
+`just bench` against production-representative hardware — and note that the 2.0 optional
+accelerated backend in the roadmap exists precisely for this regime.
+
 ## API
 
 ### `FF1(key, radix, *, alphabet=None, tweak=b"", min_tweak_len=None, max_tweak_len=None)`

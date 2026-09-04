@@ -9,6 +9,8 @@
 │   ├── dependabot.yml     # Automated updates for pinned actions and dependencies
 │   ├── ISSUE_TEMPLATE/    # Bug report, feature request, security redirect
 │   └── PULL_REQUEST_TEMPLATE.md
+├── benchmarks/
+│   └── timing.py          # Reproducible timing/throughput harness (just bench)
 ├── docs/                   # Maintained project documentation
 │   ├── AGENTS.md          # Documentation maintenance rules
 │   ├── architecture.md    # System context, modules, and design decisions
