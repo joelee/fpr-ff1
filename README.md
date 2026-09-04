@@ -198,6 +198,9 @@ booleans arriving here is a caller mistake, not an intent to encrypt ones and ze
 
 The input must be a `Sequence` — something with a known length. A generator raises `TypeError`
 (not `FF1Error`), because that is misuse of the API rather than bad data; wrap it in `list(...)`.
+The `Sequence` contract is enforced: mappings and sets are rejected, and a `Sequence` whose
+`__len__` disagrees with the values it yields raises `LengthError` rather than encrypting a
+domain smaller than the enforced minimum.
 
 ### String interface
 

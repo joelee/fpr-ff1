@@ -276,16 +276,36 @@ class FF1:
             if tweak is None
             else _require_bytes(tweak, "tweak", TweakLengthError)
         )
-        # Check the length before materialising the sequence: an over-long
-        # input must be rejected without first allocating a copy of it.
-        if not hasattr(x, "__len__"):
+        # A real Sequence is required, not merely an object with __len__: a
+        # mapping or set has no stable iteration order, and a custom object can
+        # report any length it likes.  The length is checked before the input
+        # is materialised, so an over-long input is rejected without first
+        # allocating a copy of it.
+        if not isinstance(x, Sequence):  # pyright: ignore[reportUnnecessaryIsInstance]
             raise TypeError(
                 f"{inout} must be a Sequence[int] with a known length, got "
                 f"{type(x).__name__}; wrap it with list(...) if it is an iterator"
             )
-        self._validate_length(len(x), inout)
-        numerals = self._coerce_numerals(x, inout)
+        declared_length = len(x)
+        self._validate_length(declared_length, inout)
+        # The tweak is validated before the numerals are walked, so a bad
+        # tweak rejects in O(1) rather than after the full coercion pass.
         self._validate_tweak(t)
+        numerals = self._coerce_numerals(x, inout)
+        # A Sequence's __len__ must be honest: the materialised length is
+        # authoritative.  Without this check a lying __len__ passes the
+        # minimum-domain gate above while the core encrypts a smaller domain
+        # than the package promises to reject.
+        if len(numerals) != declared_length:
+            raise LengthError(
+                f"{inout} declared length {declared_length} but yielded "
+                f"{len(numerals)} values; its __len__ is inconsistent"
+            )
+        # Defensive revalidation before the core (review 00004 MAJ-01): the
+        # declared length already passed, so this holds today, but keeping
+        # the check here makes _prepare's guarantee local rather than
+        # dependent on the coercion path never changing.
+        self._validate_length(len(numerals), inout)
         return numerals, t
 
     def _alphabet_maps(self, numeral_method: str) -> tuple[dict[str, int], list[str]]:
