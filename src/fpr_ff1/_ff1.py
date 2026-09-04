@@ -263,7 +263,12 @@ class FF1:
         for idx, value in enumerate(x):
             numeral = _require_int(value, f"{inout}[{idx}]", ValueRangeError)
             if numeral < 0 or numeral >= radix:
-                raise ValueRangeError(f"{inout}[{idx}]={numeral!r} out of range for radix {radix}")
+                # The rejected value is plaintext data and must not appear in
+                # the message: validation exceptions are routinely logged, and
+                # SECURITY.md puts "plaintext raised in a message" in scope.
+                # The index and the radix stay -- they locate the fault
+                # without disclosing it.
+                raise ValueRangeError(f"{inout}[{idx}] is out of range for radix {radix}")
             numerals.append(numeral)
         return numerals
 
@@ -326,7 +331,10 @@ class FF1:
         for idx, ch in enumerate(s):
             value = char_to_index.get(ch)
             if value is None:
-                raise ValueRangeError(f"character {ch!r} at index {idx} is not in the alphabet")
+                # As in _coerce_numerals: the offending character is plaintext
+                # data and must not be echoed into a message that callers log.
+                # The index locates the fault without disclosing it.
+                raise ValueRangeError(f"character at index {idx} is not in the alphabet")
             numerals.append(value)
         return numerals
 
