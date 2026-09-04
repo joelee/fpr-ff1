@@ -2,9 +2,13 @@
 
 ```text
 .
-├── .github/workflows/      # CI and release pipelines
-│   ├── ci.yml             # Quality matrix (3 OS × 3 Pythons), build, secret scan
-│   └── publish.yml        # Release gate + Trusted Publishing to PyPI
+├── .github/
+│   ├── workflows/          # CI and release pipelines
+│   │   ├── ci.yml         # Quality matrix (3 OS × 3 Pythons), audit, build, wheel-test, secret scan
+│   │   └── publish.yml    # Release gate + Trusted Publishing to PyPI (publishes the gated artifact)
+│   ├── dependabot.yml     # Automated updates for pinned actions and dependencies
+│   ├── ISSUE_TEMPLATE/    # Bug report, feature request, security redirect
+│   └── PULL_REQUEST_TEMPLATE.md
 ├── docs/                   # Maintained project documentation
 │   ├── AGENTS.md          # Documentation maintenance rules
 │   ├── architecture.md    # System context, modules, and design decisions
@@ -15,7 +19,7 @@
 │   └── plans/             # Execution plans derived from review reports
 ├── src/                    # Python source root
 │   └── fpr_ff1/            # FF1 implementation package
-│       ├── __init__.py     # Public exports
+│       ├── __init__.py     # Public exports and __version__
 │       ├── _exceptions.py  # Typed exception hierarchy
 │       ├── _ff1.py         # FF1 core implementation
 │       └── py.typed        # PEP 561 typed-package marker
@@ -46,6 +50,8 @@
 │       └── oracle_kat_frozen.json # Oracle-generated KAT vectors with provenance header
 ├── AGENTS.md                # Agent contract for the repository
 ├── CHANGELOG.md             # Release history, including accepted-input changes
+├── CODE_OF_CONDUCT.md       # Contributor Covenant
+├── CONTRIBUTING.md          # Contribution rules (vector provenance, quality gate, security)
 ├── README.md                # Project overview and quick start
 ├── SECURITY.md              # Disclosure process and known limitations
 ├── LICENSE                  # MIT license

@@ -1,5 +1,10 @@
 # fpr-ff1
 
+[![CI](https://github.com/joelee/fpr-ff1/actions/workflows/ci.yml/badge.svg)](https://github.com/joelee/fpr-ff1/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/fpr-ff1.svg)](https://pypi.org/project/fpr-ff1/)
+[![Python](https://img.shields.io/pypi/pyversions/fpr-ff1.svg)](https://pypi.org/project/fpr-ff1/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A small, correct Python implementation of **FF1**, the format-preserving encryption mode from NIST SP 800-38G.
 
 This package is intentionally just the algorithm: no accounts, no network, no key management, and no FF3/FF3-1 modes.
@@ -15,11 +20,19 @@ pip install fpr-ff1
 ```python
 from fpr_ff1 import FF1
 
+# The all-zero key here is for the example only. Never use it (or any other
+# published key) for real data: load key material from your secret store.
+key = load_key_from_your_secret_store()  # 16, 24, or 32 bytes
+
 ff1 = FF1(
-    key=b"\x00" * 16,
+    key=key,
     radix=10,
     alphabet="0123456789",
-    tweak=b"",
+    # A tweak separates ciphertexts across contexts: two records with the
+    # same plaintext encrypt to the same ciphertext under the same tweak,
+    # so derive the tweak from stable record context (an account ID, a
+    # table name) rather than leaving it empty.
+    tweak=b"customer-pans",
 )
 
 encrypted = ff1.encrypt("123456")
@@ -27,13 +40,35 @@ decrypted = ff1.decrypt(encrypted)
 assert decrypted == "123456"
 ```
 
+## Security notes — read before use
+
+FF1 is a deterministic permutation for a fixed key and tweak. That has operational consequences:
+
+1. **Equal plaintexts produce equal ciphertexts** under the same key and tweak. NIST recommends
+   varying the tweak with each encryption instance where feasible — derive it from stable record
+   context so identical plaintexts in different records encrypt differently.
+2. **FF1 provides confidentiality only — no integrity or authentication.** Modified ciphertext
+   decrypts to another plausible in-domain value; there is no error, and the tampering is
+   invisible. Applications needing tamper detection must authenticate the ciphertext and its
+   context separately, where their format allows.
+3. **A wrong key or tweak does not raise.** Decryption with the wrong key or tweak yields
+   plausible-looking plaintext, not an exception. There is no way to detect key mismatch from
+   the output alone.
+4. **The one-million-value domain is a standards floor, not a guarantee.** `radix ** minlen >=
+   1_000_000` rules out trivially enumerable domains, but a determined attacker with oracle
+   access can still search a million-value space. Small-domain FPE needs rate limiting or
+   access control around the encryption interface.
+5. **Validation exceptions never echo your data.** Rejected values are located by index, not
+   repeated in the message, so a malformed record does not leak plaintext into your logs.
+
 ## Features
 
 - Pure Python with a single runtime dependency: `cryptography`.
 - Conformance-tested against the NIST SP 800-38G sample vectors.
 - No floating-point arithmetic in the FF1 core.
 - Tightened domain limits from the SP 800-38G Rev. 1 second public draft:
-  - radix range `2 <= radix < 2**16`
+  - radix range `2 <= radix < 2**16` (a deliberate supported subset of the spec's inclusive
+    `[2..2**16]` — see [Domain limits](#domain-limits-are-stricter-than-the-2016-text))
   - minimum domain `radix ** minlen >= 1_000_000`
   - maximum length `2 ** 32 - 1` (SP 800-38G specifies `maxlen < 2 ** 32`)
   - AES keys of 128, 192, or 256 bits only
@@ -48,7 +83,10 @@ not a checkbox; it is the entire product, and it is evidenced rather than assert
 
 **The full suite — NIST sample vectors, per-round intermediate-value conformance for every round of every sample, differential tests against an independent implementation, exhaustive bijectivity sweeps, and a malformed-input sweep — runs in CI with 100% line and branch coverage enforced. The build fails below it.**
 
-### Conformance is proven at the round level, not just the output level
+This is strong conformance evidence, not proof. It has not received an independent cryptographic
+audit or NIST validation; see [What this is *not*](#what-this-is-not) below.
+
+### Conformance is verified at the round level, not just the output level
 
 All nine published NIST sample vectors pass in both directions. That alone is a weak statement:
 nine input/output pairs can be satisfied by two bugs that cancel out.
@@ -62,7 +100,7 @@ The vectors are transcribed from the NIST document and stored as data files. The
 regenerated from this implementation, which would make them a record of whatever the code does
 rather than of what the standard requires.
 
-### Radices without published vectors are proven against an independent implementation
+### Radices without published vectors are verified against an independent implementation
 
 NIST publishes vectors for radix 10 and 36 only. Every other radix has none, so agreement with an
 independent implementation is the only correctness evidence available — expected values authored
@@ -71,9 +109,10 @@ from this code would test nothing and lock in any bug permanently.
 `fpr-ff1` is therefore differential-tested against `ubiq_security_fpe` across radices **2, 10, 16,
 32, 36, 62, 256 and 65535**, including every length where the algorithm's internal block structure
 changes. The oracle is itself validated against all nine NIST vectors before a single comparison is
-trusted.
+trusted. Oracle-derived known-answer vectors are also frozen into the repository, so this evidence
+survives even if the (deprecated, unmaintained) oracle package one day stops installing.
 
-### Bijectivity is verified exhaustively, not sampled
+### Bijectivity is tested exhaustively for these two domains
 
 For two domains small enough to enumerate completely — radix 2 at length 20 (1,048,576 values) and
 radix 10 at length 6 (1,000,000 values) — every point is encrypted and the image checked to be the
@@ -129,8 +168,14 @@ the **tightened constraints from the Rev. 1 second public draft**:
 | Minimum domain | `radix ** minlen >= 1_000_000` | `radix ** minlen >= 100` |
 | Maximum length | `2 ** 32 - 1` | `2 ** 32 - 1` |
 | Key sizes | 128, 192, 256 bits | same |
-| Radix | `2 <= radix < 2 ** 16` | same |
+| Radix | `2 <= radix < 2**16` — a deliberate supported **subset** of the spec's inclusive `[2..2**16]` | `2 <= radix <= 2**16` |
 | Rounds | exactly 10 | same |
+
+The radix bound is an implementation limit, not a spec deviation: NIST permits an implementation
+to support a subset of radices, and this package supports `2..65535`. Radix 65536 is excluded
+deliberately (its numerals do not fit in `uint16`-sized values, and no practical alphabet reaches
+it); if that ever changes, widening the accepted domain without changing existing behaviour will
+be a minor version, not a major one.
 
 The minimum-domain rule is the one that will bite. A domain of only 100 values is trivially
 enumerable, so this package **fails closed** and rejects it. Concretely, `min_length` is 6 for
@@ -302,9 +347,12 @@ plaintext = ctx.decrypt(ciphertext)
 
 ### Behaviour changes to check before you switch
 
-1. **Shorter inputs are rejected.** `fpr-ff1` enforces `radix ** minlen >= 1_000_000`; the legacy
-   library used the same rule, but if you relied on any library using the 2016 `>= 100` bound,
-   inputs below `ctx.min_length` now raise `LengthError`. Check `ctx.min_length` for your radix.
+1. **Shorter inputs are rejected.** `fpr-ff1` enforces the Rev. 1 draft's `radix ** minlen >=
+   1_000_000`; `ubiq_security_fpe` enforced the same rule, so ciphertext produced by the legacy
+   library decrypts unchanged. But if your data contains values that only ever passed under the
+   2016 text's weaker `>= 100` bound — through another library or a manual path — those inputs
+   now raise `LengthError`. Before switching, check your shortest values against
+   `ctx.min_length` for your radix (6 for radix 10, 4 for radix 36, 3 for radix 256).
 2. **Errors are typed.** Rejections raise `KeyLengthError`, `RadixError`, `LengthError`,
    `ValueRangeError`, `TweakLengthError` or `AlphabetError` — all subclasses of `FF1Error` —
    rather than bare `RuntimeError`. Catch `FF1Error` if you want the old catch-all behaviour.
@@ -340,6 +388,8 @@ just secrets  # gitleaks scan (must be installed locally)
 - `docs/backlog.md` — active and completed work
 - `CHANGELOG.md` — release history, including behaviour changes that affect accepted inputs
 - `SECURITY.md` — disclosure process and known limitations
+- `CONTRIBUTING.md` — how to contribute, including the vector-provenance rules
+- `CODE_OF_CONDUCT.md` — community standards
 
 ## License
 

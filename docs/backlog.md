@@ -41,6 +41,15 @@ This file tracks high-level feature ideas and technical debt for `fpr-ff1`.
   first green release-gate run at v0.1.0.
 - Claimed `fpr-ff1` on PyPI, configured Trusted Publishing, and published v0.1.0 (2026-09-03)
   with provenance attestations on both artifacts.
+- Reviews 00003 and 00004 pre-1.0 findings resolved for v1.0.0 (plan 00002): minimum-domain
+  validation bypass closed, exception messages redacted, instances made thread-safe by
+  construction, pickling support, `__version__`, frozen oracle KAT vectors, supply-chain
+  hardening (SHA-pinned actions, checksum-verified gitleaks, publish-the-tested-artifact,
+  dependabot), wheel-test and sdist-contents CI jobs, coverage gate relocated out of `addopts`,
+  benchmark harness, calibrated README language, community files, badges.
+- Version policy revised (review 00004 MED-05): expanding the accepted domain without changing
+  existing behaviour (e.g. a future radix-65536 addition) is a SemVer **minor** change; newly
+  rejecting inputs or changing ciphertext remains major.
 
 ## Decided
 

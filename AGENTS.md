@@ -4,7 +4,7 @@ Agent contract for this repository. Read fully before any code change.
 
 ## Project
 
-Open-source Python implementation of **FF1**, the format-preserving encryption mode from NIST SP 800-38G. Published as a standalone PyPI library (`fpr-ff1`; claiming the name and configuring Trusted Publishing is a pre-1.0 backlog item) — no network, accounts, or key-management features. It replaces `ubiq_security_fpe`, deprecated in favour of a SaaS client and no longer maintained.
+Open-source Python implementation of **FF1**, the format-preserving encryption mode from NIST SP 800-38G. Published as a standalone PyPI library (`fpr-ff1`, live on PyPI with Trusted Publishing configured) — no network, accounts, or key-management features. It replaces `ubiq_security_fpe`, deprecated in favour of a SaaS client and no longer maintained.
 
 The design goal: a reviewer can compare the source against SP 800-38G line by line and find no gaps.
 
@@ -25,7 +25,7 @@ SP 800-38G (2016, updated 2019) is the normative text, plus the Rev. 1 second pu
 - Minimum domain: `radix ** minlen >= 1_000_000` — stricter than the 2016 text's `>= 100`; a deliberate fail-closed choice noted in the changelog.
 - Maximum length: `maxlen < 2**32`, implemented as `2**32 - 1` (fail closed on the boundary).
 - Key sizes: 128, 192, 256 bits only.
-- Radix: `2 <= radix < 2**16`.
+- Radix: `2 <= radix < 2**16` — a deliberate supported **subset** of the spec's inclusive `[2..2**16]` (NIST permits subsets). Radix 65536 is excluded; widening the domain without changing existing behaviour is a SemVer minor change, not major.
 - Forward AES only; no inverse cipher function.
 - Exactly 10 rounds.
 - **No floating-point arithmetic anywhere in the FF1 core.**

@@ -9,6 +9,10 @@ description = "Format-preserving encryption: NIST SP 800-38G FF1 for Python."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
+# GitHub noreply address rather than a corporate mailbox, so the published
+# metadata does not expose an employer association (review 00004 LOW-05).
+authors = [{ name = "Joseph Lee", email = "joelee@users.noreply.github.com" }]
+maintainers = [{ name = "Joseph Lee", email = "joelee@users.noreply.github.com" }]
 # No upper bound: a capped requires-python turns into a hard resolution
 # failure on future interpreters (3.15 final is scheduled for October 2026),
 # which punishes users for our untested matrix.  The classifiers state the
@@ -43,6 +47,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/joelee/fpr-ff1"
+Documentation = "https://github.com/joelee/fpr-ff1/blob/main/README.md"
 Repository = "https://github.com/joelee/fpr-ff1"
 Issues = "https://github.com/joelee/fpr-ff1/issues"
 Changelog = "https://github.com/joelee/fpr-ff1/blob/main/CHANGELOG.md"

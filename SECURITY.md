@@ -19,11 +19,13 @@ warranted, disclosure will be coordinated with you.
 
 ## Supported versions
 
-Until 1.0, only the latest released version receives fixes.
+The latest `1.x` release receives fixes. A minor release is supported until the next minor ships;
+security fixes are backported to the most recent minor where practical.
 
 | Version | Supported |
 |---|---|
-| 0.1.x | ✅ |
+| 1.0.x | ✅ |
+| 0.1.x | ✅ (until 1.0.0 ships, per the pre-1.0 policy) |
 
 ## Scope
 
