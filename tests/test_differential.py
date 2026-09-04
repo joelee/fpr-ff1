@@ -11,6 +11,11 @@ published vectors.  Round-trip and property tests cannot cover it either:
 encrypt and decrypt share that code, so a wrong ``S`` still round-trips
 cleanly.  Only an independent oracle catches it.  See
 ``test_s_expansion_boundary`` below.
+
+The frozen KAT vectors live in ``tests/test_frozen_kat.py``: the oracle is
+deprecated and unmaintained, and the day it stops installing the live tests
+above go dark.  That module carries the same evidence forward, with no oracle
+dependency.
 """
 
 import string

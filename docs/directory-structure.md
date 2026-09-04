@@ -24,20 +24,26 @@
 │   ├── conftest.py         # Shared fixtures (NIST sample loader)
 │   ├── _oracle/            # Differential-testing oracle loader
 │   │   ├── __init__.py     # ubiq_security_fpe loader; CI-required via FPR_FF1_REQUIRE_ORACLE
-│   │   └── _m2crypto_shim.py # cryptography-backed M2Crypto.EVP shim (the oracle imports
-│   │                       # M2Crypto, which does not build on current toolchains)
+│   │   ├── _m2crypto_shim.py # cryptography-backed M2Crypto.EVP shim (the oracle imports
+│   │   │                   # M2Crypto, which does not build on current toolchains)
+│   │   └── generate_kat.py # Dev-only generator for the frozen KAT vectors (run manually)
 │   ├── test_smoke.py       # Construction and validation smoke tests
 │   ├── test_nist_vectors.py # NIST sample vector conformance tests
 │   ├── test_intermediates.py # Per-round intermediate value conformance tests
 │   ├── test_validation.py  # Parameter and input validation tests
+│   ├── test_sequence_validation.py # Lying-Sequence / non-Sequence rejection regression tests
 │   ├── test_exact_arithmetic.py # Exact-arithmetic regression and AST float scan
 │   ├── test_properties.py  # Hypothesis property-based and bijectivity tests
 │   ├── test_differential.py # Differential tests against the independent oracle
+│   ├── test_frozen_kat.py  # Frozen oracle-derived KAT vectors (runs without the oracle)
 │   ├── test_interoperability.py # Bidirectional ubiq_security_fpe compatibility
+│   ├── test_pickle.py      # Pickle/deepcopy/multiprocessing round-trip and __version__ tests
+│   ├── test_thread_safety.py # Structural and concurrency thread-safety tests
 │   ├── test_contract.py    # Whole-surface assertions (typed rejections, repo hygiene)
 │   └── vectors/            # External test fixtures (never regenerated from this code)
 │       ├── nist_ff1_samples.json
-│       └── nist_ff1_intermediates.json
+│       ├── nist_ff1_intermediates.json
+│       └── oracle_kat_frozen.json # Oracle-generated KAT vectors with provenance header
 ├── AGENTS.md                # Agent contract for the repository
 ├── CHANGELOG.md             # Release history, including accepted-input changes
 ├── README.md                # Project overview and quick start
