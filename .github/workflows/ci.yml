@@ -29,7 +29,7 @@ jobs:
         python-version: ["3.12", "3.13", "3.14"]
 
     steps:
-      - uses: actions/checkout@11bd5960a326750d5838078e36cf38b85af677262 # v4.3.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
         with:
           enable-cache: true
@@ -64,29 +64,34 @@ jobs:
     name: Dependency audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd5960a326750d5838078e36cf38b85af677262 # v4.3.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
 
       # Audit the locked environment: this is what CI and the release build
-      # actually run against.  pip-audit reads uv.lock natively.
+      # actually run against.  uv.lock is TOML, so export to requirements
+      # format first; fpr-ff1 itself is omitted (unpublished local project,
+      # nothing to audit).
       - name: Audit locked dependencies
-        run: uvx pip-audit -r uv.lock
+        run: |
+          uv export --frozen --no-hashes --no-emit-package fpr-ff1 --format requirements-txt -o requirements-audit.txt
+          uvx pip-audit -r requirements-audit.txt
 
       # Audit the declared minimum too: a floor that admits a known-vulnerable
       # release is a finding even when the lock resolves past it (review
-      # 00004 MAJ-02).
+      # 00004 MAJ-02).  pip-audit runs inside the minimum venv so it audits
+      # that environment.
       - name: Audit declared minimum dependency set
         run: |
           uv venv minimum-check
-          uv pip install --python minimum-check "fpr-ff1 @ ." "cryptography==50.0.0"
-          uvx pip-audit --python minimum-check/bin/python
+          uv pip install --python minimum-check/bin/python "cryptography==50.0.0" pip-audit
+          minimum-check/bin/pip-audit
 
   build:
     name: Build distributions
     runs-on: ubuntu-latest
     needs: quality
     steps:
-      - uses: actions/checkout@11bd5960a326750d5838078e36cf38b85af677262 # v4.3.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
         with:
           enable-cache: true
@@ -125,7 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/checkout@11bd5960a326750d5838078e36cf38b85af677262 # v4.3.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
 
       # Source-tree tests cannot catch packaging defects: a missing py.typed
@@ -180,7 +185,7 @@ jobs:
       # Pinned so a scanner update cannot turn a release red without warning.
       GITLEAKS_VERSION: "8.30.1"
     steps:
-      - uses: actions/checkout@11bd5960a326750d5838078e36cf38b85af677262 # v4.3.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
@@ -196,13 +201,15 @@ jobs:
       - name: Install gitleaks
         run: |
           base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
-          curl -sSfL -o gitleaks.tar.gz \
-            "${base}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          filename="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfL -o "$filename" "${base}/${filename}"
           curl -sSfL -o checksums.txt "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
-          grep "gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" checksums.txt > expected.sha256
+          grep "$filename" checksums.txt > expected.sha256
+          # sha256sum -c checks the filename embedded in the checksums line,
+          # so the tarball must be stored under its canonical name.
           sha256sum -c expected.sha256
-          tar -xz -C /tmp gitleaks.tar.gz
-          sudo mv /tmp/gitleaks /usr/local/bin/gitleaks
+          tar -xzf "$filename" gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
           gitleaks version
 
       - name: Scan for secrets
