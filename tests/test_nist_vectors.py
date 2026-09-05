@@ -12,7 +12,7 @@ _VECTOR_FILE = pathlib.Path(__file__).with_suffix("").parent / "vectors" / "nist
 
 
 def _load_vectors() -> list[dict[str, Any]]:
-    with _VECTOR_FILE.open() as handle:
+    with _VECTOR_FILE.open(encoding="utf-8") as handle:
         data = json.load(handle)
     return data["vectors"]
 

@@ -129,7 +129,11 @@ def main() -> None:
         "vectors": vectors,
     }
 
-    _VECTOR_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+    # Explicit UTF-8: the payload contains non-BMP alphabet characters, and a
+    # Windows machine's default locale codec would corrupt (or reject) them.
+    _VECTOR_PATH.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     print(f"wrote {len(vectors)} vectors to {_VECTOR_PATH}")  # noqa: T201 - CLI tool output
 
 

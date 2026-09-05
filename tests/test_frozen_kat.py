@@ -30,7 +30,10 @@ _ORACLE_RADICES = {2, 10, 16, 32, 36, 62, 256, 2**16 - 1}
 
 
 def _load_kat() -> dict[str, Any]:
-    with _KAT_PATH.open() as handle:
+    # encoding="utf-8" is load-bearing: the file contains non-BMP alphabet
+    # characters written as UTF-8, and on Windows (Python < 3.15) a bare
+    # open() uses the locale codec (cp1252) and raises UnicodeDecodeError.
+    with _KAT_PATH.open(encoding="utf-8") as handle:
         data: dict[str, Any] = json.load(handle)
     return data
 
