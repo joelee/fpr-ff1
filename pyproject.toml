@@ -4,14 +4,20 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fpr-ff1"
-version = "0.1.1"
+version = "1.0.0"
 description = "Format-preserving encryption: NIST SP 800-38G FF1 for Python."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
-# Upper bound matches the tested CI matrix exactly (3.12, 3.13, 3.14).  Raising
-# it is a release-time action once a new Python is in the matrix and green.
-requires-python = ">=3.12,<3.15"
+# GitHub noreply address rather than a corporate mailbox, so the published
+# metadata does not expose an employer association (review 00004 LOW-05).
+authors = [{ name = "Joseph Lee", email = "joelee@users.noreply.github.com" }]
+maintainers = [{ name = "Joseph Lee", email = "joelee@users.noreply.github.com" }]
+# No upper bound: a capped requires-python turns into a hard resolution
+# failure on future interpreters (3.15 final is scheduled for October 2026),
+# which punishes users for our untested matrix.  The classifiers state the
+# versions CI actually exercises; the floor is raised as the matrix grows.
+requires-python = ">=3.12"
 keywords = [
     "ff1",
     "format-preserving-encryption",
@@ -21,7 +27,7 @@ keywords = [
     "cryptography",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
@@ -33,11 +39,15 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "cryptography>=44.0.0",
+    # Floor set to the first release fixing PYSEC-2026-3552 (GHSA-g6cj-pr64-35w5,
+    # fixed in 50.0.0); lower floors admit known-vulnerable resolutions and
+    # trip downstream security scanners.
+    "cryptography>=50.0.0",
 ]
 
 [project.urls]
 Homepage = "https://github.com/joelee/fpr-ff1"
+Documentation = "https://github.com/joelee/fpr-ff1/blob/main/README.md"
 Repository = "https://github.com/joelee/fpr-ff1"
 Issues = "https://github.com/joelee/fpr-ff1/issues"
 Changelog = "https://github.com/joelee/fpr-ff1/blob/main/CHANGELOG.md"
@@ -50,17 +60,41 @@ dev = [
     "pyright>=1.1.400",
     "pytest>=8.4.0",
     "pytest-cov>=6.2.0",
-    "ruff>=0.12.0",
+    "ruff>=0.16",
     "ubiq-security-fpe==2.0.1.1",
 ]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/fpr_ff1"]
 
+# Explicit sdist contents (review 00003 L2 / review 00004 LOW-02): without
+# this, hatchling ships everything it finds -- agent instructions, planning
+# and review documents, editor state, even .opencode/node_modules.  The
+# published tarball is code, tests, vectors, and user-facing docs only.
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/docs/architecture.md",
+    "/docs/backlog.md",
+    "/docs/configuration.md",
+    "/docs/developer-guide.md",
+    "/docs/directory-structure.md",
+    "/CHANGELOG.md",
+    "/SECURITY.md",
+    "/justfile",
+    "/uv.lock",
+]
+
 [tool.ruff]
 line-length = 100
 src = ["src", "tests"]
 target-version = "py312"
+# Review reports are verbatim records of external documents: their quoted
+# code snippets keep the formatting the reviewer wrote, exactly as NIST
+# fixtures are never regenerated.  The formatter owns project-authored code
+# and docs, not imported evidence.
+extend-exclude = ["docs/reviews"]
 
 [tool.ruff.lint]
 select = [
@@ -88,6 +122,8 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "src/fpr_ff1/_ff1.py" = ["N806", "PLR2004", "S305"]
 "tests/**/*.py" = ["PLR2004", "S101"]
+# The timing harness is a CLI tool; printing is its purpose.
+"benchmarks/**/*.py" = ["T20"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -95,7 +131,10 @@ indent-style = "space"
 line-ending = "lf"
 
 [tool.pytest.ini_options]
-addopts = "--cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100"
+# No coverage flags here, deliberately (review 00003 M4): the sdist ships
+# the tests, and a bare `pytest` from an unpacked sdist must not fail for a
+# downstream packager who has not installed pytest-cov.  The 100% floor is
+# enforced by `just coverage` / `just quality` and by CI's explicit flags.
 testpaths = ["tests"]
 markers = [
     "slow: tests that take more than a few seconds",

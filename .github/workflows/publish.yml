@@ -3,11 +3,14 @@ name: Publish
 # Publishes to PyPI via Trusted Publishing (OIDC).  No API tokens are stored
 # in this repository; configure the publisher at
 # https://pypi.org/manage/project/fpr-ff1/settings/publishing/
+#
+# Release events only -- no workflow_dispatch: a manual dispatch could
+# publish from an arbitrary ref without a release or a tag (review 00003 H5 /
+# review 00004 MED-02).
 
 on:
   release:
     types: [published]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -26,16 +29,34 @@ jobs:
     permissions:
       id-token: write # required for Trusted Publishing
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
 
-      - name: Build
-        run: uv build
+      # The gate's build job already built and twine-checked the
+      # distributions.  Publishing a *rebuilt* artifact would mean the
+      # artifact sent to PyPI is not byte-for-byte the artifact the gate
+      # verified (review 00003 H5 / review 00004 MED-02): download and
+      # publish exactly what was tested.
+      - name: Download gated distributions
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: distributions
+          path: dist/
+
+      # Guard: the release tag must match the project version, so a release
+      # cut from a stale ref cannot publish mislabelled artifacts.
+      - name: Verify tag matches project version
+        run: |
+          project_version="$(uv run --no-sync python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          if [ "${GITHUB_REF_NAME}" != "v${project_version}" ]; then
+            echo "release tag ${GITHUB_REF_NAME} does not match project version ${project_version}" >&2
+            exit 1
+          fi
 
       - name: Check metadata
         run: uvx twine check dist/*
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@67339c736fd9354cd4f8cb0b744f2b82a74b5c70 # v1.12.3

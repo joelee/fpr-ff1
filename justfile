@@ -47,10 +47,12 @@ typecheck:
 test:
     uv run pytest
 
-# Full suite including slow tests (bijectivity), with the 100% coverage gate.
-# Coverage flags live in pyproject addopts so a bare `pytest` is gated too.
+# Full suite with the 100% line-and-branch coverage gate.  The flags live
+# here and in CI's test step (not in pyproject addopts) so a bare `pytest`
+# from an unpacked sdist does not fail for downstream packagers who have not
+# installed pytest-cov.
 coverage:
-    uv run pytest
+    uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100
 
 # Fast inner-loop run: skips the exhaustive bijectivity sweep, no gate.
 test-fast:
@@ -63,14 +65,19 @@ build: quality
 
 secrets:
     @if command -v gitleaks >/dev/null 2>&1; then \
-        installed=$$(gitleaks version 2>/dev/null | head -1); \
-        if [ "$$installed" != "v{{gitleaks_version}}" ] && [ "$$installed" != "{{gitleaks_version}}" ]; then \
-            echo "warning: gitleaks $$installed is running; CI pins v{{gitleaks_version}} (authoritative)."; \
+        installed=$(gitleaks version 2>/dev/null | head -1); \
+        if [ "$installed" != "v{{gitleaks_version}}" ] && [ "$installed" != "{{gitleaks_version}}" ]; then \
+            echo "warning: gitleaks $installed is running; CI pins v{{gitleaks_version}} (authoritative)."; \
         fi; \
         gitleaks dir . --redact; \
     else \
         echo "gitleaks is not installed. Install it before running secret scans."; \
         exit 127; \
     fi
+
+# Reproducible timing/throughput harness; prints the tables published in
+# SECURITY.md and README.md (see benchmarks/timing.py).
+bench:
+    uv run python benchmarks/timing.py
 
 ci: sync quality build secrets

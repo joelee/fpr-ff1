@@ -2,9 +2,15 @@
 
 ```text
 .
-├── .github/workflows/      # CI and release pipelines
-│   ├── ci.yml             # Quality matrix (3 OS × 3 Pythons), build, secret scan
-│   └── publish.yml        # Release gate + Trusted Publishing to PyPI
+├── .github/
+│   ├── workflows/          # CI and release pipelines
+│   │   ├── ci.yml         # Quality matrix (3 OS × 3 Pythons), audit, build, wheel-test, secret scan
+│   │   └── publish.yml    # Release gate + Trusted Publishing to PyPI (publishes the gated artifact)
+│   ├── dependabot.yml     # Automated updates for pinned actions and dependencies
+│   ├── ISSUE_TEMPLATE/    # Bug report, feature request, security redirect
+│   └── PULL_REQUEST_TEMPLATE.md
+├── benchmarks/
+│   └── timing.py          # Reproducible timing/throughput harness (just bench)
 ├── docs/                   # Maintained project documentation
 │   ├── AGENTS.md          # Documentation maintenance rules
 │   ├── architecture.md    # System context, modules, and design decisions
@@ -15,7 +21,7 @@
 │   └── plans/             # Execution plans derived from review reports
 ├── src/                    # Python source root
 │   └── fpr_ff1/            # FF1 implementation package
-│       ├── __init__.py     # Public exports
+│       ├── __init__.py     # Public exports and __version__
 │       ├── _exceptions.py  # Typed exception hierarchy
 │       ├── _ff1.py         # FF1 core implementation
 │       └── py.typed        # PEP 561 typed-package marker
@@ -24,22 +30,30 @@
 │   ├── conftest.py         # Shared fixtures (NIST sample loader)
 │   ├── _oracle/            # Differential-testing oracle loader
 │   │   ├── __init__.py     # ubiq_security_fpe loader; CI-required via FPR_FF1_REQUIRE_ORACLE
-│   │   └── _m2crypto_shim.py # cryptography-backed M2Crypto.EVP shim (the oracle imports
-│   │                       # M2Crypto, which does not build on current toolchains)
+│   │   ├── _m2crypto_shim.py # cryptography-backed M2Crypto.EVP shim (the oracle imports
+│   │   │                   # M2Crypto, which does not build on current toolchains)
+│   │   └── generate_kat.py # Dev-only generator for the frozen KAT vectors (run manually)
 │   ├── test_smoke.py       # Construction and validation smoke tests
 │   ├── test_nist_vectors.py # NIST sample vector conformance tests
 │   ├── test_intermediates.py # Per-round intermediate value conformance tests
 │   ├── test_validation.py  # Parameter and input validation tests
+│   ├── test_sequence_validation.py # Lying-Sequence / non-Sequence rejection regression tests
 │   ├── test_exact_arithmetic.py # Exact-arithmetic regression and AST float scan
 │   ├── test_properties.py  # Hypothesis property-based and bijectivity tests
 │   ├── test_differential.py # Differential tests against the independent oracle
+│   ├── test_frozen_kat.py  # Frozen oracle-derived KAT vectors (runs without the oracle)
 │   ├── test_interoperability.py # Bidirectional ubiq_security_fpe compatibility
+│   ├── test_pickle.py      # Pickle/deepcopy/multiprocessing round-trip and __version__ tests
+│   ├── test_thread_safety.py # Structural and concurrency thread-safety tests
 │   ├── test_contract.py    # Whole-surface assertions (typed rejections, repo hygiene)
 │   └── vectors/            # External test fixtures (never regenerated from this code)
 │       ├── nist_ff1_samples.json
-│       └── nist_ff1_intermediates.json
+│       ├── nist_ff1_intermediates.json
+│       └── oracle_kat_frozen.json # Oracle-generated KAT vectors with provenance header
 ├── AGENTS.md                # Agent contract for the repository
 ├── CHANGELOG.md             # Release history, including accepted-input changes
+├── CODE_OF_CONDUCT.md       # Contributor Covenant
+├── CONTRIBUTING.md          # Contribution rules (vector provenance, quality gate, security)
 ├── README.md                # Project overview and quick start
 ├── SECURITY.md              # Disclosure process and known limitations
 ├── LICENSE                  # MIT license
@@ -48,7 +62,8 @@
 ├── justfile                 # Local and CI command entry points
 ├── .gitleaks.toml           # Secret-scan allowlist
 ├── .gitattributes           # Line-ending normalisation; vector fixtures pinned to LF
-└── .gitignore               # Ignore rules (.codegraph/ is self-ignored via its own .gitignore)
+├── .pre-commit-config.yaml  # Local hooks mirroring `just quality` (ruff, ruff-format, gitleaks)
+└── .gitignore               # Ignore rules (includes the tool-local .codegraph/ index)
 ```
 
 ## Source

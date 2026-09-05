@@ -173,6 +173,12 @@ def test_string_character_not_in_alphabet_raises() -> None:
 
     Regression guard: this previously escaped as a bare ``KeyError``, which is
     outside the documented ``FF1Error`` hierarchy.
+
+    The message must locate the offending position but must **not** echo the
+    offending character: validation exceptions are routinely logged, and a
+    rejected plaintext symbol landing in a log contradicts the package's own
+    security policy (``SECURITY.md`` scope: anything that causes plaintext to
+    be logged or raised in a message).  Review 00003 B3 / review 00004 MAJ-03.
     """
     ff1 = FF1(key=_VALID_KEY, radix=10, alphabet="0123456789")
     for method in (ff1.encrypt, ff1.decrypt):
@@ -180,9 +186,36 @@ def test_string_character_not_in_alphabet_raises() -> None:
             method("01234a")
         assert issubclass(excinfo.type, FF1Error)
         assert not issubclass(excinfo.type, KeyError)
-        # The message must locate the offending character.
-        assert "'a'" in str(excinfo.value)
+        # The message must locate the offending character...
         assert "index 5" in str(excinfo.value)
+        # ...without disclosing it.  The old message embedded the character
+        # via ``{ch!r}``; its quoted form must be absent.
+        assert "'a'" not in str(excinfo.value)
+
+
+def test_numeral_out_of_range_does_not_disclose_value() -> None:
+    """An out-of-range numeral must be located but never echoed.
+
+    Same policy as the character case above: the index and the failure kind
+    are safe to log; the rejected value is plaintext data.
+    """
+    ff1 = FF1(key=_VALID_KEY, radix=10)
+    for method in (ff1.encrypt_numerals, ff1.decrypt_numerals):
+        with pytest.raises(ValueRangeError) as excinfo:
+            method([1, 2, 3, 4, 5, 42])
+        message = str(excinfo.value)
+        assert "[5]" in message
+        assert "42" not in message
+
+
+def test_negative_numeral_does_not_disclose_value() -> None:
+    """The negative branch of the range check redacts too."""
+    ff1 = FF1(key=_VALID_KEY, radix=10)
+    with pytest.raises(ValueRangeError) as excinfo:
+        ff1.encrypt_numerals([1, 2, 3, 4, 5, -7])
+    message = str(excinfo.value)
+    assert "[5]" in message
+    assert "-7" not in message
 
 
 def test_decryption_input_out_of_range_raises() -> None:

@@ -4,9 +4,86 @@ All notable changes to this project are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 This project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html); per the project
-contract, **any change to accepted inputs or produced outputs is a major version**.
+contract, **newly rejecting inputs or changing produced outputs is a major version**, while
+expanding the accepted domain without changing existing behaviour is a minor version.
 
 ## [Unreleased]
+
+## [1.0.0] — 2026-09-04
+
+First stable release, resolving every pre-1.0 finding from reviews 00003 and 00004.
+**Ciphertext is unchanged for every input that was valid in 0.1.1** — verified against the NIST
+sample vectors, the per-round intermediates, the differential oracle, and the exhaustive
+bijectivity sweeps. The input-domain and error-message changes below are why this is a major
+version.
+
+### Security
+
+- **Minimum-domain validation bypass closed** (review 00004, MAJ-01). The numeral interfaces
+  previously trusted the input's declared `__len__`, so a malformed `Sequence` could encrypt a
+  domain below the enforced `radix ** minlen >= 1_000_000` minimum. Inputs must now be true
+  `collections.abc.Sequence`s: `dict` and `set` inputs, and `Sequence`s whose `__len__`
+  disagrees with the values they yield, are rejected with a typed error. **This changes accepted
+  inputs.**
+- **Exception messages no longer echo plaintext** (review 00003 B3 / review 00004 MAJ-03).
+  Rejected numerals and characters are located by index and failure kind only; the offending
+  value never appears in the message, so a malformed record cannot leak into application logs.
+- **`cryptography` floor raised to `>=50.0.0`** (review 00004, MAJ-02). The previous `>=44.0.0`
+  floor admitted releases affected by PYSEC-2026-3552 (GHSA-g6cj-pr64-35w5, fixed in 50.0.0).
+
+### Changed
+
+- **`FF1` instances are now thread-safe** (review 00003 H2 / review 00004 MED-01). The cached
+  ECB encryptor — the shared mutable state behind the 0.1.1 "not thread-safe" caveat — is gone;
+  every cipher context is created locally to the call that uses it. Separate calls on one
+  instance may run concurrently and produce exactly the single-threaded results. The caveat is
+  replaced by a guarantee.
+- Tweak validation now runs before the input is walked (review 00003 L5), so a bad tweak on a
+  large input rejects in O(1) rather than after the full coercion pass.
+- `requires-python` is `>=3.12` with no upper bound (review 00003 B4). A capped `requires-python`
+  becomes a hard resolution failure on future interpreters; the versions actually exercised in
+  CI (3.12, 3.13, 3.14) are stated by the classifiers.
+- The ruff dev floor is `>=0.16`; the formatter now also formats Markdown code blocks (the
+  README and AGENTS.md were reformatted accordingly).
+- The 100% line-and-branch coverage gate moved out of pytest `addopts` into `just coverage` and
+  CI's explicit flags (review 00003 M4), so a bare `pytest` from the unpacked sdist no longer
+  fails for downstream packagers who have not installed `pytest-cov`. The floor itself is
+  unchanged and still enforced on every CI test execution.
+- The sdist contents are pinned explicitly to code, tests, vectors, and user-facing docs; it
+  previously shipped agent instructions, planning documents, and editor state.
+- **Version policy revised** (review 00004 MED-05): expanding the accepted domain without
+  changing existing behaviour — for example a future radix-65536 addition — is a **minor**
+  change; newly rejecting inputs or changing ciphertext remains major.
+
+### Added
+
+- **Pickling and deepcopy support.** `FF1` instances survive `pickle`, `copy.deepcopy`, and
+  spawn-context `multiprocessing`, so an instance can be passed to workers or broadcast by
+  PySpark. The cipher objects are rebuilt on load; pickling an instance serialises the key, which
+  SECURITY.md documents as a caller decision.
+- `fpr_ff1.__version__` via `importlib.metadata`, exported in `__all__` (review 00003 B2).
+- **Frozen oracle-derived KAT vectors** (`tests/vectors/oracle_kat_frozen.json`, with a
+  provenance header): the differential evidence for radices without NIST vectors now survives
+  `ubiq-security-fpe` — deprecated and unmaintained — ever becoming uninstallable. The live
+  differential suite remains primary while the oracle installs (review 00003 H6).
+- `benchmarks/timing.py` and `just bench`: the SECURITY.md timing measurements and the new README
+  performance section are reproducible on any machine (review 00003 M9/M10).
+- Supply-chain hardening (reviews 00003 H4/H5, 00004 MED-02/MED-03): every GitHub Action pinned
+  to a full commit SHA, the gitleaks tarball checksum-verified before installation, a
+  dependency-audit CI job (`pip-audit` against the lock and the declared minimum), Dependabot,
+  `uv sync --locked` in CI, and a publish workflow that downloads and publishes the exact
+  artifact the release gate built — with a release-tag-versus-project-version guard.
+- CI installs the built wheel into a clean environment and exercises the public surface from it,
+  and asserts the sdist contents against a forbidden-path list (review 00003 M3).
+- Community files (review 00003 M7/M8): `CONTRIBUTING.md` (vector-provenance rules, quality
+  gate, ciphertext-compatibility rules), `CODE_OF_CONDUCT.md`, issue and PR templates, README
+  badges, and a `Documentation` project URL.
+- README: a "Security notes" section (determinism, confidentiality-only, wrong-key behaviour,
+  small-domain guidance), calibrated conformance language, the radix range documented as a
+  deliberate supported subset of the spec's inclusive `[2..2**16]`, and a performance section
+  (reviews 00004 MED-04/MED-05/MED-06, 00003 L6/M10).
+- Pre-commit hooks (`.pre-commit-config.yaml`) wiring ruff, ruff-format, and the pinned gitleaks
+  (review 00003 M2).
 
 ## [0.1.1] — 2026-09-03
 
@@ -142,3 +219,10 @@ trivially enumerable, so this package fails closed.
 
 Rev. 1 remains a draft. If it is finalised with different limits, that will be a breaking change
 requiring a major version.
+
+<!-- Keep a Changelog link reference definitions (review 00003 B7): without
+     these, the bracketed version headings render as literal brackets. -->
+[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/joelee/fpr-ff1/compare/v0.1.1...v1.0.0
+[0.1.1]: https://github.com/joelee/fpr-ff1/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/joelee/fpr-ff1/releases/tag/v0.1.0

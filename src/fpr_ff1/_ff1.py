@@ -8,7 +8,6 @@ from typing import ClassVar, NamedTuple, SupportsIndex, cast
 
 from cryptography.hazmat.primitives.ciphers import (
     Cipher,
-    CipherContext,
     algorithms,
     modes,
 )
@@ -105,29 +104,28 @@ def _require_bytes(value: object, name: str, error: type[FF1Error]) -> bytes:
 
 
 class _Aes(NamedTuple):
-    """AES objects shared for the lifetime of one :class:`FF1` instance.
+    """Immutable AES configuration shared for the lifetime of one :class:`FF1` instance.
 
-    ``algorithm`` and ``cbc_zero_iv`` are immutable configuration, reused to
-    avoid rebuilding them on every PRF call.  ``ecb_encryptor`` is a live
-    context, but ECB carries no chaining state so repeated ``update()`` calls
-    are safe.  A CBC *encryptor* is never held here: it would carry chaining
-    state between PRF invocations.
+    ``algorithm`` and ``cbc_zero_iv`` are immutable value objects, reused to
+    avoid rebuilding them on every PRF call.  No live cipher context is held
+    here: a cached encryptor would be shared mutable state, making instances
+    unsafe across threads.  Every encryptor -- CBC for the PRF, ECB for the
+    step 6.iii expansion -- is created locally to the call that uses it.
     """
 
     algorithm: algorithms.AES
     cbc_zero_iv: modes.CBC
-    ecb_encryptor: CipherContext
 
 
 class FF1:
     """FF1 format-preserving encryption primitive and string wrapper.
 
-    Thread safety: instances are **not** thread-safe. The instance caches a
-    single ECB encryptor for the step 6.iii S-expansion, and pyca/cryptography
-    documents concurrent ``update()`` calls on a shared ``CipherContext`` as
-    producing indeterminate results. Create one instance per thread, or
-    serialise access with a lock. There is no module-level or global state, so
-    any number of *separate* instances may be used concurrently.
+    Thread safety: instances **are** thread-safe. No mutable state is shared
+    between calls -- every cipher context is created locally to the call that
+    uses it -- so separate calls on one instance may run concurrently and
+    will produce exactly the single-threaded results. There is no module-level
+    or global state either, so any number of instances may be used
+    concurrently.
     """
 
     # SP 800-38G requires "minlen <= n <= maxlen < 2**32", so the largest
@@ -179,6 +177,10 @@ class FF1:
                 f"got {radix!r}"
             )
 
+        # Retained deliberately: the sole reader is __setstate__, which
+        # rebuilds the cipher configuration after unpickling.  Without it the
+        # key would have no second reference and instances could not be
+        # serialised (review 00003 H3).
         self._key = key
         self._radix = radix
 
@@ -215,13 +217,43 @@ class FF1:
         # (radix 2), far below _MAX_LEN, so no infeasibility check is needed.
         self._min_length = _min_length(radix)
 
-        # Cipher objects reused across calls.  Do not call finalize() on the
-        # ECB encryptor; it must stay alive for the instance's lifetime.
+        # Immutable cipher configuration, reused across calls.  No encryptor
+        # is cached: a live context would be shared mutable state, and this
+        # instance is safe to share across threads.
         algorithm = algorithms.AES(key)
         self._aes = _Aes(
             algorithm=algorithm,
             cbc_zero_iv=modes.CBC(b"\x00" * 16),
-            ecb_encryptor=Cipher(algorithm, modes.ECB()).encryptor(),
+        )
+
+    def __getstate__(self) -> dict[str, object]:
+        """Serialise configuration only; cipher objects are rebuilt, never sent.
+
+        Dropping ``_aes`` keeps the pickle payload free of opaque library
+        state and makes the payload stable across ``cryptography`` versions.
+        The key *is* serialised -- pickling an instance sends key material
+        across the process/temp-file/socket boundary at the caller's
+        direction; see SECURITY.md.
+        """
+        state = self.__dict__.copy()
+        del state["_aes"]
+        return state
+
+    def __setstate__(self, state: dict[str, object]) -> None:
+        """Rebuild the cipher configuration from the serialised key."""
+        self.__dict__.update(state)
+        key = state["_key"]
+        # A raise rather than an assert: asserts vanish under ``python -O``,
+        # and a non-bytes key here would otherwise surface later as an
+        # opaque cryptography error (or worse, from outside the FF1Error
+        # hierarchy entirely).
+        if not isinstance(key, bytes):  # pyright: ignore[reportUnnecessaryIsInstance]
+            raise KeyLengthError(
+                f"unpickled FF1 state must carry a bytes key, got {type(key).__name__}"
+            )
+        self._aes = _Aes(
+            algorithm=algorithms.AES(key),
+            cbc_zero_iv=modes.CBC(b"\x00" * 16),
         )
 
     @property
@@ -263,7 +295,12 @@ class FF1:
         for idx, value in enumerate(x):
             numeral = _require_int(value, f"{inout}[{idx}]", ValueRangeError)
             if numeral < 0 or numeral >= radix:
-                raise ValueRangeError(f"{inout}[{idx}]={numeral!r} out of range for radix {radix}")
+                # The rejected value is plaintext data and must not appear in
+                # the message: validation exceptions are routinely logged, and
+                # SECURITY.md puts "plaintext raised in a message" in scope.
+                # The index and the radix stay -- they locate the fault
+                # without disclosing it.
+                raise ValueRangeError(f"{inout}[{idx}] is out of range for radix {radix}")
             numerals.append(numeral)
         return numerals
 
@@ -276,16 +313,36 @@ class FF1:
             if tweak is None
             else _require_bytes(tweak, "tweak", TweakLengthError)
         )
-        # Check the length before materialising the sequence: an over-long
-        # input must be rejected without first allocating a copy of it.
-        if not hasattr(x, "__len__"):
+        # A real Sequence is required, not merely an object with __len__: a
+        # mapping or set has no stable iteration order, and a custom object can
+        # report any length it likes.  The length is checked before the input
+        # is materialised, so an over-long input is rejected without first
+        # allocating a copy of it.
+        if not isinstance(x, Sequence):  # pyright: ignore[reportUnnecessaryIsInstance]
             raise TypeError(
                 f"{inout} must be a Sequence[int] with a known length, got "
                 f"{type(x).__name__}; wrap it with list(...) if it is an iterator"
             )
-        self._validate_length(len(x), inout)
-        numerals = self._coerce_numerals(x, inout)
+        declared_length = len(x)
+        self._validate_length(declared_length, inout)
+        # The tweak is validated before the numerals are walked, so a bad
+        # tweak rejects in O(1) rather than after the full coercion pass.
         self._validate_tweak(t)
+        numerals = self._coerce_numerals(x, inout)
+        # A Sequence's __len__ must be honest: the materialised length is
+        # authoritative.  Without this check a lying __len__ passes the
+        # minimum-domain gate above while the core encrypts a smaller domain
+        # than the package promises to reject.
+        if len(numerals) != declared_length:
+            raise LengthError(
+                f"{inout} declared length {declared_length} but yielded "
+                f"{len(numerals)} values; its __len__ is inconsistent"
+            )
+        # Defensive revalidation before the core (review 00004 MAJ-01): the
+        # declared length already passed, so this holds today, but keeping
+        # the check here makes _prepare's guarantee local rather than
+        # dependent on the coercion path never changing.
+        self._validate_length(len(numerals), inout)
         return numerals, t
 
     def _alphabet_maps(self, numeral_method: str) -> tuple[dict[str, int], list[str]]:
@@ -306,7 +363,10 @@ class FF1:
         for idx, ch in enumerate(s):
             value = char_to_index.get(ch)
             if value is None:
-                raise ValueRangeError(f"character {ch!r} at index {idx} is not in the alphabet")
+                # As in _coerce_numerals: the offending character is plaintext
+                # data and must not be echoed into a message that callers log.
+                # The index locates the fault without disclosing it.
+                raise ValueRangeError(f"character at index {idx} is not in the alphabet")
             numerals.append(value)
         return numerals
 
@@ -469,6 +529,12 @@ def _ff1(
         + _encode_uint(t, 4)
     )
 
+    # Loop-invariant moduli, hoisted out of the ten rounds (review 00003
+    # M10): step 6.vi reduces modulo radix**m, and m only ever takes the
+    # values u and v.
+    radix_u = radix**u
+    radix_v = radix**v
+
     rounds = range(10) if encrypt else range(9, -1, -1)
 
     for i in rounds:
@@ -491,11 +557,18 @@ def _ff1(
         # onto R -- both mistakes produce a non-16-byte-aligned input and are
         # invisible to the NIST samples, none of which reach d > 16.
         s_block = r_block
-        j = 1
-        while len(s_block) < d:
-            xored = bytes(p ^ q for p, q in zip(r_block, _encode_uint(j, 16), strict=True))
-            s_block += aes.ecb_encryptor.update(xored)
-            j += 1
+        if len(s_block) < d:
+            # The ECB encryptor is created here, local to this call: caching
+            # one on the instance would be shared mutable state, and instances
+            # are documented as thread-safe.  The cost is zero for d <= 16
+            # (this branch never runs) and a few microseconds for the long
+            # inputs that do reach it.
+            ecb_encryptor = Cipher(aes.algorithm, modes.ECB()).encryptor()
+            j = 1
+            while len(s_block) < d:
+                xored = bytes(p ^ q for p, q in zip(r_block, _encode_uint(j, 16), strict=True))
+                s_block += ecb_encryptor.update(xored)
+                j += 1
         # Truncate to d BYTES, not d bits.
         s_block = s_block[:d]
 
@@ -508,9 +581,9 @@ def _ff1(
         # Step 6.vi: c = (NUM_radix(A) + y) mod radix**m  (decrypt subtracts
         # y from NUM_radix(B) instead)
         if encrypt:
-            c = (_num_radix(radix, a) + y) % (radix**m)
+            c = (_num_radix(radix, a) + y) % (radix_u if m == u else radix_v)
         else:
-            c = (_num_radix(radix, b_side) - y) % (radix**m)
+            c = (_num_radix(radix, b_side) - y) % (radix_u if m == u else radix_v)
 
         # Step 6.vii: C = STR^m_radix(c)
         c_block = _str_radix(c, radix, m)

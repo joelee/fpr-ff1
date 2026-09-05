@@ -4,7 +4,7 @@ Agent contract for this repository. Read fully before any code change.
 
 ## Project
 
-Open-source Python implementation of **FF1**, the format-preserving encryption mode from NIST SP 800-38G. Published as a standalone PyPI library (`fpr-ff1`; claiming the name and configuring Trusted Publishing is a pre-1.0 backlog item) — no network, accounts, or key-management features. It replaces `ubiq_security_fpe`, deprecated in favour of a SaaS client and no longer maintained.
+Open-source Python implementation of **FF1**, the format-preserving encryption mode from NIST SP 800-38G. Published as a standalone PyPI library (`fpr-ff1`, live on PyPI with Trusted Publishing configured) — no network, accounts, or key-management features. It replaces `ubiq_security_fpe`, deprecated in favour of a SaaS client and no longer maintained.
 
 The design goal: a reviewer can compare the source against SP 800-38G line by line and find no gaps.
 
@@ -25,7 +25,7 @@ SP 800-38G (2016, updated 2019) is the normative text, plus the Rev. 1 second pu
 - Minimum domain: `radix ** minlen >= 1_000_000` — stricter than the 2016 text's `>= 100`; a deliberate fail-closed choice noted in the changelog.
 - Maximum length: `maxlen < 2**32`, implemented as `2**32 - 1` (fail closed on the boundary).
 - Key sizes: 128, 192, 256 bits only.
-- Radix: `2 <= radix < 2**16`.
+- Radix: `2 <= radix < 2**16` — a deliberate supported **subset** of the spec's inclusive `[2..2**16]` (NIST permits subsets). Radix 65536 is excluded; widening the domain without changing existing behaviour is a SemVer minor change, not major.
 - Forward AES only; no inverse cipher function.
 - Exactly 10 rounds.
 - **No floating-point arithmetic anywhere in the FF1 core.**
@@ -40,11 +40,11 @@ A single `FF1` class:
 class FF1:
     def __init__(
         self,
-        key: bytes,                      # 16, 24 or 32 bytes
+        key: bytes,  # 16, 24 or 32 bytes
         radix: int,
         *,
-        alphabet: str | None = None,     # enables the str interface
-        tweak: bytes = b"",              # default tweak
+        alphabet: str | None = None,  # enables the str interface
+        tweak: bytes = b"",  # default tweak
         min_tweak_len: int | None = None,
         max_tweak_len: int | None = None,
     ) -> None: ...
@@ -81,7 +81,7 @@ These are the failure modes that produce **plausible but wrong output** — ever
 - Encrypt and decrypt differ in exactly three places: `Q` built from `B` vs `A`; round order `0..9` vs `9..0`; final assignment `A, B = B, C` vs `B, A = A, C`. The parity rule `m = u if i % 2 == 0 else v` is **identical in both** — do not mirror it.
 - `S` is truncated to `d` bytes, not `d` bits.
 - The PRF is CBC-MAC with a zero IV over 16-byte-aligned input.
-- Cipher context caching: cache **one ECB encryptor** and call `update()` repeatedly (roughly 1.6x). Never call `finalize()` on it. Never cache a CBC encryptor (it carries chaining state).
+- Cipher contexts: **never cache any encryptor on the instance** — instances are thread-safe and a live context would be shared mutable state. Create the ECB encryptor locally inside the `d > 16` expansion branch (zero cost when `d <= 16`); the PRF already builds a fresh CBC encryptor per call (it carries chaining state).
 - Cite spec steps in internal docstrings, e.g. "SP 800-38G Algorithm 7, step 6.iii".
 
 ## Local development

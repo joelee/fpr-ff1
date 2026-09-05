@@ -1,0 +1,22 @@
+# Dependabot keeps the pinned action SHAs and the uv lock current.
+# The github-actions ecosystem raises PRs when a pinned action's tag moves;
+# the uv ecosystem raises PRs for dependency updates.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      python:
+        patterns:
+          - "*"

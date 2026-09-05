@@ -19,11 +19,13 @@ warranted, disclosure will be coordinated with you.
 
 ## Supported versions
 
-Until 1.0, only the latest released version receives fixes.
+The latest `1.x` release receives fixes. A minor release is supported until the next minor ships;
+security fixes are backported to the most recent minor where practical.
 
 | Version | Supported |
 |---|---|
-| 0.1.x | ✅ |
+| 1.0.x | ✅ |
+| 0.1.x | ✅ (until 1.0.0 ships, per the pre-1.0 policy) |
 
 ## Scope
 
@@ -45,6 +47,8 @@ Out of scope:
 - FF3 / FF3-1. Not implemented, and never will be — see the README.
 
 ## Known limitations
+
+**Pickling an instance serialises the key.** `FF1` instances support `pickle` and `copy.deepcopy` (rebuilt on the far side from the serialised key), so they can be passed to `multiprocessing` workers or broadcast by PySpark. That convenience has an inherent consequence: the AES key crosses the pickle boundary and may land in a temp file, a socket, or worker memory. Pickling an instance is the caller's decision to expose key material through that channel; if your threat model does not allow it, construct a fresh instance per process from your secret store instead.
 
 **Key material is not zeroized.** Python `bytes` are immutable and the garbage collector may copy
 them, so a key cannot be reliably erased from process memory. This package makes no attempt to do
@@ -71,7 +75,9 @@ validation. This package is not FIPS 140 validated and makes no such claim.
 
    This is at or near the noise floor for a pure-Python implementation. It is reported as measured
    rather than estimated, and it is not a guarantee — treat it as an observation about one
-   interpreter on one machine.
+   interpreter on one machine. The harness that produces this table is
+   `benchmarks/timing.py` (`just bench`); re-run it on your own interpreter and hardware rather
+   than trusting any single machine's numbers.
 
 2. **Length-dependent — larger, but public.** The step 6.iii `S`-expansion loop runs
    `ceil(d / 16) - 1` extra AES blocks, where `d` derives from the radix and input length. At radix

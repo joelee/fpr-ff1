@@ -1,5 +1,10 @@
 # fpr-ff1
 
+[![CI](https://github.com/joelee/fpr-ff1/actions/workflows/ci.yml/badge.svg)](https://github.com/joelee/fpr-ff1/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/fpr-ff1.svg)](https://pypi.org/project/fpr-ff1/)
+[![Python](https://img.shields.io/pypi/pyversions/fpr-ff1.svg)](https://pypi.org/project/fpr-ff1/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A small, correct Python implementation of **FF1**, the format-preserving encryption mode from NIST SP 800-38G.
 
 This package is intentionally just the algorithm: no accounts, no network, no key management, and no FF3/FF3-1 modes.
@@ -15,11 +20,19 @@ pip install fpr-ff1
 ```python
 from fpr_ff1 import FF1
 
+# The all-zero key here is for the example only. Never use it (or any other
+# published key) for real data: load key material from your secret store.
+key = load_key_from_your_secret_store()  # 16, 24, or 32 bytes
+
 ff1 = FF1(
-    key=b"\x00" * 16,
+    key=key,
     radix=10,
     alphabet="0123456789",
-    tweak=b"",
+    # A tweak separates ciphertexts across contexts: two records with the
+    # same plaintext encrypt to the same ciphertext under the same tweak,
+    # so derive the tweak from stable record context (an account ID, a
+    # table name) rather than leaving it empty.
+    tweak=b"customer-pans",
 )
 
 encrypted = ff1.encrypt("123456")
@@ -27,13 +40,35 @@ decrypted = ff1.decrypt(encrypted)
 assert decrypted == "123456"
 ```
 
+## Security notes — read before use
+
+FF1 is a deterministic permutation for a fixed key and tweak. That has operational consequences:
+
+1. **Equal plaintexts produce equal ciphertexts** under the same key and tweak. NIST recommends
+   varying the tweak with each encryption instance where feasible — derive it from stable record
+   context so identical plaintexts in different records encrypt differently.
+2. **FF1 provides confidentiality only — no integrity or authentication.** Modified ciphertext
+   decrypts to another plausible in-domain value; there is no error, and the tampering is
+   invisible. Applications needing tamper detection must authenticate the ciphertext and its
+   context separately, where their format allows.
+3. **A wrong key or tweak does not raise.** Decryption with the wrong key or tweak yields
+   plausible-looking plaintext, not an exception. There is no way to detect key mismatch from
+   the output alone.
+4. **The one-million-value domain is a standards floor, not a guarantee.** `radix ** minlen >=
+   1_000_000` rules out trivially enumerable domains, but a determined attacker with oracle
+   access can still search a million-value space. Small-domain FPE needs rate limiting or
+   access control around the encryption interface.
+5. **Validation exceptions never echo your data.** Rejected values are located by index, not
+   repeated in the message, so a malformed record does not leak plaintext into your logs.
+
 ## Features
 
 - Pure Python with a single runtime dependency: `cryptography`.
 - Conformance-tested against the NIST SP 800-38G sample vectors.
 - No floating-point arithmetic in the FF1 core.
 - Tightened domain limits from the SP 800-38G Rev. 1 second public draft:
-  - radix range `2 <= radix < 2**16`
+  - radix range `2 <= radix < 2**16` (a deliberate supported subset of the spec's inclusive
+    `[2..2**16]` — see [Domain limits](#domain-limits-are-stricter-than-the-2016-text))
   - minimum domain `radix ** minlen >= 1_000_000`
   - maximum length `2 ** 32 - 1` (SP 800-38G specifies `maxlen < 2 ** 32`)
   - AES keys of 128, 192, or 256 bits only
@@ -48,7 +83,10 @@ not a checkbox; it is the entire product, and it is evidenced rather than assert
 
 **The full suite — NIST sample vectors, per-round intermediate-value conformance for every round of every sample, differential tests against an independent implementation, exhaustive bijectivity sweeps, and a malformed-input sweep — runs in CI with 100% line and branch coverage enforced. The build fails below it.**
 
-### Conformance is proven at the round level, not just the output level
+This is strong conformance evidence, not proof. It has not received an independent cryptographic
+audit or NIST validation; see [What this is *not*](#what-this-is-not) below.
+
+### Conformance is verified at the round level, not just the output level
 
 All nine published NIST sample vectors pass in both directions. That alone is a weak statement:
 nine input/output pairs can be satisfied by two bugs that cancel out.
@@ -62,7 +100,7 @@ The vectors are transcribed from the NIST document and stored as data files. The
 regenerated from this implementation, which would make them a record of whatever the code does
 rather than of what the standard requires.
 
-### Radices without published vectors are proven against an independent implementation
+### Radices without published vectors are verified against an independent implementation
 
 NIST publishes vectors for radix 10 and 36 only. Every other radix has none, so agreement with an
 independent implementation is the only correctness evidence available — expected values authored
@@ -71,9 +109,10 @@ from this code would test nothing and lock in any bug permanently.
 `fpr-ff1` is therefore differential-tested against `ubiq_security_fpe` across radices **2, 10, 16,
 32, 36, 62, 256 and 65535**, including every length where the algorithm's internal block structure
 changes. The oracle is itself validated against all nine NIST vectors before a single comparison is
-trusted.
+trusted. Oracle-derived known-answer vectors are also frozen into the repository, so this evidence
+survives even if the (deprecated, unmaintained) oracle package one day stops installing.
 
-### Bijectivity is verified exhaustively, not sampled
+### Bijectivity is tested exhaustively for these two domains
 
 For two domains small enough to enumerate completely — radix 2 at length 20 (1,048,576 values) and
 radix 10 at length 6 (1,000,000 values) — every point is encrypted and the image checked to be the
@@ -129,8 +168,14 @@ the **tightened constraints from the Rev. 1 second public draft**:
 | Minimum domain | `radix ** minlen >= 1_000_000` | `radix ** minlen >= 100` |
 | Maximum length | `2 ** 32 - 1` | `2 ** 32 - 1` |
 | Key sizes | 128, 192, 256 bits | same |
-| Radix | `2 <= radix < 2 ** 16` | same |
+| Radix | `2 <= radix < 2**16` — a deliberate supported **subset** of the spec's inclusive `[2..2**16]` | `2 <= radix <= 2**16` |
 | Rounds | exactly 10 | same |
+
+The radix bound is an implementation limit, not a spec deviation: NIST permits an implementation
+to support a subset of radices, and this package supports `2..65535`. Radix 65536 is excluded
+deliberately (its numerals do not fit in `uint16`-sized values, and no practical alphabet reaches
+it); if that ever changes, widening the accepted domain without changing existing behaviour will
+be a minor version, not a major one.
 
 The minimum-domain rule is the one that will bite. A domain of only 100 values is trivially
 enumerable, so this package **fails closed** and rejects it. Concretely, `min_length` is 6 for
@@ -147,9 +192,11 @@ and a major version.
 
 ## Supported Python versions
 
-**3.12, 3.13 and 3.14.** The upper bound in `requires-python` is deliberate: it matches the
-versions actually exercised in CI on Linux, macOS and Windows. It is raised as part of a release
-once a newer Python is in the matrix and green, rather than being left open and assumed to work.
+**3.12, 3.13 and 3.14** are the versions exercised in CI on Linux, macOS and Windows (stated in
+the trove classifiers). `requires-python` is `>=3.12` with no upper bound: a capped
+`requires-python` becomes a hard resolution failure on future interpreters — a claim that they
+*don't* work, which cannot be known in advance — so the floor rises as the CI matrix grows rather
+than the ceiling punishing users of new Pythons.
 
 ## Roadmap
 
@@ -165,6 +212,27 @@ the two agree bit for bit — which is the point of the differential and interop
 Nothing in the roadmap changes the scope boundary above. FF3 and FF3-1 remain permanently out of
 scope, and no release will add key management.
 
+## Performance
+
+Measured on one core, CPython 3.12.13, macOS (Apple Silicon) — reproduce on your own hardware
+with `just bench` (`benchmarks/timing.py` is the harness):
+
+| Input | Throughput | Per numeral |
+|---|---|---|
+| 6 numerals, radix 10 | ~32,000 ops/s | 30.9 µs/op |
+| Instance construction | ~636,000 /s | 1.6 µs |
+| n = 100, radix 10 | — | 1.2 µs |
+| n = 1,000, radix 10 | — | 1.6 µs |
+| n = 5,000, radix 10 | — | 7.0 µs |
+| n = 20,000, radix 10 | — | 26.8 µs |
+
+The per-numeral cost climbs sharply past ~1,000 numerals: each of the ten rounds converts both
+halves of the input between a numeral sequence and a big integer, and that conversion is
+quadratic in pure Python. This is inherent to the algorithm's `NUM`/`STR` steps, not an
+implementation defect. If you are sizing a nightly job over millions of rows, measure with
+`just bench` against production-representative hardware — and note that the 2.0 optional
+accelerated backend in the roadmap exists precisely for this regime.
+
 ## API
 
 ### `FF1(key, radix, *, alphabet=None, tweak=b"", min_tweak_len=None, max_tweak_len=None)`
@@ -176,6 +244,13 @@ scope, and no release will add key management.
 | `alphabet` | Optional string of exactly `radix` unique characters; enables `encrypt`/`decrypt`. |
 | `tweak` | Default tweak used when not supplied per call. |
 | `min_tweak_len` / `max_tweak_len` | Optional per-instance tweak length bounds. |
+
+The package exports `fpr_ff1.__version__` — the version of the installed distribution. Callers
+recording which build produced a dataset should capture it alongside their data.
+
+Instances are picklable and deep-copyable (the cipher objects are rebuilt on the far side), so an
+`FF1` can be passed to `multiprocessing` workers or broadcast by PySpark. Note that pickling an
+instance serialises the key — see [`SECURITY.md`](https://github.com/joelee/fpr-ff1/blob/main/SECURITY.md).
 
 ### Numeral interface
 
@@ -198,6 +273,9 @@ booleans arriving here is a caller mistake, not an intent to encrypt ones and ze
 
 The input must be a `Sequence` — something with a known length. A generator raises `TypeError`
 (not `FF1Error`), because that is misuse of the API rather than bad data; wrap it in `list(...)`.
+The `Sequence` contract is enforced: mappings and sets are rejected, and a `Sequence` whose
+`__len__` disagrees with the values it yields raises `LengthError` rather than encrypting a
+domain smaller than the enforced minimum.
 
 ### String interface
 
@@ -215,6 +293,7 @@ If your alphabet comes from user input or an external source, normalise it first
 
 ```python
 import unicodedata
+
 alphabet = unicodedata.normalize("NFC", alphabet)
 ```
 
@@ -238,13 +317,11 @@ a programming error differently from a bad input record.
 
 ### Thread safety
 
-`FF1` instances are **not thread-safe**. The instance caches a single ECB encryptor for the
-S-expansion step, and pyca/cryptography documents concurrent `update()` calls on a shared
-`CipherContext` as producing indeterminate results — sharing one instance across threads can
-silently produce wrong ciphertext. Create one instance per thread, or serialise access with a
-lock. There is no module-level or global state, so any number of *separate* instances may be used
-concurrently; a web service handling concurrent requests should construct one `FF1` per thread
-(construction is cheap) rather than sharing one.
+`FF1` instances **are thread-safe**. No mutable state is shared between calls — every cipher
+context is created locally to the call that uses it — so separate calls on one instance may run
+concurrently and produce exactly the single-threaded results. There is no module-level or global
+state either, so any number of instances may be used concurrently. A web service may freely share
+one `FF1` across request threads.
 
 ## Migrating from `ubiq_security_fpe`
 
@@ -266,16 +343,19 @@ and the part that would actually be hard — identical ciphertext — is already
 ```python
 # before
 from ubiq_security_fpe import ff1
+
 ctx = ff1.Context(key, tweak, twk_min_len, twk_max_len, radix, alphabet)
 ciphertext = ctx.Encrypt(plaintext, None)
-plaintext  = ctx.Decrypt(ciphertext, None)
+plaintext = ctx.Decrypt(ciphertext, None)
 
 # after
 from fpr_ff1 import FF1
-ctx = FF1(key, radix, alphabet=alphabet, tweak=tweak,
-          min_tweak_len=twk_min_len, max_tweak_len=twk_max_len)
+
+ctx = FF1(
+    key, radix, alphabet=alphabet, tweak=tweak, min_tweak_len=twk_min_len, max_tweak_len=twk_max_len
+)
 ciphertext = ctx.encrypt(plaintext)
-plaintext  = ctx.decrypt(ciphertext)
+plaintext = ctx.decrypt(ciphertext)
 ```
 
 | `ubiq_security_fpe` | `fpr-ff1` |
@@ -288,9 +368,12 @@ plaintext  = ctx.decrypt(ciphertext)
 
 ### Behaviour changes to check before you switch
 
-1. **Shorter inputs are rejected.** `fpr-ff1` enforces `radix ** minlen >= 1_000_000`; the legacy
-   library used the same rule, but if you relied on any library using the 2016 `>= 100` bound,
-   inputs below `ctx.min_length` now raise `LengthError`. Check `ctx.min_length` for your radix.
+1. **Shorter inputs are rejected.** `fpr-ff1` enforces the Rev. 1 draft's `radix ** minlen >=
+   1_000_000`; `ubiq_security_fpe` enforced the same rule, so ciphertext produced by the legacy
+   library decrypts unchanged. But if your data contains values that only ever passed under the
+   2016 text's weaker `>= 100` bound — through another library or a manual path — those inputs
+   now raise `LengthError`. Before switching, check your shortest values against
+   `ctx.min_length` for your radix (6 for radix 10, 4 for radix 36, 3 for radix 256).
 2. **Errors are typed.** Rejections raise `KeyLengthError`, `RadixError`, `LengthError`,
    `ValueRangeError`, `TweakLengthError` or `AlphabetError` — all subclasses of `FF1Error` —
    rather than bare `RuntimeError`. Catch `FF1Error` if you want the old catch-all behaviour.
@@ -326,6 +409,8 @@ just secrets  # gitleaks scan (must be installed locally)
 - `docs/backlog.md` — active and completed work
 - `CHANGELOG.md` — release history, including behaviour changes that affect accepted inputs
 - `SECURITY.md` — disclosure process and known limitations
+- `CONTRIBUTING.md` — how to contribute, including the vector-provenance rules
+- `CODE_OF_CONDUCT.md` — community standards
 
 ## License
 

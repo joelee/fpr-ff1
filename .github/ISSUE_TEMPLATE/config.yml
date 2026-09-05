@@ -1,0 +1,7 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security disclosure
+    url: https://github.com/joelee/fpr-ff1/security/advisories/new
+    about: |
+      Report vulnerabilities privately — do not open a public issue. Incorrect FF1 output and
+      validation that fails open both count as security issues here.
