@@ -10,6 +10,9 @@ Documentation is part of the product. Update docs in the same change that makes 
 - `docs/directory-structure.md`: repository layout and what belongs in each directory.
 - `docs/developer-guide.md`: setup, development workflow, testing, linting, type checking, debugging, and release notes.
 - `docs/backlog.md`: high-level feature backlog and links to feature directories.
+- `docs/ideas/AGENTS.md`: contract for any agent writing idea reports under `docs/ideas/`.
+- `docs/reviews/AGENTS.md`: contract for any agent writing code-review reports under `docs/reviews/`.
+- `docs/plans/AGENTS.md`: contract for any agent writing delivery plans under `docs/plans/`.
 
 ## Rules
 

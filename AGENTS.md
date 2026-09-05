@@ -132,6 +132,7 @@ Vector files live in `tests/vectors/` as JSON, never inline literals. Never rege
 - CI matrix across all supported Python versions on Linux, macOS and Windows. Publish via PyPI Trusted Publishing; do not commit tokens.
 - README must cover: what FF1 is, why FF3 is excluded, the Rev. 1 constraints applied, the FIPS disclaimer, and a migration section for `ubiq_security_fpe` users. Include `SECURITY.md` with a disclosure contact.
 - Prefer clarity over cleverness. This module is read far more often than written, and a subtle bug is invisible without the vectors.
+- When writing to `docs/` or any of its subdirectories, read the `AGENTS.md` in that directory first (`docs/AGENTS.md`, `docs/ideas/AGENTS.md`, `docs/reviews/AGENTS.md`, `docs/plans/AGENTS.md`) and follow its rules and format.
 
 ## Open decisions
 
