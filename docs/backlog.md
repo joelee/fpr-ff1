@@ -50,6 +50,9 @@ This file tracks high-level feature ideas and technical debt for `fpr-ff1`.
 - Version policy revised (review 00004 MED-05): expanding the accepted domain without changing
   existing behaviour (e.g. a future radix-65536 addition) is a SemVer **minor** change; newly
   rejecting inputs or changing ciphertext remains major.
+- **v1.0.0 published** (2026-09-05, tag `v1.0.0` on `ff97296`): signed annotated tag, release-gated
+  Trusted Publishing with provenance attestations, Production/Stable classifier on PyPI. Ciphertext
+  unchanged for every input valid in 0.1.1.
 
 ## Decided
 
