@@ -18,7 +18,12 @@
 │   ├── configuration.md    # FF1 constructor parameters, runtime constraints, thread safety
 │   ├── developer-guide.md  # Setup, workflow, testing, and release notes
 │   ├── directory-structure.md # This file
-│   └── plans/             # Execution plans derived from review reports
+│   ├── ideas/             # Immutable idea reports (see ideas/AGENTS.md)
+│   │   └── AGENTS.md      # Contract for any agent writing to ideas/
+│   ├── reviews/           # Immutable code-review reports (see reviews/AGENTS.md)
+│   │   └── AGENTS.md      # Contract for any agent writing to reviews/
+│   └── plans/             # Delivery plans (see plans/AGENTS.md)
+│       └── AGENTS.md      # Contract for any agent writing to plans/
 ├── src/                    # Python source root
 │   └── fpr_ff1/            # FF1 implementation package
 │       ├── __init__.py     # Public exports and __version__

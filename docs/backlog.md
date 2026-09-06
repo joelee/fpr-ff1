@@ -7,8 +7,10 @@ This file tracks high-level feature ideas and technical debt for `fpr-ff1`.
 ### 2.0
 
 - Optional accelerated backend. Opt-in only; the pure-Python implementation stays the reference
-  and the default. Blocked on 1.0 shipping first — an accelerated path is only worth having once
-  the reference is settled and the conformance suite can prove the two agree bit for bit.
+  and the default. With 1.1.0's subquadratic conversion removing the long-input cost (plan 00003
+  E1), the remaining case is the small-input regime (per-call overhead, ~55% of an n=6 call is
+  cipher-context construction); to be decided on measured numbers against the 1.1 baseline per
+  idea 00001 r02.
 
 ### Ongoing
 
@@ -50,6 +52,14 @@ This file tracks high-level feature ideas and technical debt for `fpr-ff1`.
 - Version policy revised (review 00004 MED-05): expanding the accepted domain without changing
   existing behaviour (e.g. a future radix-65536 addition) is a SemVer **minor** change; newly
   rejecting inputs or changing ciphertext remains major.
+- **v1.0.0 published** (2026-09-05, tag `v1.0.0` on `ff97296`): signed annotated tag, release-gated
+  Trusted Publishing with provenance attestations, Production/Stable classifier on PyPI. Ciphertext
+  unchanged for every input valid in 0.1.1.
+- **E1 pure-Python optimisation landed for v1.1.0** (plan 00003, steps 01–05): subquadratic
+  divide-and-conquer `NUM`/`STR` conversion plus an O(n) power-of-two fast path, ciphertext
+  bit-identical to 1.0.0 across the full conformance suite; naive loops retained as the
+  documented reference with a differential equivalence test across every supported radix.
+  ~19× at n=20,000 radix 10, ~25× at radix 256; small inputs unchanged.
 
 ## Decided
 

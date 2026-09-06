@@ -9,6 +9,39 @@ expanding the accepted domain without changing existing behaviour is a minor ver
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-09-06
+
+Performance release. **Ciphertext is bit-identical to 1.0.0 for every valid input** — verified
+against the NIST sample vectors, the per-round intermediates, the differential oracle, the frozen
+KAT vectors, the `ubiq_security_fpe` interoperability suite, and the exhaustive bijectivity
+sweeps, all unmodified. No API change, no new dependency, no change to accepted inputs; this is
+a minor version under the project's version policy.
+
+### Changed
+
+- **Subquadratic base conversion** (plan 00003, idea 00001 r02 / review 00005). The internal
+  `NUM`/`STR` conversion between a numeral sequence and a big integer was a digit-at-a-time
+  loop — quadratic in the number of numerals, and the reason long inputs slowed down sharply
+  past ~1,000 numerals. It is now a divide-and-conquer conversion above a 64-numeral threshold:
+  about **19× faster at n=20,000 (radix 10)** and ~6× at n=5,000, with small inputs unchanged.
+  The naive loops remain in the module as the documented line-by-line reference implementation,
+  and a differential test asserts the fast conversion is bit-identical to them across every
+  supported radix (2..65535), including recursion-threshold boundary lengths.
+- **O(n) fast path for power-of-two radices** (2, 4, 8, 16, 32, 64, 256). Numeral groups are
+  packed through `int.to_bytes`/`int.from_bytes` instead of divided: about **25× faster at
+  n=20,000 (radix 256)**, previously the library's worst-performing configuration. Exact
+  integer arithmetic only; the AST scan forbidding floating-point operations still holds.
+- The README performance table is refreshed from a new `just bench` run, and the previous
+  claim that the quadratic conversion was "inherent to the algorithm" is corrected: it was an
+  implementation choice (review 00005, MED-04).
+
+### Unchanged
+
+- Public API, accepted inputs, produced ciphertext, exception types and messages, thread
+  safety, pickling, and the single runtime dependency (`cryptography`).
+- The conversion's memoised power cache is created per call and never shared between calls, so
+  the thread-safety guarantee is preserved by construction.
+
 ## [1.0.0] — 2026-09-04
 
 First stable release, resolving every pre-1.0 finding from reviews 00003 and 00004.
