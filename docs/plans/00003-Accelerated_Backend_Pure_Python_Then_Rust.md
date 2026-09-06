@@ -39,9 +39,9 @@ builder_agent: build
 builder_model: "ollama-cloud/glm-5.3"
 execution_branch: "feature/accelerated-backend-pure-python-then-rust"
 execution_started_at: "2026-09-06T22:03:07Z"
-execution_updated_at: "2026-09-06T22:38:11Z"
+execution_updated_at: "2026-09-06T22:46:35Z"
 execution_completed_at: null
-current_step: PLAN-00003-STEP-04
+current_step: PLAN-00003-STEP-05
 ---
 
 # Delivery Plan 00003: Accelerated Backend Pure Python Then Rust
@@ -1236,7 +1236,7 @@ results table. No check may be claimed as passed without its evidence entry.
 | PLAN-00003-STEP-01 | completed | 2026-09-06T22:03:07Z | 2026-09-06T22:18:22Z | Staged checkpoint reviewed and approved by user; digest `a517ad5c...59feb` verified at continuation | Differential oracle transcribed in-test (stronger than plan minimum); 88 new tests |
 | PLAN-00003-STEP-02 | completed | 2026-09-06T22:23:50Z | 2026-09-06T22:29:26Z | Staged checkpoint reviewed and approved by user; digest `06a9a47c...31e7e` verified at continuation | ~19× at n=20,000 radix 10; bit-identical across all 839 tests |
 | PLAN-00003-STEP-03 | completed | 2026-09-06T22:34:52Z | 2026-09-06T22:38:11Z | Staged checkpoint reviewed and approved by user; digest `c17a5c00...a32be` verified at continuation | Radix 256 n=20,000: ~25× end-to-end; conversion now O(n) |
-| PLAN-00003-STEP-04 | not-started | — | — | — | — |
+| PLAN-00003-STEP-04 | completed | 2026-09-06T22:42:34Z | 2026-09-06T22:46:35Z | Staged checkpoint reviewed and approved by user (plan-only checkpoint, no implementation digest) | E1 baseline recorded: ~19× at n=20,000 radix 10, ~25× radix 256 |
 | PLAN-00003-STEP-05 | not-started | — | — | — | — |
 | PLAN-00003-STEP-06 | not-started | — | — | — | — |
 | PLAN-00003-STEP-07 | not-started | — | — | — | — |
@@ -1263,6 +1263,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-06T22:29:26Z | PLAN-00003-STEP-02 | User approved the staged checkpoint ("Approved. Proceed to the next step."); staged-checkpoint gate re-verified (branch, HEAD `7363269`, staged set, digest match, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-02, then begin STEP-03 |
 | 2026-09-06T22:34:52Z | PLAN-00003-STEP-03 | STEP-03 implemented and verified: O(n) power-of-two fast path added (`_pow2_exponent` via exact `bit_length`, `_num_radix_pow2`/`_str_radix_pow2` byte-group packing through `int.to_bytes`/`int.from_bytes`, truncation contract reproduced via an O(n) mask). Dispatch: ≤64 numerals → reference loop (small-input hot path unchanged); power-of-two radix → fast path; else → D&C split. Differential suite (88 tests) bit-identical across every supported radix incl. all power-of-two radices and the truncation contract. Full gate green: format, lint, pyright strict (0 errors), 839 tests, 100% line/branch coverage (295 stmts, 96 branches). Benchmark: radix 256 n=20,000 encrypt 1,114 ms → 43.7 ms (~25× end-to-end; conversion now negligible, remaining cost is the ten PRF calls over ~20 KB inputs — the O(n) goal); radix 2: 148 → 12.1 ms (~12×); radix 65535 (D&C path): 2,464 → 150.6 ms (~16×). Checkpoint staged for review: implementation path `src/fpr_ff1/_ff1.py`; proposed commit subject `build: complete PLAN-00003-STEP-03 - Power-of-two fast path`. Staged-diff SHA-256 for `src/fpr_ff1/_ff1.py`: `c17a5c00c2c209cd4cdc82587482bfc0c4fb8e1df507bce9dd0090fb3d2a32be` | Verification results below | Awaiting user review; on continuation, commit STEP-03 and begin STEP-04 |
 | 2026-09-06T22:38:11Z | PLAN-00003-STEP-03 | User approved the staged checkpoint ("Approved. Proceed to the next step."); staged-checkpoint gate re-verified (branch, HEAD `526e01d`, staged set, digest match, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-03, then begin STEP-04 |
+| 2026-09-06T22:42:34Z | PLAN-00003-STEP-04 | STEP-04 executed: full quality gate re-run green (839 tests, 100% line/branch coverage, 295 stmts/96 branches; ruff format/lint clean; pyright strict 0 errors) and the complete `benchmarks/timing.py` output captured as the E1 evidence baseline. Results vs the v1.0.0 README baseline: 6 numerals radix 10: 30.9 → 29.1 µs/op (unchanged within noise — no small-input regression); n=100: 1.2 → 1.1 µs; n=1,000: 1.6 → 1.0 µs (~1.6×); n=5,000: 7.0 → 1.1 µs (~6.4×); n=20,000: 26.8 → 1.4 µs/numeral (~19×); radix 256 n=20,000 encrypt: 1,114 → 43.7 ms (~25×). Value-dependent timing deltas within ±3.2% — no constant-time posture change. Ciphertext-identity evidence: the frozen KAT, interoperability (ubiq byte-identical both directions), NIST vector, per-round intermediate, differential-oracle, and bijectivity suites all passed unmodified within the 839-test gate. These numbers are the README table input for STEP-05 and the E2 comparison baseline for STEP-13. No code changed in this step; staged checkpoint is the plan work log only. Proposed commit subject `build: complete PLAN-00003-STEP-04 - E1 full verification and benchmark` | Verification results below | Awaiting user review; on continuation, commit STEP-04 and begin STEP-05 |
+| 2026-09-06T22:46:35Z | PLAN-00003-STEP-04 | User approved the staged checkpoint ("Approved. Proceed to the next step."); staged-checkpoint gate re-verified (branch, HEAD `f4bcf4c`, plan-only staged set, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-04, then begin STEP-05 |
 
 ### Deviations and blockers
 
@@ -1289,6 +1291,9 @@ Write `None` until an entry is required.
 | 2026-09-06T22:34:52Z | PLAN-00003-STEP-03 | `uv run ruff format --check .` / `uv run ruff check .` / `uv run pyright` | Clean; 0 errors, 0 warnings | Whole project |
 | 2026-09-06T22:34:52Z | PLAN-00003-STEP-03 | `uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100` | 839 passed; 100% line and branch coverage (295 stmts, 96 branches, 0 missed) | Pow2 branches covered by the differential radix sweep (213.7 s) |
 | 2026-09-06T22:34:52Z | PLAN-00003-STEP-03 | Focused encrypt benchmark (timing.py methodology), radix 256/2/65535 at n=20,000 | radix 256: 1,114 ms → 43.7 ms (~25×); radix 2: 148 → 12.1 ms (~12×); radix 65535: 2,464 → 150.6 ms (~16×) | O(n) conversion goal met; residual radix-256 cost is PRF over ~20 KB inputs, not conversion |
+| 2026-09-06T22:42:34Z | PLAN-00003-STEP-04 | `uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100` | 839 passed; 100% line and branch coverage (218.5 s) | Formal STEP-04 gate run |
+| 2026-09-06T22:42:34Z | PLAN-00003-STEP-04 | `uv run ruff format --check .` / `uv run ruff check .` / `uv run pyright` | Clean; 0 errors, 0 warnings | Whole project |
+| 2026-09-06T22:42:34Z | PLAN-00003-STEP-04 | `uv run python benchmarks/timing.py` | Full output captured: 6 numerals 29.1 µs/op; construction 1.3 µs; n=100/1,000/5,000/20,000 radix 10 at 1.1/1.0/1.1/1.4 µs per numeral; value-dependent deltas ≤ 3.2% | E1 baseline recorded; feeds STEP-05 README table and STEP-13 E2 comparison |
 
 ### Completion summary
 
