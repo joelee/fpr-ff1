@@ -8,10 +8,10 @@ tags:
   - opencode
 type: delivery-plan
 plan_id: "PLAN-00003"
-plan_status: draft
+plan_status: approved
 plan_kind: initial
 created_at: "2026-09-06T18:07:27Z"
-approved_at: null
+approved_at: "2026-09-06T21:41:24Z"
 planner_agent: plan
 planner_model: "ollama-cloud/glm-5.3"
 triggered_by: user
@@ -28,7 +28,7 @@ requirements_count: 23
 steps_count: 15
 acceptance_criteria_count: 15
 blocking_decisions: 0
-build_ready: false
+build_ready: true
 web_research_used: false
 confidence: high
 
@@ -46,14 +46,14 @@ current_step: null
 
 # Delivery Plan 00003: Accelerated Backend Pure Python Then Rust
 
-> [!abstract] Plan status: `draft`
+> [!abstract] Plan status: `approved`
 > Deliver idea 00001 r02's two-stage concept: first land the measured
 > pure-Python win (E1 — subquadratic divide-and-conquer `NUM`/`STR` conversion
 > plus a power-of-two fast path, ciphertext-identical, shipped as `v1.1.0`),
 > then build the user-approved opt-in Rust backend (E2 — full Algorithm 7 core
 > with in-process AES, `backend="rust"`, pure-Python retained as reference and
 > default, shipped as `v2.0.0`). All user decisions are resolved; the plan is
-> ready for review and approval.
+> approved and ready for Builder hand-off.
 
 ## 1. Objective and outcome
 
@@ -1283,6 +1283,7 @@ Write `None` until an entry is required.
 | Timestamp (UTC) | Plan status | Change | Reason | Requested/approved by |
 |---|---|---|---|---|
 | 2026-09-06T18:07:27Z | draft | Initial draft published from idea 00001 r02 (user-authorised despite `status: revised`) and review 00005; combined E1-then-E2 scope; Rust backend build approved by user (D1–D3) | User request "read idea 00001 and draft a plan to implement a Rust backend" plus clarification answers | User |
+| 2026-09-06T21:41:24Z | approved | Plan approved: `plan_status` → approved, `build_ready` → true, `approved_at` set; approval commit created | Explicit user approval | User |
 
 ## 19. External references
 
