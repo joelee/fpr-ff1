@@ -39,9 +39,9 @@ builder_agent: build
 builder_model: "ollama-cloud/glm-5.3"
 execution_branch: "feature/accelerated-backend-pure-python-then-rust"
 execution_started_at: "2026-09-06T22:03:07Z"
-execution_updated_at: "2026-09-06T22:46:35Z"
+execution_updated_at: "2026-09-06T22:52:37Z"
 execution_completed_at: null
-current_step: PLAN-00003-STEP-05
+current_step: PLAN-00003-STEP-06
 ---
 
 # Delivery Plan 00003: Accelerated Backend Pure Python Then Rust
@@ -1237,7 +1237,7 @@ results table. No check may be claimed as passed without its evidence entry.
 | PLAN-00003-STEP-02 | completed | 2026-09-06T22:23:50Z | 2026-09-06T22:29:26Z | Staged checkpoint reviewed and approved by user; digest `06a9a47c...31e7e` verified at continuation | ~19× at n=20,000 radix 10; bit-identical across all 839 tests |
 | PLAN-00003-STEP-03 | completed | 2026-09-06T22:34:52Z | 2026-09-06T22:38:11Z | Staged checkpoint reviewed and approved by user; digest `c17a5c00...a32be` verified at continuation | Radix 256 n=20,000: ~25× end-to-end; conversion now O(n) |
 | PLAN-00003-STEP-04 | completed | 2026-09-06T22:42:34Z | 2026-09-06T22:46:35Z | Staged checkpoint reviewed and approved by user (plan-only checkpoint, no implementation digest) | E1 baseline recorded: ~19× at n=20,000 radix 10, ~25× radix 256 |
-| PLAN-00003-STEP-05 | not-started | — | — | — | — |
+| PLAN-00003-STEP-05 | completed | 2026-09-06T22:47:28Z | 2026-09-06T22:52:37Z | Staged checkpoint reviewed and approved by user; digest `c088c824...d7faa` verified at continuation | README claim corrected; 1.1.0 artifacts build |
 | PLAN-00003-STEP-06 | not-started | — | — | — | — |
 | PLAN-00003-STEP-07 | not-started | — | — | — | — |
 | PLAN-00003-STEP-08 | not-started | — | — | — | — |
@@ -1265,6 +1265,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-06T22:38:11Z | PLAN-00003-STEP-03 | User approved the staged checkpoint ("Approved. Proceed to the next step."); staged-checkpoint gate re-verified (branch, HEAD `526e01d`, staged set, digest match, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-03, then begin STEP-04 |
 | 2026-09-06T22:42:34Z | PLAN-00003-STEP-04 | STEP-04 executed: full quality gate re-run green (839 tests, 100% line/branch coverage, 295 stmts/96 branches; ruff format/lint clean; pyright strict 0 errors) and the complete `benchmarks/timing.py` output captured as the E1 evidence baseline. Results vs the v1.0.0 README baseline: 6 numerals radix 10: 30.9 → 29.1 µs/op (unchanged within noise — no small-input regression); n=100: 1.2 → 1.1 µs; n=1,000: 1.6 → 1.0 µs (~1.6×); n=5,000: 7.0 → 1.1 µs (~6.4×); n=20,000: 26.8 → 1.4 µs/numeral (~19×); radix 256 n=20,000 encrypt: 1,114 → 43.7 ms (~25×). Value-dependent timing deltas within ±3.2% — no constant-time posture change. Ciphertext-identity evidence: the frozen KAT, interoperability (ubiq byte-identical both directions), NIST vector, per-round intermediate, differential-oracle, and bijectivity suites all passed unmodified within the 839-test gate. These numbers are the README table input for STEP-05 and the E2 comparison baseline for STEP-13. No code changed in this step; staged checkpoint is the plan work log only. Proposed commit subject `build: complete PLAN-00003-STEP-04 - E1 full verification and benchmark` | Verification results below | Awaiting user review; on continuation, commit STEP-04 and begin STEP-05 |
 | 2026-09-06T22:46:35Z | PLAN-00003-STEP-04 | User approved the staged checkpoint ("Approved. Proceed to the next step."); staged-checkpoint gate re-verified (branch, HEAD `f4bcf4c`, plan-only staged set, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-04, then begin STEP-05 |
+| 2026-09-06T22:47:28Z | PLAN-00003-STEP-05 | STEP-05 implemented and verified: README §Performance rewritten — the "inherent to the algorithm's NUM/STR steps" claim is gone, replaced by the corrected implementation-choice explanation with the 1.1.0 numbers (29.1 µs at n=6; flat 1.0–1.4 µs/numeral to n=20,000); roadmap table gains the 1.1 row and the 2.0 row is re-scoped to the small-input regime (review 00005 MED-04 both halves). CHANGELOG 1.1.0 entry (performance release, ciphertext bit-identical, Changed + Unchanged sections). `docs/backlog.md`: 2.0 item re-scoped to small-input with the 1.1 baseline; E1 completion recorded. `pyproject.toml` version → 1.1.0; `uv.lock` re-recorded the local package version (verified: single-line version diff). Checked `docs/architecture.md` and `docs/developer-guide.md` for stale performance claims — none found, no changes needed. Gate green: ruff format/lint, pyright strict 0 errors, 837 fast tests, `uv build` produces `fpr_ff1-1.1.0` sdist + wheel. Checkpoint staged for review: implementation paths `README.md`, `CHANGELOG.md`, `docs/backlog.md`, `pyproject.toml`, `uv.lock`; proposed commit subject `build: complete PLAN-00003-STEP-05 - E1 documentation and version 1.1.0`. Staged-diff SHA-256 for the implementation paths (`README.md`, `CHANGELOG.md`, `docs/backlog.md`, `pyproject.toml`, `uv.lock`): `c088c8243b9df503ddac244d61c00595cf648c84903ae82337c82928de6d7faa` | Verification results below | Awaiting user review; on continuation, commit STEP-05 and begin STEP-06 |
+| 2026-09-06T22:52:37Z | PLAN-00003-STEP-05 | User approved the staged checkpoint ("Step 5 Approved. Should I tag/push/publish now?"); staged-checkpoint gate re-verified (branch, HEAD `08f44b5`, staged set, digest match, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-05, then begin STEP-06 (release preparation; tag/push/publish are user actions) |
 
 ### Deviations and blockers
 
@@ -1294,6 +1296,10 @@ Write `None` until an entry is required.
 | 2026-09-06T22:42:34Z | PLAN-00003-STEP-04 | `uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100` | 839 passed; 100% line and branch coverage (218.5 s) | Formal STEP-04 gate run |
 | 2026-09-06T22:42:34Z | PLAN-00003-STEP-04 | `uv run ruff format --check .` / `uv run ruff check .` / `uv run pyright` | Clean; 0 errors, 0 warnings | Whole project |
 | 2026-09-06T22:42:34Z | PLAN-00003-STEP-04 | `uv run python benchmarks/timing.py` | Full output captured: 6 numerals 29.1 µs/op; construction 1.3 µs; n=100/1,000/5,000/20,000 radix 10 at 1.1/1.0/1.1/1.4 µs per numeral; value-dependent deltas ≤ 3.2% | E1 baseline recorded; feeds STEP-05 README table and STEP-13 E2 comparison |
+| 2026-09-06T22:47:28Z | PLAN-00003-STEP-05 | `uv run ruff format --check .` / `uv run ruff check .` / `uv run pyright` | Clean; 0 errors, 0 warnings | Whole project |
+| 2026-09-06T22:47:28Z | PLAN-00003-STEP-05 | `uv run pytest -m 'not slow' --no-cov -q` | 837 passed, 2 deselected (1.52 s) | Fast suite after docs + version bump |
+| 2026-09-06T22:47:28Z | PLAN-00003-STEP-05 | `uv build` | sdist + wheel built as `fpr_ff1-1.1.0` | Version bump verified in build output |
+| 2026-09-06T22:47:28Z | PLAN-00003-STEP-05 | `git diff uv.lock` | Single-line change: fpr-ff1 version 1.0.0 → 1.1.0 | Lock update is exactly the version bump |
 
 ### Completion summary
 
