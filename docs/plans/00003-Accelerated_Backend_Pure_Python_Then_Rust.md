@@ -39,9 +39,9 @@ builder_agent: build
 builder_model: "ollama-cloud/glm-5.3"
 execution_branch: "feature/accelerated-backend-pure-python-then-rust"
 execution_started_at: "2026-09-06T22:03:07Z"
-execution_updated_at: "2026-09-06T22:29:26Z"
+execution_updated_at: "2026-09-06T22:38:11Z"
 execution_completed_at: null
-current_step: PLAN-00003-STEP-03
+current_step: PLAN-00003-STEP-04
 ---
 
 # Delivery Plan 00003: Accelerated Backend Pure Python Then Rust
@@ -1235,7 +1235,7 @@ results table. No check may be claimed as passed without its evidence entry.
 |---|---|---|---|---|---|
 | PLAN-00003-STEP-01 | completed | 2026-09-06T22:03:07Z | 2026-09-06T22:18:22Z | Staged checkpoint reviewed and approved by user; digest `a517ad5c...59feb` verified at continuation | Differential oracle transcribed in-test (stronger than plan minimum); 88 new tests |
 | PLAN-00003-STEP-02 | completed | 2026-09-06T22:23:50Z | 2026-09-06T22:29:26Z | Staged checkpoint reviewed and approved by user; digest `06a9a47c...31e7e` verified at continuation | ~19× at n=20,000 radix 10; bit-identical across all 839 tests |
-| PLAN-00003-STEP-03 | not-started | — | — | — | — |
+| PLAN-00003-STEP-03 | completed | 2026-09-06T22:34:52Z | 2026-09-06T22:38:11Z | Staged checkpoint reviewed and approved by user; digest `c17a5c00...a32be` verified at continuation | Radix 256 n=20,000: ~25× end-to-end; conversion now O(n) |
 | PLAN-00003-STEP-04 | not-started | — | — | — | — |
 | PLAN-00003-STEP-05 | not-started | — | — | — | — |
 | PLAN-00003-STEP-06 | not-started | — | — | — | — |
@@ -1261,6 +1261,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-06T22:18:22Z | PLAN-00003-STEP-01 | User approved the staged checkpoint ("Step 1 Approved. Proceed to the next step."); staged-checkpoint gate re-verified (branch, HEAD `820cf50`, staged set, digest match, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-01, then begin STEP-02 |
 | 2026-09-06T22:23:50Z | PLAN-00003-STEP-02 | STEP-02 implemented and verified: `_ff1.py` conversion replaced with subquadratic divide-and-conquer (`_num_radix_split`/`_str_radix_split`, 64-numeral threshold, call-local memoised `radix**k` cache with the REQ-05 thread-safety constraint stated in `_radix_power`'s docstring); naive loops retained as `_num_radix_reference`/`_str_radix_reference` with spec-reference docstrings (REQ-03). The STEP-01 differential suite (88 tests, incl. the retained-copy pinning test now live) passes bit-identical across every supported radix. Full gate green: format, lint, pyright strict (0 errors), 839 tests, 100% line/branch coverage (252 stmts, 78 branches). Benchmark preview: n=20,000 radix 10 at 1.4 µs/numeral (was 26.8 µs, ~19×), n=5,000 at 1.1 µs (was 7.0 µs, ~6×), n=6 unchanged at 29.3 µs — matching review 00005's measurements; no small-input regression. Checkpoint staged for review: implementation path `src/fpr_ff1/_ff1.py`; staged-diff SHA-256 below; proposed commit subject `build: complete PLAN-00003-STEP-02 - Divide-and-conquer conversion`. Staged-diff SHA-256 for `src/fpr_ff1/_ff1.py`: `06a9a47c182cda31d0615a20f76bd00de1bd18a50576b2718741966862131e7e` | Verification results below | Awaiting user review; on continuation, commit STEP-02 and begin STEP-03 |
 | 2026-09-06T22:29:26Z | PLAN-00003-STEP-02 | User approved the staged checkpoint ("Approved. Proceed to the next step."); staged-checkpoint gate re-verified (branch, HEAD `7363269`, staged set, digest match, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-02, then begin STEP-03 |
+| 2026-09-06T22:34:52Z | PLAN-00003-STEP-03 | STEP-03 implemented and verified: O(n) power-of-two fast path added (`_pow2_exponent` via exact `bit_length`, `_num_radix_pow2`/`_str_radix_pow2` byte-group packing through `int.to_bytes`/`int.from_bytes`, truncation contract reproduced via an O(n) mask). Dispatch: ≤64 numerals → reference loop (small-input hot path unchanged); power-of-two radix → fast path; else → D&C split. Differential suite (88 tests) bit-identical across every supported radix incl. all power-of-two radices and the truncation contract. Full gate green: format, lint, pyright strict (0 errors), 839 tests, 100% line/branch coverage (295 stmts, 96 branches). Benchmark: radix 256 n=20,000 encrypt 1,114 ms → 43.7 ms (~25× end-to-end; conversion now negligible, remaining cost is the ten PRF calls over ~20 KB inputs — the O(n) goal); radix 2: 148 → 12.1 ms (~12×); radix 65535 (D&C path): 2,464 → 150.6 ms (~16×). Checkpoint staged for review: implementation path `src/fpr_ff1/_ff1.py`; proposed commit subject `build: complete PLAN-00003-STEP-03 - Power-of-two fast path`. Staged-diff SHA-256 for `src/fpr_ff1/_ff1.py`: `c17a5c00c2c209cd4cdc82587482bfc0c4fb8e1df507bce9dd0090fb3d2a32be` | Verification results below | Awaiting user review; on continuation, commit STEP-03 and begin STEP-04 |
+| 2026-09-06T22:38:11Z | PLAN-00003-STEP-03 | User approved the staged checkpoint ("Approved. Proceed to the next step."); staged-checkpoint gate re-verified (branch, HEAD `526e01d`, staged set, digest match, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-03, then begin STEP-04 |
 
 ### Deviations and blockers
 
@@ -1283,6 +1285,10 @@ Write `None` until an entry is required.
 | 2026-09-06T22:23:50Z | PLAN-00003-STEP-02 | `uv run pyright` | 0 errors, 0 warnings | Strict mode, whole project |
 | 2026-09-06T22:23:50Z | PLAN-00003-STEP-02 | `uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100` | 839 passed; 100% line and branch coverage (252 stmts, 78 branches, 0 missed) | New D&C branches covered by the STEP-01 boundary tests (224.9 s) |
 | 2026-09-06T22:23:50Z | PLAN-00003-STEP-02 | `uv run python benchmarks/timing.py` | n=20,000 radix 10: 1.4 µs/numeral (baseline 26.8 µs, ~19×); n=5,000: 1.1 µs (was 7.0 µs); n=6: 29.3 µs (unchanged); value-dependent deltas ≤ 5.4% | D&C win realised, matching review 00005; no small-input regression |
+| 2026-09-06T22:34:52Z | PLAN-00003-STEP-03 | `uv run pytest tests/test_conversion_equivalence.py -q` | 88 passed (0.66 s) | Differential green against the pow2 fast path — bit-identical across every supported radix incl. truncation contract |
+| 2026-09-06T22:34:52Z | PLAN-00003-STEP-03 | `uv run ruff format --check .` / `uv run ruff check .` / `uv run pyright` | Clean; 0 errors, 0 warnings | Whole project |
+| 2026-09-06T22:34:52Z | PLAN-00003-STEP-03 | `uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100` | 839 passed; 100% line and branch coverage (295 stmts, 96 branches, 0 missed) | Pow2 branches covered by the differential radix sweep (213.7 s) |
+| 2026-09-06T22:34:52Z | PLAN-00003-STEP-03 | Focused encrypt benchmark (timing.py methodology), radix 256/2/65535 at n=20,000 | radix 256: 1,114 ms → 43.7 ms (~25×); radix 2: 148 → 12.1 ms (~12×); radix 65535: 2,464 → 150.6 ms (~16×) | O(n) conversion goal met; residual radix-256 cost is PRF over ~20 KB inputs, not conversion |
 
 ### Completion summary
 

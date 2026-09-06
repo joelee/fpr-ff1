@@ -533,17 +533,94 @@ def _num_radix_split(radix: int, numerals: Sequence[int], cache: dict[int, int])
     return high * _radix_power(radix, length - high_len, cache) + low
 
 
+def _pow2_exponent(radix: int) -> int | None:
+    """Return ``k`` when ``radix`` is ``2 ** k``, else ``None``.
+
+    Exact integer arithmetic only: ``2**k - 1`` has bit length ``k``, so the
+    exponent comes from ``bit_length()`` -- never a logarithm (the Bouncy
+    Castle bug class this module bans).
+    """
+    if radix & (radix - 1) == 0:
+        return (radix - 1).bit_length()
+    return None
+
+
+def _pow2_chunk_size(k: int) -> int:
+    """Smallest numeral count per byte-aligned group for radix ``2 ** k``.
+
+    A group of ``chunk`` numerals occupies ``k * chunk`` bits; the smallest
+    ``chunk`` making that a multiple of 8 lets whole groups pass through
+    ``int.to_bytes``/``int.from_bytes``. ``k`` is at most 15 (radix < 2**16),
+    so 8 always works as the fallback.
+    """
+    chunk = 8
+    for candidate in (1, 2, 4):
+        if (k * candidate) % 8 == 0:
+            chunk = candidate
+            break
+    return chunk
+
+
+def _num_radix_pow2(k: int, numerals: Sequence[int]) -> int:
+    """O(n) NUM_radix for power-of-two radices (plan 00003 REQ-02).
+
+    Packs byte-aligned groups of numerals and decodes the whole sequence
+    with one ``int.from_bytes`` instead of multiplying per digit. Review
+    00005 measured this class of path at 112x end to end for radix 256 at
+    n=20,000, bit-exact. Leading zero padding never changes the value.
+    """
+    chunk_size = _pow2_chunk_size(k)
+    bytes_per_chunk = k * chunk_size // 8
+    pad = (-len(numerals)) % chunk_size
+    padded = [0] * pad + list(numerals)
+    packed = bytearray()
+    for start in range(0, len(padded), chunk_size):
+        acc = 0
+        for numeral in padded[start : start + chunk_size]:
+            acc = (acc << k) | numeral
+        packed += acc.to_bytes(bytes_per_chunk, byteorder="big")
+    return int.from_bytes(packed, byteorder="big")
+
+
+def _str_radix_pow2(value: int, k: int, length: int) -> list[int]:
+    """O(n) STR_radix for power-of-two radices; see :func:`_num_radix_pow2`.
+
+    Values ``>= radix ** length`` drop their high digits exactly as the
+    reference loop does: ``radix ** length`` is ``2 ** (k * length)`` here,
+    so one O(n) mask reproduces the truncation contract bit-for-bit.
+    """
+    chunk_size = _pow2_chunk_size(k)
+    bytes_per_chunk = k * chunk_size // 8
+    n_chunks = (length + chunk_size - 1) // chunk_size
+    value &= (1 << (k * length)) - 1
+    data = value.to_bytes(n_chunks * bytes_per_chunk, byteorder="big")
+    digit_mask = (1 << k) - 1
+    out: list[int] = []
+    for start in range(0, n_chunks * bytes_per_chunk, bytes_per_chunk):
+        chunk_int = int.from_bytes(data[start : start + bytes_per_chunk], byteorder="big")
+        for shift in range((chunk_size - 1) * k, -1, -k):
+            out.append((chunk_int >> shift) & digit_mask)
+    # Drop the leading zero padding introduced by the final partial group.
+    del out[: n_chunks * chunk_size - length]
+    return out
+
+
 def _num_radix(radix: int, numerals: Sequence[int]) -> int:
     """Decode a sequence of numerals as a big-endian base-radix integer.
 
-    Subquadratic divide-and-conquer equivalent of the spec's NUM_radix,
-    bit-identical to :func:`_num_radix_reference` (asserted across every
-    supported radix by ``tests/test_conversion_equivalence.py``). Inputs
-    at or below ``_D_C_THRESHOLD`` numerals use the reference loop
-    directly, so the small-input hot path is unchanged.
+    Equivalent to the spec's NUM_radix, bit-identical to
+    :func:`_num_radix_reference` (asserted across every supported radix by
+    ``tests/test_conversion_equivalence.py``). Inputs at or below
+    ``_D_C_THRESHOLD`` numerals use the reference loop directly, so the
+    small-input hot path is unchanged; above it, power-of-two radices take
+    an O(n) byte-packing path (:func:`_num_radix_pow2`, plan 00003 REQ-02)
+    and everything else the subquadratic divide-and-conquer split.
     """
     if len(numerals) <= _D_C_THRESHOLD:
         return _num_radix_reference(radix, numerals)
+    k = _pow2_exponent(radix)
+    if k is not None:
+        return _num_radix_pow2(k, numerals)
     # Call-local cache; see _radix_power for why it must not be shared.
     return _num_radix_split(radix, numerals, {})
 
@@ -568,12 +645,17 @@ def _str_radix_split(value: int, radix: int, length: int, cache: dict[int, int])
 def _str_radix(value: int, radix: int, length: int) -> list[int]:
     """Encode a non-negative integer as ``length`` big-endian base-radix numerals.
 
-    Subquadratic divide-and-conquer equivalent of the spec's STR_radix,
-    bit-identical to :func:`_str_radix_reference`; see
-    :func:`_num_radix` for the threshold and equivalence guarantees.
+    Equivalent to the spec's STR_radix, bit-identical to
+    :func:`_str_radix_reference`; see :func:`_num_radix` for the
+    threshold, power-of-two, and divide-and-conquer dispatch and the
+    equivalence guarantees, including the truncation contract for values
+    ``>= radix ** length``.
     """
     if length <= _D_C_THRESHOLD:
         return _str_radix_reference(value, radix, length)
+    k = _pow2_exponent(radix)
+    if k is not None:
+        return _str_radix_pow2(value, k, length)
     # Call-local cache; see _radix_power for why it must not be shared.
     return _str_radix_split(value, radix, length, {})
 
