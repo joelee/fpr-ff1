@@ -203,11 +203,14 @@ than the ceiling punishing users of new Pythons.
 | Version | Focus |
 |---|---|
 | **1.0** | **Pure Python.** Conformance, a stable API, and a single runtime dependency (`cryptography`). No compiled extension, no optional backends — one code path, and it is the one the vectors test. |
-| **2.0** | **Optional accelerated backend.** An opt-in faster path for high-throughput callers, with the pure-Python implementation retained as the reference and the default. |
+| **1.1** | **Pure-Python performance.** Subquadratic base conversion and an O(n) power-of-two fast path; ciphertext bit-identical to 1.0.0. Still one code path, still one dependency. |
+| **2.0** | **Optional accelerated backend.** An opt-in faster path for high-throughput callers on short inputs, with the pure-Python implementation retained as the reference and the default. |
 
-The 2.0 backend is explicitly *not* a 1.0 concern. An accelerated path is only worth having once
+The 2.0 backend is explicitly *not* a 1.x concern. An accelerated path is only worth having once
 the reference implementation is settled and there is a conformance suite strong enough to prove
 the two agree bit for bit — which is the point of the differential and interoperability tests.
+With 1.1 removing the long-input conversion cost, the case for 2.0 is the small-input regime
+(per-call overhead), decided on measured numbers.
 
 Nothing in the roadmap changes the scope boundary above. FF3 and FF3-1 remain permanently out of
 scope, and no release will add key management.
@@ -219,19 +222,20 @@ with `just bench` (`benchmarks/timing.py` is the harness):
 
 | Input | Throughput | Per numeral |
 |---|---|---|
-| 6 numerals, radix 10 | ~32,000 ops/s | 30.9 µs/op |
-| Instance construction | ~636,000 /s | 1.6 µs |
-| n = 100, radix 10 | — | 1.2 µs |
-| n = 1,000, radix 10 | — | 1.6 µs |
-| n = 5,000, radix 10 | — | 7.0 µs |
-| n = 20,000, radix 10 | — | 26.8 µs |
+| 6 numerals, radix 10 | ~34,000 ops/s | 29.1 µs/op |
+| Instance construction | ~770,000 /s | 1.3 µs |
+| n = 100, radix 10 | — | 1.1 µs |
+| n = 1,000, radix 10 | — | 1.0 µs |
+| n = 5,000, radix 10 | — | 1.1 µs |
+| n = 20,000, radix 10 | — | 1.4 µs |
 
-The per-numeral cost climbs sharply past ~1,000 numerals: each of the ten rounds converts both
-halves of the input between a numeral sequence and a big integer, and that conversion is
-quadratic in pure Python. This is inherent to the algorithm's `NUM`/`STR` steps, not an
-implementation defect. If you are sizing a nightly job over millions of rows, measure with
-`just bench` against production-representative hardware — and note that the 2.0 optional
-accelerated backend in the roadmap exists precisely for this regime.
+The per-numeral cost is now flat across input lengths. Before 1.1.0 the internal conversion
+between a numeral sequence and a big integer was a digit-at-a-time loop, which is quadratic in
+the number of numerals — that was an implementation choice, not an algorithmic invariant, and
+1.1.0 replaced it with subquadratic divide-and-conquer conversion plus an O(n) fast path for
+power-of-two radices (about 19× faster at n=20,000 radix 10, 25× at radix 256), with ciphertext
+bit-identical to 1.0.0 for every valid input. If you are sizing a nightly job over millions of
+rows, measure with `just bench` against production-representative hardware.
 
 ## API
 
