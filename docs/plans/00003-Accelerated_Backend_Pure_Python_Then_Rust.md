@@ -34,14 +34,14 @@ confidence: high
 
 # Builder-maintained front matter. Builder may update only these keys after
 # explicit user approval; Delivery Planner initializes them.
-implementation_status: not-started # not-started | in-progress | blocked | completed | abandoned
-builder_agent: null
-builder_model: null
-execution_branch: null
-execution_started_at: null
-execution_updated_at: null
+implementation_status: in-progress # not-started | in-progress | blocked | completed | abandoned
+builder_agent: build
+builder_model: "ollama-cloud/glm-5.3"
+execution_branch: "feature/accelerated-backend-pure-python-then-rust"
+execution_started_at: "2026-09-06T22:03:07Z"
+execution_updated_at: "2026-09-06T22:18:22Z"
 execution_completed_at: null
-current_step: null
+current_step: PLAN-00003-STEP-02
 ---
 
 # Delivery Plan 00003: Accelerated Backend Pure Python Then Rust
@@ -1233,7 +1233,7 @@ results table. No check may be claimed as passed without its evidence entry.
 
 | Step | Status | Started (UTC) | Completed (UTC) | Evidence | Builder notes |
 |---|---|---|---|---|---|
-| PLAN-00003-STEP-01 | not-started | — | — | — | — |
+| PLAN-00003-STEP-01 | completed | 2026-09-06T22:03:07Z | 2026-09-06T22:18:22Z | Staged checkpoint reviewed and approved by user; digest `a517ad5c...59feb` verified at continuation | Differential oracle transcribed in-test (stronger than plan minimum); 88 new tests |
 | PLAN-00003-STEP-02 | not-started | — | — | — | — |
 | PLAN-00003-STEP-03 | not-started | — | — | — | — |
 | PLAN-00003-STEP-04 | not-started | — | — | — | — |
@@ -1256,6 +1256,9 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 
 | Timestamp (UTC) | Step | Event | Evidence or reference | Next action |
 |---|---|---|---|---|
+| 2026-09-06T22:03:07Z | PLAN-00003-STEP-01 | Execution started: branch `feature/accelerated-backend-pure-python-then-rust` created from approved-plan start commit `820cf50`; hand-off validation passed (clean gate, approval commit verified, baseline fresh — only plan paths changed since `5f24158`) | `git log --oneline`; `git status --porcelain` empty | Implement STEP-01 test scaffolding |
+| 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | STEP-01 implemented and verified: new `tests/test_conversion_equivalence.py` (88 tests) — differential vs an independent in-test transcription of the naive loops across every supported radix (2..65535), threshold-boundary lengths 63/64/65/128/129 at representative radices, degenerate lengths 0–3, STR truncation contract, Hypothesis sampling to length 300, end-to-end FF1 round-trips at boundary lengths, plus a pinning test for the retained `_ff1` reference names STEP-02 will introduce (resolved via typed `getattr`, `None` until then). Design note: the oracle is transcribed inside the test module rather than imported from `_ff1`, so it cannot drift with the code under test — a stronger guarantee than the plan's minimum. Full gate green: format, lint, pyright strict (0 errors), 839 tests passed, 100% line/branch coverage. Checkpoint staged for review: implementation paths `tests/test_conversion_equivalence.py`; staged-diff SHA-256 `a517ad5c5bce43dcb63f644a1ca698a66e5fa426c6f1314775fdb1e2a5159feb`; proposed commit subject `build: complete PLAN-00003-STEP-01 - E1 test scaffolding (failing first)` | Verification results below | Awaiting user review; on continuation, commit STEP-01 and begin STEP-02 |
+| 2026-09-06T22:18:22Z | PLAN-00003-STEP-01 | User approved the staged checkpoint ("Step 1 Approved. Proceed to the next step."); staged-checkpoint gate re-verified (branch, HEAD `820cf50`, staged set, digest match, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-01, then begin STEP-02 |
 
 ### Deviations and blockers
 
@@ -1268,6 +1271,11 @@ Write `None` until an entry is required.
 
 | Timestamp (UTC) | Step | Command or check | Result | Evidence |
 |---|---|---|---|---|
+| 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | `uv run pytest tests/test_conversion_equivalence.py -v` | 87 passed → 88 passed after rewrite (0.62–0.84 s) | Focused run; all differential, boundary, degenerate, truncation, property, and end-to-end cases green |
+| 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | `uv run pytest -m 'not slow' --no-cov -q` | 836 passed, 2 deselected (1.40 s) | No regression to the existing suite |
+| 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | `uv run ruff format --check .` / `uv run ruff check .` | 45 files formatted; all checks passed | Includes the new module |
+| 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | `uv run pyright` | 0 errors, 0 warnings | Strict mode, whole project |
+| 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | `uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100` | 839 passed; 100% line and branch coverage (223 stmts, 68 branches, 0 missed) | Full gate incl. slow bijectivity sweeps (197.9 s) |
 
 ### Completion summary
 
