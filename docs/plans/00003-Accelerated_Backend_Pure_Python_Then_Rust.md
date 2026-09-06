@@ -39,9 +39,9 @@ builder_agent: build
 builder_model: "ollama-cloud/glm-5.3"
 execution_branch: "feature/accelerated-backend-pure-python-then-rust"
 execution_started_at: "2026-09-06T22:03:07Z"
-execution_updated_at: "2026-09-06T22:18:22Z"
+execution_updated_at: "2026-09-06T22:29:26Z"
 execution_completed_at: null
-current_step: PLAN-00003-STEP-02
+current_step: PLAN-00003-STEP-03
 ---
 
 # Delivery Plan 00003: Accelerated Backend Pure Python Then Rust
@@ -1234,7 +1234,7 @@ results table. No check may be claimed as passed without its evidence entry.
 | Step | Status | Started (UTC) | Completed (UTC) | Evidence | Builder notes |
 |---|---|---|---|---|---|
 | PLAN-00003-STEP-01 | completed | 2026-09-06T22:03:07Z | 2026-09-06T22:18:22Z | Staged checkpoint reviewed and approved by user; digest `a517ad5c...59feb` verified at continuation | Differential oracle transcribed in-test (stronger than plan minimum); 88 new tests |
-| PLAN-00003-STEP-02 | not-started | — | — | — | — |
+| PLAN-00003-STEP-02 | completed | 2026-09-06T22:23:50Z | 2026-09-06T22:29:26Z | Staged checkpoint reviewed and approved by user; digest `06a9a47c...31e7e` verified at continuation | ~19× at n=20,000 radix 10; bit-identical across all 839 tests |
 | PLAN-00003-STEP-03 | not-started | — | — | — | — |
 | PLAN-00003-STEP-04 | not-started | — | — | — | — |
 | PLAN-00003-STEP-05 | not-started | — | — | — | — |
@@ -1259,6 +1259,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-06T22:03:07Z | PLAN-00003-STEP-01 | Execution started: branch `feature/accelerated-backend-pure-python-then-rust` created from approved-plan start commit `820cf50`; hand-off validation passed (clean gate, approval commit verified, baseline fresh — only plan paths changed since `5f24158`) | `git log --oneline`; `git status --porcelain` empty | Implement STEP-01 test scaffolding |
 | 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | STEP-01 implemented and verified: new `tests/test_conversion_equivalence.py` (88 tests) — differential vs an independent in-test transcription of the naive loops across every supported radix (2..65535), threshold-boundary lengths 63/64/65/128/129 at representative radices, degenerate lengths 0–3, STR truncation contract, Hypothesis sampling to length 300, end-to-end FF1 round-trips at boundary lengths, plus a pinning test for the retained `_ff1` reference names STEP-02 will introduce (resolved via typed `getattr`, `None` until then). Design note: the oracle is transcribed inside the test module rather than imported from `_ff1`, so it cannot drift with the code under test — a stronger guarantee than the plan's minimum. Full gate green: format, lint, pyright strict (0 errors), 839 tests passed, 100% line/branch coverage. Checkpoint staged for review: implementation paths `tests/test_conversion_equivalence.py`; staged-diff SHA-256 `a517ad5c5bce43dcb63f644a1ca698a66e5fa426c6f1314775fdb1e2a5159feb`; proposed commit subject `build: complete PLAN-00003-STEP-01 - E1 test scaffolding (failing first)` | Verification results below | Awaiting user review; on continuation, commit STEP-01 and begin STEP-02 |
 | 2026-09-06T22:18:22Z | PLAN-00003-STEP-01 | User approved the staged checkpoint ("Step 1 Approved. Proceed to the next step."); staged-checkpoint gate re-verified (branch, HEAD `820cf50`, staged set, digest match, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-01, then begin STEP-02 |
+| 2026-09-06T22:23:50Z | PLAN-00003-STEP-02 | STEP-02 implemented and verified: `_ff1.py` conversion replaced with subquadratic divide-and-conquer (`_num_radix_split`/`_str_radix_split`, 64-numeral threshold, call-local memoised `radix**k` cache with the REQ-05 thread-safety constraint stated in `_radix_power`'s docstring); naive loops retained as `_num_radix_reference`/`_str_radix_reference` with spec-reference docstrings (REQ-03). The STEP-01 differential suite (88 tests, incl. the retained-copy pinning test now live) passes bit-identical across every supported radix. Full gate green: format, lint, pyright strict (0 errors), 839 tests, 100% line/branch coverage (252 stmts, 78 branches). Benchmark preview: n=20,000 radix 10 at 1.4 µs/numeral (was 26.8 µs, ~19×), n=5,000 at 1.1 µs (was 7.0 µs, ~6×), n=6 unchanged at 29.3 µs — matching review 00005's measurements; no small-input regression. Checkpoint staged for review: implementation path `src/fpr_ff1/_ff1.py`; staged-diff SHA-256 below; proposed commit subject `build: complete PLAN-00003-STEP-02 - Divide-and-conquer conversion`. Staged-diff SHA-256 for `src/fpr_ff1/_ff1.py`: `06a9a47c182cda31d0615a20f76bd00de1bd18a50576b2718741966862131e7e` | Verification results below | Awaiting user review; on continuation, commit STEP-02 and begin STEP-03 |
+| 2026-09-06T22:29:26Z | PLAN-00003-STEP-02 | User approved the staged checkpoint ("Approved. Proceed to the next step."); staged-checkpoint gate re-verified (branch, HEAD `7363269`, staged set, digest match, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-02, then begin STEP-03 |
 
 ### Deviations and blockers
 
@@ -1276,6 +1278,11 @@ Write `None` until an entry is required.
 | 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | `uv run ruff format --check .` / `uv run ruff check .` | 45 files formatted; all checks passed | Includes the new module |
 | 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | `uv run pyright` | 0 errors, 0 warnings | Strict mode, whole project |
 | 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | `uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100` | 839 passed; 100% line and branch coverage (223 stmts, 68 branches, 0 missed) | Full gate incl. slow bijectivity sweeps (197.9 s) |
+| 2026-09-06T22:23:50Z | PLAN-00003-STEP-02 | `uv run pytest tests/test_conversion_equivalence.py -q` | 88 passed (0.71 s) | Differential suite green against the new D&C conversion — bit-identical across every supported radix, incl. the retained-reference pinning test |
+| 2026-09-06T22:23:50Z | PLAN-00003-STEP-02 | `uv run ruff format --check .` / `uv run ruff check .` | 45 files formatted; all checks passed | One formatter reflow applied to `_ff1.py` |
+| 2026-09-06T22:23:50Z | PLAN-00003-STEP-02 | `uv run pyright` | 0 errors, 0 warnings | Strict mode, whole project |
+| 2026-09-06T22:23:50Z | PLAN-00003-STEP-02 | `uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100` | 839 passed; 100% line and branch coverage (252 stmts, 78 branches, 0 missed) | New D&C branches covered by the STEP-01 boundary tests (224.9 s) |
+| 2026-09-06T22:23:50Z | PLAN-00003-STEP-02 | `uv run python benchmarks/timing.py` | n=20,000 radix 10: 1.4 µs/numeral (baseline 26.8 µs, ~19×); n=5,000: 1.1 µs (was 7.0 µs); n=6: 29.3 µs (unchanged); value-dependent deltas ≤ 5.4% | D&C win realised, matching review 00005; no small-input regression |
 
 ### Completion summary
 

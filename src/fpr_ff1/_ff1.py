@@ -460,21 +460,122 @@ def _min_length(radix: int) -> int:
     return n
 
 
-def _num_radix(radix: int, numerals: Sequence[int]) -> int:
-    """Decode a sequence of numerals as a big-endian base-radix integer."""
+#: Inputs at or below this many numerals use the naive spec-reference loops
+#: directly: below roughly this size the divide-and-conquer split cannot pay
+#: for its recursion (review 00005 measured the crossover well under 64), and
+#: the reference loop is the faster implementation.
+_D_C_THRESHOLD = 64
+
+
+def _num_radix_reference(radix: int, numerals: Sequence[int]) -> int:
+    """Decode a sequence of numerals as a big-endian base-radix integer.
+
+    The naive digit-at-a-time loop exactly as SP 800-38G specifies NUM_radix.
+    Quadratic in the number of numerals, and retained deliberately as the
+    line-by-line reference implementation: the subquadratic
+    divide-and-conquer path used by :func:`_num_radix` is verified
+    bit-identical to this loop across every supported radix by
+    ``tests/test_conversion_equivalence.py`` (plan 00003 REQ-03; idea 00001
+    r02 MED-01 -- the spec-comparable reference must stay in the module).
+    """
     value = 0
     for x in numerals:
         value = value * radix + x
     return value
 
 
-def _str_radix(value: int, radix: int, length: int) -> list[int]:
-    """Encode a non-negative integer as ``length`` big-endian base-radix numerals."""
+def _str_radix_reference(value: int, radix: int, length: int) -> list[int]:
+    """Encode a non-negative integer as ``length`` big-endian base-radix numerals.
+
+    The naive loop exactly as SP 800-38G specifies STR_radix; see
+    :func:`_num_radix_reference` for why the quadratic reference is
+    retained. Values ``>= radix ** length`` silently drop their high
+    digits; production callers always reduce modulo ``radix ** m`` first
+    (step 6.vi), and that contract is pinned by the equivalence tests.
+    """
     out = [0] * length
     for i in range(length - 1, -1, -1):
         out[i] = value % radix
         value //= radix
     return out
+
+
+def _radix_power(radix: int, exponent: int, cache: dict[int, int]) -> int:
+    """Return ``radix ** exponent`` through a call-local memo.
+
+    The cache is created per public-helper invocation and passed down the
+    recursion. It MUST stay call-local: hoisting it to the instance or
+    module level would introduce shared mutable state and silently break
+    the thread-safety contract this module documents (plan 00003 REQ-05;
+    idea 00001 r02 MED-02). Do not "optimise" this into a module global.
+    """
+    power = cache.get(exponent)
+    if power is None:
+        power = radix**exponent
+        cache[exponent] = power
+    return power
+
+
+def _num_radix_split(radix: int, numerals: Sequence[int], cache: dict[int, int]) -> int:
+    """Divide-and-conquer NUM_radix for inputs above ``_D_C_THRESHOLD``.
+
+    Splits the numeral sequence in half, decodes both halves recursively,
+    and combines them as ``high * radix**len(low) + low`` -- one big
+    multiply per level instead of one per digit, riding CPython's
+    subquadratic big-int multiplication (review 00005 measured O(n^1.2)).
+    """
+    length = len(numerals)
+    if length <= _D_C_THRESHOLD:
+        return _num_radix_reference(radix, numerals)
+    high_len = length // 2
+    high = _num_radix_split(radix, numerals[:high_len], cache)
+    low = _num_radix_split(radix, numerals[high_len:], cache)
+    return high * _radix_power(radix, length - high_len, cache) + low
+
+
+def _num_radix(radix: int, numerals: Sequence[int]) -> int:
+    """Decode a sequence of numerals as a big-endian base-radix integer.
+
+    Subquadratic divide-and-conquer equivalent of the spec's NUM_radix,
+    bit-identical to :func:`_num_radix_reference` (asserted across every
+    supported radix by ``tests/test_conversion_equivalence.py``). Inputs
+    at or below ``_D_C_THRESHOLD`` numerals use the reference loop
+    directly, so the small-input hot path is unchanged.
+    """
+    if len(numerals) <= _D_C_THRESHOLD:
+        return _num_radix_reference(radix, numerals)
+    # Call-local cache; see _radix_power for why it must not be shared.
+    return _num_radix_split(radix, numerals, {})
+
+
+def _str_radix_split(value: int, radix: int, length: int, cache: dict[int, int]) -> list[int]:
+    """Divide-and-conquer STR_radix for lengths above ``_D_C_THRESHOLD``.
+
+    Splits ``value`` by ``divmod`` against ``radix**len(low_half)`` and
+    encodes both halves recursively. A ``value >= radix**length`` drops
+    its high digits through the recursion exactly as the reference loop
+    does, preserving the truncation contract.
+    """
+    if length <= _D_C_THRESHOLD:
+        return _str_radix_reference(value, radix, length)
+    high_len = length // 2
+    high, low = divmod(value, _radix_power(radix, length - high_len, cache))
+    return _str_radix_split(high, radix, high_len, cache) + _str_radix_split(
+        low, radix, length - high_len, cache
+    )
+
+
+def _str_radix(value: int, radix: int, length: int) -> list[int]:
+    """Encode a non-negative integer as ``length`` big-endian base-radix numerals.
+
+    Subquadratic divide-and-conquer equivalent of the spec's STR_radix,
+    bit-identical to :func:`_str_radix_reference`; see
+    :func:`_num_radix` for the threshold and equivalence guarantees.
+    """
+    if length <= _D_C_THRESHOLD:
+        return _str_radix_reference(value, radix, length)
+    # Call-local cache; see _radix_power for why it must not be shared.
+    return _str_radix_split(value, radix, length, {})
 
 
 def _prf(aes: _Aes, data: bytes) -> bytes:
