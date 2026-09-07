@@ -92,6 +92,11 @@ jobs:
       # --locked so the audit tool itself cannot drift.
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@d1031067263f94b142dd6c0ce24c5eb9d02d52a0
+        with:
+          # The action requires an explicit `toolchain` input; it does not
+          # read rust-toolchain.toml (that file is consumed by rustup/cargo
+          # themselves). Keep this in sync with the channel pin there.
+          toolchain: stable
       - name: Audit locked Rust dependencies
         run: |
           cargo install cargo-audit --version 0.22.2 --locked
@@ -166,6 +171,10 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@d1031067263f94b142dd6c0ce24c5eb9d02d52a0
         with:
+          # The action requires an explicit `toolchain` input; it does not
+          # read rust-toolchain.toml (that file is consumed by rustup/cargo
+          # themselves). Keep this in sync with the channel pin there.
+          toolchain: stable
           targets: ${{ matrix.target }}
 
       # maturin reads [tool.maturin] from the root pyproject.toml (module
