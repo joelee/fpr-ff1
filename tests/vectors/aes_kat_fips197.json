@@ -1,0 +1,29 @@
+{
+  "description": "NIST FIPS 197 (Advanced Encryption Standard) Appendix C known-answer vectors for the single-block forward cipher, used to validate the RustCrypto AES core of the optional accelerated backend (plan 00003 STEP-09, REQ-15).",
+  "provenance": {
+    "source": "NIST FIPS 197, Advanced Encryption Standard (AES), updated 2023-05-09, Appendix C (Examples)",
+    "reference": "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.197-upd1.pdf",
+    "transcription_check": "Each ciphertext was independently verified against the OpenSSL-backed AES in the Python 'cryptography' package (Cipher(algorithms.AES(key), modes.ECB())) before freezing; these values are never generated from fpr-ff1 or the Rust backend under test.",
+    "frozen": "2026-09-07"
+  },
+  "vectors": [
+    {
+      "name": "C.1 AES-128",
+      "key": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "00112233445566778899aabbccddeeff",
+      "ciphertext": "69c4e0d86a7b0430d8cdb78070b4c55a"
+    },
+    {
+      "name": "C.2 AES-192",
+      "key": "000102030405060708090a0b0c0d0e0f1011121314151617",
+      "plaintext": "00112233445566778899aabbccddeeff",
+      "ciphertext": "dda97ca4864cdfe06eaf70a0ec0d7191"
+    },
+    {
+      "name": "C.3 AES-256",
+      "key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "plaintext": "00112233445566778899aabbccddeeff",
+      "ciphertext": "8ea2b7ca516745bfeafc49904b496089"
+    }
+  ]
+}

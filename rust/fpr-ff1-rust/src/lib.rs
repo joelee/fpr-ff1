@@ -27,6 +27,8 @@
 //!   instances are thread-safe by construction, mirroring the Python
 //!   contract (`_ff1.py` `_Aes` docstring).
 
+use aes::cipher::{BlockEncrypt, KeyInit};
+use aes::{Aes128, Aes192, Aes256, Block};
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::{One, Zero};
@@ -36,22 +38,67 @@ use pyo3::prelude::*;
 #[cfg(test)]
 mod tests;
 
+/// The AES key schedule for 128/192/256-bit keys.
+///
+/// Immutable once constructed and safe to share across threads: no live
+/// cipher context is held, mirroring the `_Aes` contract in `_ff1.py`.
+/// Every encryption -- PRF chaining blocks and step 6.iii expansion blocks
+/// -- operates on a local buffer, so instances are thread-safe by
+/// construction.
+enum Aes {
+    Aes128(Aes128),
+    Aes192(Aes192),
+    Aes256(Aes256),
+}
+
+impl Aes {
+    /// Build the key schedule. Key length is validated Python-side before
+    /// the core is called (plan 00003 decision D4); the error arm is
+    /// defensive, exercised only through the test-only bindings.
+    fn new(key: &[u8]) -> Result<Aes, String> {
+        match key.len() {
+            16 => Ok(Aes::Aes128(Aes128::new_from_slice(key).expect("len checked"))),
+            24 => Ok(Aes::Aes192(Aes192::new_from_slice(key).expect("len checked"))),
+            32 => Ok(Aes::Aes256(Aes256::new_from_slice(key).expect("len checked"))),
+            n => Err(format!("key must be 16, 24, or 32 bytes, got {n}")),
+        }
+    }
+
+    /// A single forward cipher block (SP 800-38G forward-cipher-only rule).
+    fn encrypt_block(&self, block: &mut Block) {
+        match self {
+            Aes::Aes128(c) => c.encrypt_block(block),
+            Aes::Aes192(c) => c.encrypt_block(block),
+            Aes::Aes256(c) => c.encrypt_block(block),
+        }
+    }
+}
+
 /// SP 800-38G Algorithm 6 (PRF): CBC-MAC with a zero IV.
 ///
 /// Invoked from Algorithm 7 step 6.ii as `PRF(P || Q)`. `data` must already
-/// be 16-byte aligned (callers guarantee it). A fresh cipher context per
-/// call: CBC chaining state must never persist between PRF calls.
+/// be 16-byte aligned (callers guarantee it). A fresh chain per call: CBC
+/// chaining state must never persist between PRF calls, or instances would
+/// not be thread-safe.
 ///
-/// STEP-08 seam: the PRF is declared here and wired to the RustCrypto
-/// `aes`/`cbc` crates in STEP-09, where it is validated against NIST AES KAT
-/// vectors and the Python path's `_prf` output before any FF1-level
-/// conformance is trusted on it.
-pub fn prf(key: &[u8], data: &[u8]) -> Vec<u8> {
-    // Placeholder seam: STEP-09 replaces this with the RustCrypto CBC-MAC.
-    // The signature and per-call-context contract are fixed here so the
-    // Algorithm 7 port can be structurally complete and unit-tested first.
-    let _ = (key, data);
-    unreachable!("PRF is wired in STEP-09 (plan 00003); the Algorithm 7 port must not be called before then")
+/// Validated in STEP-09 against the NIST FIPS 197 Appendix C vectors (via
+/// the underlying single-block cipher) and against the Python path's `_prf`
+/// output across key sizes and block counts
+/// (`tests/test_rust_aes_validation.py`).
+pub fn prf(key: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
+    let cipher = Aes::new(key)?;
+    // Zero IV: the chain register starts as all-zero and each block is
+    // XORed in before encrypting; the final chain IS the MAC tag.
+    let mut chain = [0u8; 16];
+    for block in data.chunks_exact(16) {
+        for (slot, byte) in chain.iter_mut().zip(block) {
+            *slot ^= byte;
+        }
+        let mut b = Block::clone_from_slice(&chain);
+        cipher.encrypt_block(&mut b);
+        chain.copy_from_slice(&b);
+    }
+    Ok(chain.to_vec())
 }
 
 /// A single forward AES block encryption, `CIPH_K(block)`.
@@ -65,12 +112,14 @@ pub fn prf(key: &[u8], data: &[u8]) -> Vec<u8> {
 /// bearing for review against the spec — see the matching comment in
 /// `_ff1.py` and AGENTS.md.)
 ///
-/// STEP-08 seam: wired to the RustCrypto AES core in STEP-09 alongside the
-/// PRF and covered by the same NIST AES KAT validation.
-fn cipher_block(key: &[u8], block: &[u8; 16]) -> [u8; 16] {
-    // Placeholder seam: STEP-09 replaces this with the raw AES core.
-    let _ = (key, block);
-    unreachable!("cipher_block is wired in STEP-09 (plan 00003)")
+/// Covered by the same NIST FIPS 197 KAT validation as the PRF.
+pub fn cipher_block(key: &[u8], block: &[u8; 16]) -> Result<[u8; 16], String> {
+    let cipher = Aes::new(key)?;
+    let mut b = Block::clone_from_slice(block);
+    cipher.encrypt_block(&mut b);
+    let mut out = [0u8; 16];
+    out.copy_from_slice(&b);
+    Ok(out)
 }
 
 /// Decode a numeral sequence as a big-endian base-radix integer
@@ -188,7 +237,7 @@ pub fn ff1(
         // Step 6.ii: R = PRF(P || Q)
         let mut prf_input = p_block.clone();
         prf_input.extend_from_slice(&q_block);
-        let r_block = prf(key, &prf_input);
+        let r_block = prf(key, &prf_input)?;
 
         // Step 6.iii: S is the first d bytes of
         //   R || CIPH_K(R XOR [1]^16) || CIPH_K(R XOR [2]^16) || ...
@@ -205,7 +254,7 @@ pub fn ff1(
                 let j_be = j.to_be_bytes();
                 let xored: [u8; 16] =
                     std::array::from_fn(|idx| r_block[idx] ^ j_be[idx]);
-                s_block.extend_from_slice(&cipher_block(key, &xored));
+                s_block.extend_from_slice(&cipher_block(key, &xored)?);
                 j += 1;
             }
         }
@@ -272,5 +321,29 @@ fn _fpr_ff1_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_function(wrap_pyfunction!(encrypt_numerals, m)?)?;
     m.add_function(wrap_pyfunction!(decrypt_numerals, m)?)?;
+
+    /// Test-only: the Algorithm 6 PRF, exposed for the STEP-09 validation
+    /// suite (NIST FIPS 197 KAT + PRF equality with the Python path,
+    /// `tests/test_rust_aes_validation.py`). Deliberately kept off the
+    /// `fpr_ff1` public API, mirroring `_encrypt_traced`'s status.
+    #[pyfunction]
+    fn _test_prf(key: Vec<u8>, data: Vec<u8>) -> PyResult<Vec<u8>> {
+        prf(&key, &data).map_err(PyValueError::new_err)
+    }
+
+    /// Test-only: the raw single-block forward cipher, exposed for the
+    /// FIPS 197 Appendix C known-answer tests. Same status as `_test_prf`.
+    #[pyfunction]
+    fn _test_cipher_block(key: Vec<u8>, block: Vec<u8>) -> PyResult<Vec<u8>> {
+        let arr: [u8; 16] = block
+            .try_into()
+            .map_err(|_| PyValueError::new_err("block must be exactly 16 bytes"))?;
+        cipher_block(&key, &arr)
+            .map(|out| out.to_vec())
+            .map_err(PyValueError::new_err)
+    }
+
+    m.add_function(wrap_pyfunction!(_test_prf, m)?)?;
+    m.add_function(wrap_pyfunction!(_test_cipher_block, m)?)?;
     Ok(())
 }

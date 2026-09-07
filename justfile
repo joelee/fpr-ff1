@@ -86,4 +86,11 @@ bench:
 rust-test:
     cargo test --manifest-path rust/Cargo.toml
 
+# Build the Rust accelerated backend into the project venv as _fpr_ff1_rs
+# (plan 00003 E2 dev loop). Uses maturin via uvx with VIRTUAL_ENV pointing
+# at the project venv, so no dev-dependency churn in uv.lock. Requires a
+# local Rust toolchain.
+backend-dev:
+    VIRTUAL_ENV=.venv uvx maturin develop -m rust/fpr-ff1-rust/Cargo.toml
+
 ci: sync quality build secrets
