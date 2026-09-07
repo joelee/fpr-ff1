@@ -39,9 +39,9 @@ builder_agent: build
 builder_model: "ollama-cloud/glm-5.3"
 execution_branch: "feature/accelerated-backend-pure-python-then-rust"
 execution_started_at: "2026-09-06T22:03:07Z"
-execution_updated_at: "2026-09-07T14:42:59Z"
+execution_updated_at: "2026-09-07T15:19:53Z"
 execution_completed_at: null
-current_step: PLAN-00003-STEP-13
+current_step: PLAN-00003-STEP-14
 ---
 
 # Delivery Plan 00003: Accelerated Backend Pure Python Then Rust
@@ -1016,7 +1016,7 @@ path. Each stage's release is gated by the full existing CI matrix.
 
 ### PLAN-00003-STEP-13 — Performance measurement and park-rule gate
 
-- **Status placeholder:** `in-progress`
+- **Status placeholder:** `completed`
 - **Objective:** Measure the rust backend against the E1 baseline and record
   the decision-grade numbers.
 - **Requirements:** `PLAN-00003-REQ-21`
@@ -1045,7 +1045,7 @@ path. Each stage's release is gated by the full existing CI matrix.
 
 ### PLAN-00003-STEP-14 — Packaging: wheels, CI, sdist fallback
 
-- **Status placeholder:** `not-started`
+- **Status placeholder:** `in-progress`
 - **Objective:** Build and test the wheel matrix; keep the pure-Python sdist
   as the universal fallback; extend the supply-chain hardening to Rust.
 - **Requirements:** `PLAN-00003-REQ-19`, `PLAN-00003-REQ-20`
@@ -1245,7 +1245,7 @@ results table. No check may be claimed as passed without its evidence entry.
 | PLAN-00003-STEP-10 | completed | 2026-09-07T10:19:35Z | 2026-09-07T11:07:39Z | Staged checkpoint reviewed and approved by user; digest `f696bab3...4d60562` verified at continuation | backend keyword live; validation parity asserted; 100% floor held |
 | PLAN-00003-STEP-11 | completed | 2026-09-07T11:07:39Z | 2026-09-07T13:57:57Z | Staged checkpoint reviewed and approved by user; digest `c740887d...354a2a` verified at continuation | 1,388 dual-backend tests green; per-round intermediates bit-exact on both backends |
 | PLAN-00003-STEP-12 | completed | 2026-09-07T13:57:57Z | 2026-09-07T14:42:59Z | Staged checkpoint reviewed and approved by user; digest `91c01c7a...0c669` verified at continuation | Rust instances thread-safe and picklable; 1,401 dual-backend tests green |
-| PLAN-00003-STEP-13 | not-started | — | — | — | — |
+| PLAN-00003-STEP-13 | completed | 2026-09-07T14:42:59Z | 2026-09-07T15:19:53Z | Staged checkpoint reviewed and approved by user; digest `97b8270f...82bc6` verified at continuation | Park rule PASS: 6.79× at n=6, 3.26× at n=100; long-input trade-off explained and recorded |
 | PLAN-00003-STEP-14 | not-started | — | — | — | — |
 | PLAN-00003-STEP-15 | not-started | — | — | — | — |
 
@@ -1281,6 +1281,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-07T13:57:57Z | PLAN-00003-STEP-11 | User approved the staged checkpoint ("Step 11 approved. Proceed to the next step."); staged-checkpoint gate re-verified (branch `plan/v2.0.0`, HEAD `a3f34ae`, staged set, digest match `c740887d...`, no unstaged/untracked changes); commit authorised. **Placeholder correction for the record:** the STEP-10-turn status-placeholder sync marked line 992 — STEP-12's placeholder — `in-progress` one step early (STEP-11's placeholder is line 958); the committed STEP-10 checkpoint (a3f34ae) therefore carries that one-line mis-sync. Corrected state as of this entry: STEP-11 → `completed` (line 958), STEP-12 → `in-progress` (line 992, now legitimately so). No planning content was affected | This entry | Commit STEP-11, then begin STEP-12 (thread-safety and pickling for the rust backend) |
 | 2026-09-07T14:07:19Z | PLAN-00003-STEP-12 | STEP-12 implemented and verified: the thread-safety and pickle suites are parameterised over both backends (REQ-17). **Thread-safety:** `test_no_ciphercontext_attribute_on_instance` (a rust instance holds only configuration — strings, ints, key — plus the rebuilt `_aes` value objects), `test_shared_instance_concurrent_encryption_matches_serial` and `test_shared_instance_concurrent_mixed_operations` (8/4 threads × 20 iterations on one shared rust instance at the d>16 expansion lengths — concurrent results equal serial exactly), and `test_expansion_path_still_reaches_d_over_16` via the uniform trace bridge. The structural `_Aes` test stays python-reference-specific by design. **Rust Send+Sync code inspection (plan task 3):** the extension is entirely stateless — free functions, no module-level mutable state, the `Aes` key-schedule enum is constructed per call and immutable, cipher contexts are call-local — so there is no interior mutability to guard; thread-safety holds by the same structural argument as the Python path. **Pickling:** round-trip, deepcopy, copy, spawn-multiprocessing (the child re-validates extension availability in `__setstate__`), all-protocols sweep — all parameterised; the rust-specific pickle cases (legacy default, corrupt backend rejection) were already covered by STEP-10's dispatch tests. Two parameterisation bugs fixed during the step (missing fixture params after the scripted edit; a bare `_make()` in the backend-independent setstate test). **Gates:** 30/30 in the two modules; full dual-backend gate 1,401 passed with 100% line/branch coverage (327 stmts, 112 branches); fast suite 1,397 green after the final annotation fix; ruff/pyright clean. Checkpoint staged for review: implementation paths `tests/test_pickle.py`, `tests/test_thread_safety.py`; proposed commit subject `build: complete PLAN-00003-STEP-12 - Thread-safety and pickling for the rust backend`. Staged-diff SHA-256 for the implementation paths (`tests/test_pickle.py`, `tests/test_thread_safety.py`): `91c01c7ac5514013bbd1447092cb052591b2718885ab3ff01adbf98b26f0c669` | Verification results below | Awaiting user review; on continuation, commit STEP-12 and begin STEP-13 |
 | 2026-09-07T14:42:59Z | PLAN-00003-STEP-12 | User approved the staged checkpoint ("Step 12 approved. Proceed to the next step."); staged-checkpoint gate re-verified (branch `plan/v2.0.0`, HEAD `26d8dc6`, staged set, digest match `91c01c7a...`, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-12, then begin STEP-13 (performance measurement and park-rule gate) |
+| 2026-09-07T14:47:58Z | PLAN-00003-STEP-13 | STEP-13 executed — the E2 go/no-go evidence. **Method:** the extension was rebuilt in RELEASE mode (the prior dev build would have produced meaningless numbers), and `benchmarks/timing.py` gained a `backend_comparison_table` (same median-of-25-adaptive-batches methodology, both backends, plan's n ∈ {6, 100} cases plus n=20,000 for context). **Measured (radix 10, python = E1 reference):** n=6: 28.3 µs/op → 4.2 µs/op = **6.79×**; n=100: 109.9 µs → 33.7 µs = **3.26×**; n=20,000: 27.1 ms → 126.9 ms = 0.21×. A first run before a lint fix read 6.85×/3.32×/0.21× — stable within ~1%. **Park rule (idea r02 §10, REQ-21): PASS** — both dominant small-input cases far exceed the 2× escalation threshold; no stop, no escalation. The n=6 result lands essentially AT the ~8× theoretical ceiling (review 00005's decomposition: ~1.13 µs validation floor + real AES + boundary ≈ 3.4 µs minimum; measured 4.2 µs total) — the 55% cipher-context-construction cost is eliminated as predicted. **The n=20,000 row, recorded honestly:** the Rust path is 4.7× SLOWER at long inputs — expected, not a defect: the Rust core deliberately uses the naive spec-reference conversion (STEP-08 bounded decision, small-input regime), while the Python path carries E1's divide-and-conquer. This confirms the idea's re-baselining exactly: E1 owns long inputs, E2 owns short inputs. STEP-15's README guidance must scope the backend recommendation to the small-input regime and state the crossover. Same-session E1 baseline re-validated (28.3 µs n=6, 1.4 µs/numeral n=20,000 — consistent with STEP-04). Release-build sanity: backend-dispatch, AES-validation, and intermediates suites re-ran green against the release extension (35 + 18 passed). Checkpoint staged for review: implementation path `benchmarks/timing.py`; proposed commit subject `build: complete PLAN-00003-STEP-13 - Performance measurement and park-rule gate`. Staged-diff SHA-256 for the implementation path (`benchmarks/timing.py`): `97b8270fa7dae7df7368b67860f03774371b34b0d53ffa3f3758047ba28e2bc6` | Verification results below | Awaiting user review; on continuation, commit STEP-13 and begin STEP-14 |
+| 2026-09-07T15:19:53Z | PLAN-00003-STEP-13 | User approved the staged checkpoint ("Step 13 approved. Proceed to the next step."), after requesting an explanation of the n=20,000 Rust slowdown (explained in chat: the two backends deliberately run different conversion algorithms — E1's divide-and-conquer vs the Rust core's naive spec loop — a recorded STEP-08 bounded decision; asymptotics beat the per-op constant; not an FFI effect); staged-checkpoint gate re-verified (branch `plan/v2.0.0`, HEAD `cca4120`, staged set, digest match `97b8270f...`, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-13, then begin STEP-14 (packaging: wheels, CI, sdist fallback) |
 
 ### Deviations and blockers
 
@@ -1319,6 +1321,9 @@ Write `None` until an entry is required.
 | 2026-09-07T14:07:19Z | PLAN-00003-STEP-12 | `uv run pytest tests/test_thread_safety.py tests/test_pickle.py -q` | 30 passed (both modules × both backends) | Concurrent rust calls equal serial exactly; pickle/deepcopy/copy/spawn/protocols all green on rust |
 | 2026-09-07T14:07:19Z | PLAN-00003-STEP-12 | `uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100` | 1,401 passed; 100% line/branch coverage (327 stmts, 112 branches, 0 missed) | Full dual-backend gate (343.1 s) |
 | 2026-09-07T14:07:19Z | PLAN-00003-STEP-12 | `uv run ruff format --check .` / `ruff check .` / `uv run pyright` / fast suite | Clean; 0 errors, 0 warnings; 1,397 passed, 4 deselected | Final state after the annotation fix |
+| 2026-09-07T14:47:58Z | PLAN-00003-STEP-13 | Release extension build (`VIRTUAL_ENV=.venv uvx maturin develop --release`) | Built and installed; rust-dependent suites re-ran green (35 + 18 passed) | Debug build would have produced meaningless numbers |
+| 2026-09-07T14:47:58Z | PLAN-00003-STEP-13 | `uv run python benchmarks/timing.py` (backend comparison table, two runs) | n=6: 28.3 → 4.2 µs = **6.79×** (first run 6.85×); n=100: 109.9 → 33.7 µs = **3.26×** (3.32×); n=20,000: 27.1 → 126.9 ms = 0.21× | **Park rule PASS** (both ≥ 2×); long-input parity not expected nor targeted |
+| 2026-09-07T14:47:58Z | PLAN-00003-STEP-13 | `uv run ruff format --check .` / `ruff check .` / `uv run pyright` | Clean; 0 errors, 0 warnings | After the timing.py docstring/import fix |
 | 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | `uv run pytest tests/test_conversion_equivalence.py -v` | 87 passed → 88 passed after rewrite (0.62–0.84 s) | Focused run; all differential, boundary, degenerate, truncation, property, and end-to-end cases green |
 | 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | `uv run pytest -m 'not slow' --no-cov -q` | 836 passed, 2 deselected (1.40 s) | No regression to the existing suite |
 | 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | `uv run ruff format --check .` / `uv run ruff check .` | 45 files formatted; all checks passed | Includes the new module |

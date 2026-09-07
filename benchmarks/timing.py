@@ -17,6 +17,7 @@ similar wall-clock time regardless of input length.
 
 from __future__ import annotations
 
+import importlib
 import statistics
 import time
 from collections.abc import Callable
@@ -97,11 +98,44 @@ def throughput_table() -> None:
         print(f"| n = {n:,}, radix 10 | — | {t / n * 1e6:.1f} µs |")
 
 
+def backend_comparison_table() -> None:
+    """Plan 00003 STEP-13: the compiled backend vs the E1 pure-Python baseline.
+
+    The small-input regime is E2's case (review 00005: ~55% of an n=6 call
+    is per-call cipher-context construction that a full Rust core with
+    in-process AES eliminates; estimated ceiling ~8x). The long-input row is
+    context: E1 already removed the conversion cliff, so parity there is
+    the expected result, not the target. The park rule (idea r02 section
+    10): a measured speedup below 2x on the small-input cases means the
+    backend is not worth shipping and the plan escalates.
+    """
+    try:
+        importlib.import_module("_fpr_ff1_rs")
+    except ImportError:
+        print("\n## Backend comparison\n")
+        print("Rust backend not built; run `just backend-dev` (or a release\n")
+        print("maturin develop for meaningful numbers) to include this table.\n")
+        return
+
+    print("\n## Backend comparison (python = E1 reference, rust = compiled)\n")
+    print("| Case | python µs/op | rust µs/op | speedup |")
+    print("|---|---:|---:|---:|")
+
+    py = FF1(key=_KEY, radix=10, backend="python")
+    rs = FF1(key=_KEY, radix=10, backend="rust")
+    for n in (6, 100, 20_000):
+        plaintext = [i % 10 for i in range(n)]
+        t_py = _timed_encrypt(py, plaintext)
+        t_rs = _timed_encrypt(rs, plaintext)
+        print(f"| n = {n:,}, radix 10 | {t_py * 1e6:.1f} | {t_rs * 1e6:.1f} | {t_py / t_rs:.2f}x |")
+
+
 def main() -> None:
     print(f"# fpr-ff1 timing harness ({time.strftime('%Y-%m-%d %H:%M %Z')})\n")
     print(f"Batches per measurement: {_BATCHES} (adaptive inner batch size)\n")
     value_dependent_table()
     throughput_table()
+    backend_comparison_table()
 
 
 if __name__ == "__main__":
