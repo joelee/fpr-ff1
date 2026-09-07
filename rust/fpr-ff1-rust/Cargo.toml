@@ -1,0 +1,22 @@
+[package]
+name = "fpr-ff1-rust"
+version = "0.1.0"
+edition = "2021"
+description = "Opt-in Rust accelerated backend for the fpr-ff1 FF1 library (SP 800-38G Algorithm 7)."
+license = "MIT"
+publish = false
+
+[lib]
+name = "_fpr_ff1_rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.29", features = ["extension-module"] }
+num-bigint = "0.4"
+num-traits = "0.2"
+num-integer = "0.1"
+# AES for the Algorithm 6 PRF (CBC-MAC, zero IV). Pinned per plan 00003
+# decision D7; validated against NIST AES KAT vectors and the Python path's
+# PRF output in STEP-09 before any FF1-level conformance is trusted.
+aes = "0.8"
+cbc = { version = "0.1", features = ["std"] }

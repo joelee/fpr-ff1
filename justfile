@@ -80,4 +80,10 @@ secrets:
 bench:
     uv run python benchmarks/timing.py
 
+# Rust core unit tests for the accelerated backend (plan 00003 E2).
+# Requires a local Rust toolchain; deliberately NOT part of `quality` —
+# the pure-Python path must never depend on Rust being installed.
+rust-test:
+    cargo test --manifest-path rust/Cargo.toml
+
 ci: sync quality build secrets
