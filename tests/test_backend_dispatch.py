@@ -37,7 +37,7 @@ _REQUIRED = os.environ.get("FPR_FF1_REQUIRE_RUST_BACKEND", "").strip() not in {"
 #: hard when the backend is required (mirroring FPR_FF1_REQUIRE_ORACLE).
 _rust_available = True
 try:
-    importlib.import_module("_fpr_ff1_rs")
+    importlib.import_module("fpr_ff1._rs")
 except ImportError:
     _rust_available = False
 
@@ -92,7 +92,7 @@ def test_missing_extension_raises_backend_error(monkeypatch: pytest.MonkeyPatch)
     ImportError for the module — the standard way to simulate an
     uninstalled extension without uninstalling it.
     """
-    monkeypatch.setitem(sys.modules, "_fpr_ff1_rs", None)
+    monkeypatch.setitem(sys.modules, "fpr_ff1._rs", None)
     with pytest.raises(BackendError, match="not available"):
         FF1(key=_KEY, radix=10, backend="rust")
 

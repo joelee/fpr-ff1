@@ -71,10 +71,15 @@ packages = ["src/fpr_ff1"]
 # this, hatchling ships everything it finds -- agent instructions, planning
 # and review documents, editor state, even .opencode/node_modules.  The
 # published tarball is code, tests, vectors, and user-facing docs only.
+# The Rust sources ride along (plan 00003 REQ-19/REQ-20) for wheel builders
+# -- downstream packagers can run maturin against rust/fpr-ff1-rust -- but
+# the sdist itself still builds and installs pure-Python with hatchling,
+# never invoking a Rust toolchain.
 [tool.hatch.build.targets.sdist]
 include = [
     "/src",
     "/tests",
+    "/rust",
     "/docs/architecture.md",
     "/docs/backlog.md",
     "/docs/configuration.md",
@@ -85,6 +90,19 @@ include = [
     "/justfile",
     "/uv.lock",
 ]
+
+# maturin configuration for the OPTIONAL compiled backend's platform wheels
+# (plan 00003 STEP-14, decision D5). Read only by `maturin build -m
+# rust/fpr-ff1-rust/Cargo.toml`; completely inert to hatchling, so the sdist
+# and the pure wheel above are unchanged. Produces mixed wheels --
+# src/fpr_ff1/** plus the top-level _fpr_ff1_rs extension -- tagged
+# cp312-abi3 per platform. The pure-Python path never imports the
+# extension; a wheel without it (the sdist, the py3-none-any wheel) is
+# fully functional and `backend="rust"` raises a clear BackendError.
+[tool.maturin]
+module-name = "fpr_ff1._rs"
+python-source = "src"
+features = ["pyo3/abi3-py312"]
 
 [tool.ruff]
 line-length = 100

@@ -23,7 +23,7 @@ _RUST_REQUIRED = os.environ.get("FPR_FF1_REQUIRE_RUST_BACKEND", "").strip() not 
 
 def _rust_available() -> bool:
     try:
-        importlib.import_module("_fpr_ff1_rs")
+        importlib.import_module("fpr_ff1._rs")
     except ImportError:
         return False
     return True
@@ -32,7 +32,7 @@ def _rust_available() -> bool:
 _RUST_BUILT = _rust_available()
 
 if _RUST_REQUIRED and not _RUST_BUILT:
-    raise ImportError("FPR_FF1_REQUIRE_RUST_BACKEND is set but _fpr_ff1_rs is not built")
+    raise ImportError("FPR_FF1_REQUIRE_RUST_BACKEND is set but fpr_ff1._rs is not built")
 
 #: Both backends, or just the one that is available. The python backend is
 #: the reference and always runs; the rust parameterisation is the plan
@@ -82,7 +82,7 @@ def encrypt_traced(backend: str) -> Callable[..., tuple[list[int], list[dict[str
     # The compiled extension has no stubs; every access is deliberately
     # Any-typed at this single boundary, mirroring the STEP-09 validation
     # module's approach.
-    rs = cast("Any", importlib.import_module("_fpr_ff1_rs"))
+    rs = cast("Any", importlib.import_module("fpr_ff1._rs"))
 
     def traced_rust(
         ff1: FF1, x: list[int], tweak: bytes | None = None

@@ -120,10 +120,12 @@ class _Aes(NamedTuple):
     cbc_zero_iv: modes.CBC
 
 
-#: The compiled accelerated backend's module name (plan 00003 E2).  The
-#: extension is optional: the pure-Python path is the reference and the
-#: default, and the package imports fine without it (REQ-19).
-_RUST_MODULE = "_fpr_ff1_rs"
+#: The compiled accelerated backend's module name (plan 00003 E2). The
+#: extension lives inside the package namespace (`fpr_ff1._rs`, the
+#: standard maturin mixed layout) and is optional: the pure-Python path is
+#: the reference and the default, and the package imports fine without it
+#: (REQ-19).
+_RUST_MODULE = "fpr_ff1._rs"
 
 #: The backend names accepted by :class:`FF1` (REQ-13).
 _BACKENDS = ("python", "rust")

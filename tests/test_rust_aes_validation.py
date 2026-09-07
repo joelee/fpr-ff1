@@ -46,9 +46,9 @@ _REQUIRED = os.environ.get("FPR_FF1_REQUIRE_RUST_BACKEND", "").strip() not in {"
 def _load_backend() -> ModuleType:
     if _REQUIRED:
         # A hard ImportError: when the backend is required it must be there.
-        return importlib.import_module("_fpr_ff1_rs")
+        return importlib.import_module("fpr_ff1._rs")
     return pytest.importorskip(
-        "_fpr_ff1_rs", reason="Rust backend not built; run `just backend-dev`"
+        "fpr_ff1._rs", reason="Rust backend not built; run `just backend-dev`"
     )
 
 

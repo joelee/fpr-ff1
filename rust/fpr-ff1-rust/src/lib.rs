@@ -373,8 +373,14 @@ fn ff1_impl(
 /// `_prepare` validation (plan 00003 decision D4). The test-only trace
 /// bridge (STEP-11) extends this module; nothing here is exported from the
 /// `fpr_ff1` package's public API.
+///
+/// The module name is `fpr_ff1._rs` (the extension lives inside the
+/// package namespace, the standard maturin mixed layout): the wheel ships
+/// `fpr_ff1/**` plus `fpr_ff1/_rs.<abi3>.so`, while the pure wheel and
+/// sdist simply lack the `_rs` module -- the package imports fine without
+/// it and `backend="rust"` raises a clear `BackendError` (REQ-19).
 #[pymodule]
-fn _fpr_ff1_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", "0.1.0")?;
 
     /// Encrypt a numeral sequence (values validated Python-side).

@@ -86,11 +86,24 @@ bench:
 rust-test:
     cargo test --manifest-path rust/Cargo.toml
 
-# Build the Rust accelerated backend into the project venv as _fpr_ff1_rs
-# (plan 00003 E2 dev loop). Uses maturin via uvx with VIRTUAL_ENV pointing
-# at the project venv, so no dev-dependency churn in uv.lock. Requires a
-# local Rust toolchain.
+# Build the Rust accelerated backend into the source tree as fpr_ff1._rs
+# (plan 00003 E2 dev loop). Builds the cdylib with cargo and copies it into
+# src/fpr_ff1/ -- the editable install maps that directory, so the
+# extension is importable as fpr_ff1._rs with no pip involvement (uv sync
+# cannot strip it; the copy is gitignored). PYO3_PYTHON must be absolute:
+# cargo build scripts run with the crate directory as cwd, so a relative
+# venv path breaks pyo3's interpreter detection. Requires a local Rust
+# toolchain.
 backend-dev:
-    VIRTUAL_ENV=.venv uvx maturin develop -m rust/fpr-ff1-rust/Cargo.toml
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="$(pwd)"
+    PYO3_PYTHON="$root/.venv/bin/python" cargo build --release --manifest-path rust/Cargo.toml
+    case "$(uname -s)" in
+        Darwin) artifact=rust/target/release/lib_fpr_ff1_rs.dylib ;;
+        *) artifact=rust/target/release/lib_fpr_ff1_rs.so ;;
+    esac
+    cp "$artifact" src/fpr_ff1/_rs.so
+    echo "installed fpr_ff1._rs into src/fpr_ff1/"
 
 ci: sync quality build secrets

@@ -110,7 +110,7 @@ def backend_comparison_table() -> None:
     backend is not worth shipping and the plan escalates.
     """
     try:
-        importlib.import_module("_fpr_ff1_rs")
+        importlib.import_module("fpr_ff1._rs")
     except ImportError:
         print("\n## Backend comparison\n")
         print("Rust backend not built; run `just backend-dev` (or a release\n")

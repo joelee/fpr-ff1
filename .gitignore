@@ -42,5 +42,8 @@ tmp/
 
 # Rust (plan 00003 E2): cargo build artifacts are per-machine and never
 # committed; Cargo.lock IS committed (supply-chain pinning, like uv.lock).
+# The dev-loop extension copy lands inside the source tree (just
+# backend-dev) and is equally per-machine.
 rust/target/
 target/
+src/fpr_ff1/_rs*.so
