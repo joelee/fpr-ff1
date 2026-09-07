@@ -16,6 +16,7 @@ import importlib
 import os
 import pickle
 import sys
+import types
 from typing import Any
 
 import pytest
@@ -95,6 +96,75 @@ def test_missing_extension_raises_backend_error(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setitem(sys.modules, "fpr_ff1._rs", None)
     with pytest.raises(BackendError, match="not available"):
         FF1(key=_KEY, radix=10, backend="rust")
+
+
+def _install_fake_rust_backend(
+    monkeypatch: pytest.MonkeyPatch,
+) -> list[tuple[str, tuple[Any, ...]]]:
+    """Install a fake ``fpr_ff1._rs`` module and record its calls.
+
+    The real extension is optional and absent in CI's ``quality`` job, so the
+    rust dispatch plumbing (``_rust_ff1``, the ``backend == "rust"`` branches,
+    and the unpickle re-validation) would otherwise never execute there and
+    drop the coverage floor. A fake module in ``sys.modules`` makes
+    ``importlib.import_module`` succeed, so the plumbing runs and its calls
+    are recorded — the same simulation technique the missing-extension test
+    uses in reverse.
+    """
+    calls: list[tuple[str, tuple[Any, ...]]] = []
+    fake = types.ModuleType("fpr_ff1._rs")
+
+    def encrypt_numerals(key: bytes, radix: int, x: list[int], tweak: bytes) -> list[int]:
+        calls.append(("encrypt_numerals", (key, radix, x, tweak)))
+        return [0] * len(x)
+
+    def decrypt_numerals(key: bytes, radix: int, x: list[int], tweak: bytes) -> list[int]:
+        calls.append(("decrypt_numerals", (key, radix, x, tweak)))
+        return [0] * len(x)
+
+    fake.encrypt_numerals = encrypt_numerals  # type: ignore[attr-defined]
+    fake.decrypt_numerals = decrypt_numerals  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "fpr_ff1._rs", fake)
+    return calls
+
+
+def test_rust_dispatch_plumbing_without_real_extension(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The rust dispatch path routes to the compiled module's functions.
+
+    Exercises ``_rust_ff1`` and both ``backend == "rust"`` branches with a
+    fake extension, proving the plumbing (import, function selection,
+    argument passing) without the real one — keeping those lines inside the
+    coverage floor when CI runs without a built extension.
+    """
+    calls = _install_fake_rust_backend(monkeypatch)
+    ff1 = FF1(key=_KEY, radix=10, backend="rust")
+    pt = _plaintext()
+
+    ct = ff1.encrypt_numerals(pt, _TWEAK)
+    assert ct == [0] * len(pt)
+    assert calls[-1] == ("encrypt_numerals", (_KEY, 10, pt, _TWEAK))
+
+    dec = ff1.decrypt_numerals(pt, _TWEAK)
+    assert dec == [0] * len(pt)
+    assert calls[-1] == ("decrypt_numerals", (_KEY, 10, pt, _TWEAK))
+
+
+def test_rust_unpickle_revalidates_extension(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Unpickling a rust instance re-imports the backend (``__setstate__``).
+
+    The far side of a pickle may not have the extension installed, so
+    ``__setstate__`` re-validates availability. With a fake extension present
+    the re-validation succeeds and the instance round-trips; this keeps the
+    ``_load_rust_backend()`` call in ``__setstate__`` inside the coverage
+    floor when the real extension is absent.
+    """
+    _install_fake_rust_backend(monkeypatch)
+    ff1 = FF1(key=_KEY, radix=10, backend="rust")
+    clone = pickle.loads(pickle.dumps(ff1))  # noqa: S301
+    assert clone._backend == "rust"  # pyright: ignore[reportPrivateUsage]
+    assert clone.encrypt_numerals(_plaintext(), _TWEAK) == [0] * 10
 
 
 @requires_rust
