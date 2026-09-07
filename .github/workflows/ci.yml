@@ -275,7 +275,7 @@ jobs:
 
           # NIST sample 2 (AES-128, radix 10, tweaked): both backends must
           # reproduce the published ciphertext exactly.
-          expected = "2433477484"
+          expected = "6124200773"
           assert py.encrypt("0123456789") == expected, "python backend diverged"
           assert rs.encrypt("0123456789") == expected, "rust backend diverged"
           assert rs.decrypt(expected) == "0123456789"
@@ -312,8 +312,8 @@ jobs:
           key = bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c")
           tweak = bytes.fromhex("39383736353433323130")
           ff1 = FF1(key=key, radix=10, alphabet="0123456789", tweak=tweak)
-          assert ff1.encrypt("0123456789") == "2433477484"
-          assert ff1.decrypt("2433477484") == "0123456789"
+          assert ff1.encrypt("0123456789") == "6124200773"
+          assert ff1.decrypt("6124200773") == "0123456789"
 
           try:
               FF1(key=bytes(16), radix=10, backend="rust")

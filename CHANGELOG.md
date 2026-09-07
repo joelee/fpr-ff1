@@ -9,6 +9,44 @@ expanding the accepted domain without changing existing behaviour is a minor ver
 
 ## [Unreleased]
 
+## [2.0.0rc1] — 2026-09-07
+
+Release candidate for the optional accelerated backend. **The pure-Python path is unchanged and
+remains the default** — ciphertext is bit-identical to 1.1.0 for every valid input, and no
+existing caller is affected. The `backend` keyword is additive and opt-in.
+
+### Added
+
+- **Opt-in compiled backend** (`backend="rust"`, plan 00003 E2). A PyO3 extension
+  (`fpr_ff1._rs`) implementing SP 800-38G Algorithm 7 and the Algorithm 6 PRF with a pinned
+  RustCrypto AES core, validated against the NIST FIPS 197 Appendix C vectors and the Python
+  path's PRF output. Measured ~6.8× faster than the pure-Python path at 6 numerals and ~3.3× at
+  n=100 (radix 10); the pure-Python path remains the better choice for long inputs (see the
+  README Backends section for the crossover guidance).
+- **`BackendError`** — a typed exception (rooted at `FF1Error`) for an unknown `backend` name or
+  a missing compiled extension.
+- **Dual-backend conformance.** The entire suite — NIST vectors, per-round intermediates, frozen
+  KAT, differential oracle, interoperability, properties, bijectivity — runs against both
+  backends, bit-exact, including the per-round `P/Q/R/S/y/m/c/C` intermediates via a test-only
+  trace bridge.
+- **Platform wheels** (abi3-py312) for Linux x86_64 + aarch64, macOS x86_64 + arm64, and Windows
+  x64, built by maturin in CI. The pure-Python wheel and the sdist remain the universal fallback:
+  the sdist installs and works without a Rust toolchain, and `backend="rust"` then raises
+  `BackendError`.
+- **Rust supply-chain hardening**: `Cargo.lock` committed, `cargo-audit` in CI, SHA-pinned
+  toolchain action, `rust-toolchain.toml` channel pin.
+
+### Changed
+
+- `FF1.__init__` gains the keyword-only `backend` parameter (default `"python"`).
+- Validation runs in Python for both backends, so exception types and messages are identical.
+
+### Unchanged
+
+- Public API (beyond the additive `backend` keyword), accepted inputs, produced ciphertext,
+  exception behaviour, thread safety, pickling, and the single runtime dependency
+  (`cryptography`) for the pure-Python path.
+
 ## [1.1.0] — 2026-09-06
 
 Performance release. **Ciphertext is bit-identical to 1.0.0 for every valid input** — verified

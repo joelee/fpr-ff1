@@ -64,6 +64,8 @@ FF1 is a deterministic permutation for a fixed key and tweak. That has operation
 ## Features
 
 - Pure Python with a single runtime dependency: `cryptography`.
+- An optional compiled backend (`backend="rust"`) for high-throughput callers on short inputs,
+  with the pure-Python implementation retained as the reference and the default.
 - Conformance-tested against the NIST SP 800-38G sample vectors.
 - No floating-point arithmetic in the FF1 core.
 - Tightened domain limits from the SP 800-38G Rev. 1 second public draft:
@@ -204,13 +206,15 @@ than the ceiling punishing users of new Pythons.
 |---|---|
 | **1.0** | **Pure Python.** Conformance, a stable API, and a single runtime dependency (`cryptography`). No compiled extension, no optional backends — one code path, and it is the one the vectors test. |
 | **1.1** | **Pure-Python performance.** Subquadratic base conversion and an O(n) power-of-two fast path; ciphertext bit-identical to 1.0.0. Still one code path, still one dependency. |
-| **2.0** | **Optional accelerated backend.** An opt-in faster path for high-throughput callers on short inputs, with the pure-Python implementation retained as the reference and the default. |
+| **2.0** | **Optional accelerated backend.** An opt-in faster path for high-throughput callers on short inputs, with the pure-Python implementation retained as the reference and the default. Shipped as `2.0.0rc1`. |
 
-The 2.0 backend is explicitly *not* a 1.x concern. An accelerated path is only worth having once
-the reference implementation is settled and there is a conformance suite strong enough to prove
-the two agree bit for bit — which is the point of the differential and interoperability tests.
-With 1.1 removing the long-input conversion cost, the case for 2.0 is the small-input regime
-(per-call overhead), decided on measured numbers.
+The 2.0 backend is opt-in and additive: the pure-Python path is unchanged and remains the default,
+so existing callers are unaffected. The accelerated path is only worth having once the reference
+implementation is settled and there is a conformance suite strong enough to prove the two agree
+bit for bit — which is the point of the differential and interoperability tests, and which the
+2.0 suite runs against *both* backends. With 1.1 removing the long-input conversion cost, the
+accelerated backend targets the small-input regime (per-call overhead); see
+[Backends](#backends) for the measured numbers and when to use it.
 
 Nothing in the roadmap changes the scope boundary above. FF3 and FF3-1 remain permanently out of
 scope, and no release will add key management.
@@ -237,9 +241,35 @@ power-of-two radices (about 19× faster at n=20,000 radix 10, 25× at radix 256)
 bit-identical to 1.0.0 for every valid input. If you are sizing a nightly job over millions of
 rows, measure with `just bench` against production-representative hardware.
 
+## Backends
+
+`FF1` accepts a keyword-only `backend` parameter: `"python"` (the default, and the reference
+implementation) or `"rust"` (the opt-in compiled backend). Both produce bit-identical ciphertext
+and raise identical exceptions — validation runs in Python for both, so the typed errors and
+messages are the same. The compiled backend ships as `fpr_ff1._rs` inside the platform wheels; the
+pure-Python wheel and the sdist omit it, and requesting `backend="rust"` there raises a clear
+`BackendError` rather than an opaque `ImportError`.
+
+Measured on one core, CPython 3.12.13, macOS (Apple Silicon), radix 10 — reproduce with
+`just bench`:
+
+| Input | `backend="python"` | `backend="rust"` | Speedup |
+|---|---:|---:|---:|
+| 6 numerals | 28.3 µs/op | 4.2 µs/op | ~6.8× |
+| n = 100 | 109.9 µs/op | 33.7 µs/op | ~3.3× |
+| n = 20,000 | 27.1 ms/op | 126.9 ms/op | 0.21× (slower) |
+
+**Use the rust backend for short inputs, the default for long inputs.** The compiled core
+eliminates the per-call cipher-context construction that dominates short inputs (about 55% of an
+n=6 call), which is why it is ~6.8× faster there. It deliberately uses the naive spec-reference
+conversion, so at long inputs the pure-Python path's subquadratic conversion wins — the crossover
+is somewhere around a few hundred numerals. The two backends are complementary, not a
+replacement: the pure-Python path remains the reference, the default, and the better choice for
+long inputs.
+
 ## API
 
-### `FF1(key, radix, *, alphabet=None, tweak=b"", min_tweak_len=None, max_tweak_len=None)`
+### `FF1(key, radix, *, alphabet=None, tweak=b"", min_tweak_len=None, max_tweak_len=None, backend="python")`
 
 | Parameter | Description |
 |---|---|
@@ -248,6 +278,7 @@ rows, measure with `just bench` against production-representative hardware.
 | `alphabet` | Optional string of exactly `radix` unique characters; enables `encrypt`/`decrypt`. |
 | `tweak` | Default tweak used when not supplied per call. |
 | `min_tweak_len` / `max_tweak_len` | Optional per-instance tweak length bounds. |
+| `backend` | `"python"` (default, the reference) or `"rust"` (the opt-in compiled backend). See [Backends](#backends). |
 
 The package exports `fpr_ff1.__version__` — the version of the installed distribution. Callers
 recording which build produced a dataset should capture it alongside their data.
@@ -314,6 +345,7 @@ padded, coerced or clamped.
 | `ValueRangeError` | a numeral outside `[0, radix)`, or a character absent from the alphabet |
 | `TweakLengthError` | tweak outside the configured bounds |
 | `AlphabetError` | alphabet length mismatched to radix, or containing duplicates |
+| `BackendError` | `backend` is not a known name, or is `"rust"` and the compiled extension is not installed |
 
 `AlphabetError` signals malformed *configuration* (caught at construction); `ValueRangeError`
 signals malformed *data* (caught per call). They are deliberately distinct so callers can handle

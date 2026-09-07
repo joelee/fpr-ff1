@@ -24,6 +24,8 @@ security fixes are backported to the most recent minor where practical.
 
 | Version | Supported |
 |---|---|
+| 2.0.0rc1 | ✅ (release candidate) |
+| 1.1.x | ✅ |
 | 1.0.x | ✅ |
 | 0.1.x | ✅ (until 1.0.0 ships, per the pre-1.0 policy) |
 
@@ -90,3 +92,9 @@ Neither is a practical side channel for a pure-Python library: interpreter dispa
 garbage collection all produce far more timing noise than the arithmetic does. But no constant-time
 guarantee is offered, and if your threat model includes a local timing adversary, this is not the
 right implementation for you.
+
+**The compiled backend (`backend="rust"`) does not change this posture.** It removes the
+per-call cipher-context construction overhead, but the FF1 algorithm's data-dependent big-integer
+sizes and alphabet lookups remain, so value- and length-dependent timing persists in the Rust core
+too. No constant-time guarantee is offered for either backend; the compiled path is a throughput
+optimisation, not a hardening measure.

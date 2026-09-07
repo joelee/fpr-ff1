@@ -4,14 +4,6 @@ This file tracks high-level feature ideas and technical debt for `fpr-ff1`.
 
 ## Active Items
 
-### 2.0
-
-- Optional accelerated backend. Opt-in only; the pure-Python implementation stays the reference
-  and the default. With 1.1.0's subquadratic conversion removing the long-input cost (plan 00003
-  E1), the remaining case is the small-input regime (per-call overhead, ~55% of an n=6 call is
-  cipher-context construction); to be decided on measured numbers against the 1.1 baseline per
-  idea 00001 r02.
-
 ### Ongoing
 
 - Track SP 800-38G Rev. 1. It is still a second public draft; if it is finalised with limits that
@@ -60,6 +52,12 @@ This file tracks high-level feature ideas and technical debt for `fpr-ff1`.
   bit-identical to 1.0.0 across the full conformance suite; naive loops retained as the
   documented reference with a differential equivalence test across every supported radix.
   ~19× at n=20,000 radix 10, ~25× at radix 256; small inputs unchanged.
+- **E2 optional accelerated backend landed for v2.0.0rc1** (plan 00003, steps 07–15): an opt-in
+  `backend="rust"` PyO3 extension (Algorithm 7 + PRF, pinned RustCrypto AES, validated against
+  NIST FIPS 197 KAT and the Python PRF), ~6.8× at 6 numerals / ~3.3× at n=100 (radix 10), with
+  the pure-Python path retained as the reference and default. The full conformance suite runs
+  bit-exact on both backends including per-round intermediates; abi3-py312 wheels for the
+  five-platform matrix with the pure-Python sdist as the universal fallback.
 
 ## Decided
 
