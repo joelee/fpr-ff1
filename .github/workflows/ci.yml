@@ -269,7 +269,7 @@ jobs:
       - name: Install the linux x86_64 wheel into a clean environment
         run: |
           uv venv wheel-check-rs
-          uv pip install --python wheel-check-rs 'dist-wheels/*linux*x86_64*.whl'
+          uv pip install --python wheel-check-rs dist-wheels/*linux*x86_64*.whl
 
       - name: Exercise both backends from the installed wheel
         run: |
