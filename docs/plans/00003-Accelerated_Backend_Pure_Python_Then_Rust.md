@@ -39,9 +39,9 @@ builder_agent: build
 builder_model: "ollama-cloud/glm-5.3"
 execution_branch: "feature/accelerated-backend-pure-python-then-rust"
 execution_started_at: "2026-09-06T22:03:07Z"
-execution_updated_at: "2026-09-07T10:19:35Z"
+execution_updated_at: "2026-09-07T11:07:39Z"
 execution_completed_at: null
-current_step: PLAN-00003-STEP-10
+current_step: PLAN-00003-STEP-11
 ---
 
 # Delivery Plan 00003: Accelerated Backend Pure Python Then Rust
@@ -630,7 +630,7 @@ path. Each stage's release is gated by the full existing CI matrix.
 
 ### PLAN-00003-STEP-01 — E1 test scaffolding (failing first)
 
-- **Status placeholder:** `not-started`
+- **Status placeholder:** `completed`
 - **Objective:** Write the differential-equivalence and threshold-boundary
   tests that define E1 correctness, and show they fail against the shipped
   loops (or, for the differential test, that it is trivially green until the
@@ -668,7 +668,7 @@ path. Each stage's release is gated by the full existing CI matrix.
 
 ### PLAN-00003-STEP-02 — Divide-and-conquer conversion
 
-- **Status placeholder:** `not-started`
+- **Status placeholder:** `completed`
 - **Objective:** Implement the subquadratic `_num_radix`/`_str_radix`
   replacement with a call-local memoised power cache and 64-numeral
   threshold; retain the naive loops as the documented reference.
@@ -706,7 +706,7 @@ path. Each stage's release is gated by the full existing CI matrix.
 
 ### PLAN-00003-STEP-03 — Power-of-two fast path
 
-- **Status placeholder:** `not-started`
+- **Status placeholder:** `completed`
 - **Objective:** Add the O(n) `to_bytes`/`from_bytes` conversion for
   power-of-two radices and dispatch to it.
 - **Requirements:** `PLAN-00003-REQ-02`, `PLAN-00003-REQ-08`
@@ -734,7 +734,7 @@ path. Each stage's release is gated by the full existing CI matrix.
 
 ### PLAN-00003-STEP-04 — E1 full verification and benchmark
 
-- **Status placeholder:** `not-started`
+- **Status placeholder:** `completed`
 - **Objective:** Run the complete quality gate and the benchmark harness;
   capture the E1 numbers that become the README table and the E2 baseline.
 - **Requirements:** `PLAN-00003-REQ-06`, `PLAN-00003-REQ-07`,
@@ -763,7 +763,7 @@ path. Each stage's release is gated by the full existing CI matrix.
 
 ### PLAN-00003-STEP-05 — E1 documentation and version 1.1.0
 
-- **Status placeholder:** `not-started`
+- **Status placeholder:** `completed`
 - **Objective:** Correct the README performance claim, refresh the table,
   update the changelog and backlog, and set the version to 1.1.0.
 - **Requirements:** `PLAN-00003-REQ-10`, `PLAN-00003-REQ-11`
@@ -791,7 +791,7 @@ path. Each stage's release is gated by the full existing CI matrix.
 
 ### PLAN-00003-STEP-06 — Release v1.1.0
 
-- **Status placeholder:** `not-started`
+- **Status placeholder:** `completed`
 - **Objective:** Ship E1 through the existing release pipeline and capture
   matrix bench numbers.
 - **Requirements:** `PLAN-00003-REQ-11`
@@ -820,7 +820,7 @@ path. Each stage's release is gated by the full existing CI matrix.
 
 ### PLAN-00003-STEP-07 — Crate-fit microbenchmark
 
-- **Status placeholder:** `not-started`
+- **Status placeholder:** `completed`
 - **Objective:** Settle the Rust big-int representation question with a
   throwaway microbenchmark before any core code is committed.
 - **Requirements:** `PLAN-00003-REQ-12`
@@ -848,7 +848,7 @@ path. Each stage's release is gated by the full existing CI matrix.
 
 ### PLAN-00003-STEP-08 — Rust workspace and Algorithm 7 port
 
-- **Status placeholder:** `not-started`
+- **Status placeholder:** `completed`
 - **Objective:** Create the Rust workspace with the PyO3 extension and port
   Algorithm 7 (encrypt and decrypt) with exact integer arithmetic and
   spec-step comments.
@@ -884,7 +884,7 @@ path. Each stage's release is gated by the full existing CI matrix.
 
 ### PLAN-00003-STEP-09 — Rust PRF and AES validation
 
-- **Status placeholder:** `not-started`
+- **Status placeholder:** `completed`
 - **Objective:** Implement the Algorithm 6 PRF (CBC-MAC, zero IV) in Rust
   and validate the AES path independently before trusting any FF1 output.
 - **Requirements:** `PLAN-00003-REQ-14`, `PLAN-00003-REQ-15`
@@ -915,7 +915,7 @@ path. Each stage's release is gated by the full existing CI matrix.
 
 ### PLAN-00003-STEP-10 — Python integration: backend keyword and dispatch
 
-- **Status placeholder:** `not-started`
+- **Status placeholder:** `completed`
 - **Objective:** Wire `backend="rust"` into `FF1` with validation, dispatch,
   exception parity, and graceful unavailability.
 - **Requirements:** `PLAN-00003-REQ-13`, `PLAN-00003-REQ-18`,
@@ -989,7 +989,7 @@ path. Each stage's release is gated by the full existing CI matrix.
 
 ### PLAN-00003-STEP-12 — Thread-safety and pickling for the rust backend
 
-- **Status placeholder:** `not-started`
+- **Status placeholder:** `in-progress`
 - **Objective:** Prove the 1.0.0 compatibility contract holds for
   accelerated instances.
 - **Requirements:** `PLAN-00003-REQ-17`
@@ -1242,7 +1242,7 @@ results table. No check may be claimed as passed without its evidence entry.
 | PLAN-00003-STEP-07 | completed | 2026-09-07T00:07:24Z | 2026-09-07T00:08:50Z | Staged checkpoint reviewed and approved by user (plan-only checkpoint) | num-bigint fits and is 2–3× faster than CPython at the FF1 shapes; LOW-01 cleared |
 | PLAN-00003-STEP-08 | completed | 2026-09-07T00:08:50Z | 2026-09-07T00:29:15Z | Staged checkpoint reviewed and approved by user; digest `1ac143c8...e0e0cf` verified at continuation | Algorithm 7 port landed with seams; 6 Rust tests green; padding-sign bug caught and fixed |
 | PLAN-00003-STEP-09 | completed | 2026-09-07T00:29:15Z | 2026-09-07T10:19:35Z | Staged checkpoint reviewed and approved by user; digest `96b81c88...2a755f` verified at continuation | AES KAT green; PRF equality green; core callable end-to-end |
-| PLAN-00003-STEP-10 | not-started | — | — | — | — |
+| PLAN-00003-STEP-10 | completed | 2026-09-07T10:19:35Z | 2026-09-07T11:07:39Z | Staged checkpoint reviewed and approved by user; digest `f696bab3...4d60562` verified at continuation | backend keyword live; validation parity asserted; 100% floor held |
 | PLAN-00003-STEP-11 | not-started | — | — | — | — |
 | PLAN-00003-STEP-12 | not-started | — | — | — | — |
 | PLAN-00003-STEP-13 | not-started | — | — | — | — |
@@ -1275,6 +1275,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-07T00:29:15Z | PLAN-00003-STEP-08 | User approved the staged checkpoint ("Approved. Proceed to the next step."); staged-checkpoint gate re-verified (branch `plan/v2.0.0`, HEAD `5686907`, staged set, digest match `1ac143c8...`, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-08, then begin STEP-09 (Rust PRF and AES validation) |
 | 2026-09-07T08:41:15Z | PLAN-00003-STEP-09 | STEP-09 implemented and verified. **Evidence first:** the three FIPS 197 Appendix C KAT ciphertexts were cross-verified against the OpenSSL-backed `cryptography` package (MATCH ×3) BEFORE being frozen into `tests/vectors/aes_kat_fips197.json` with a provenance header — never generated from this repository. **Rust wiring:** the STEP-08 seams are now real — `Aes` key-schedule enum over RustCrypto Aes128/192/256 (immutable, thread-safe by construction, mirroring `_Aes`), `prf` as a six-line CBC-MAC zero-IV XOR chain, `cipher_block` as the raw forward block; `ff1` call sites updated; test-only PyO3 bindings `_test_prf`/`_test_cipher_block` exposed (off the public API, `_encrypt_traced`-style). Bounded decision: the `cbc` crate was dropped — the manual chain is the spec-literal CBC-MAC and the wrapper would need one concrete instantiation per key size anyway (smaller supply-chain surface; Cargo.lock updated). **Dev loop:** `just backend-dev` (VIRTUAL_ENV=.venv `uvx maturin develop`, no uv.lock churn); a standalone `rust/fpr-ff1-rust/pyproject.toml` was required — without it maturin walked up to the repo-root pyproject and built a mixed wheel that shipped no importable extension. **Validation:** `tests/test_rust_aes_validation.py` — 3 KAT + 15 PRF-equality vs the reference `_prf` (key sizes 16/24/32 × block counts 1–5) + 1 shared data-sensitivity; availability mirrors the oracle contract (`FPR_FF1_REQUIRE_RUST_BACKEND`; CI wiring at STEP-14). Rust unit tests grew to 8, including full-core round-trip self-consistency (all key sizes, odd n, both `d > 16` S-expansion cases — the core is callable end-to-end for the first time). **Gates:** cargo test 8 green; validation module 19 green; full gate 858 passed with 100% line/branch coverage (295 stmts/96 branches; no `fpr_ff1` source changed); ruff/pyright clean. A missing `import os` in the new test module was caught on self-review after the interruption and fixed before any test run. Second usage-limit interruption mid-step; state verified on resume (git status matched exactly this step's files). Checkpoint staged for review: implementation paths `justfile`, `rust/Cargo.lock`, `rust/fpr-ff1-rust/Cargo.toml`, `rust/fpr-ff1-rust/pyproject.toml`, `rust/fpr-ff1-rust/src/lib.rs`, `rust/fpr-ff1-rust/src/tests.rs`, `tests/test_rust_aes_validation.py`, `tests/vectors/aes_kat_fips197.json`; proposed commit subject `build: complete PLAN-00003-STEP-09 - Rust PRF and AES validation`. Staged-diff SHA-256 for the implementation paths (`justfile`, `rust/Cargo.lock`, `rust/fpr-ff1-rust/Cargo.toml`, `rust/fpr-ff1-rust/pyproject.toml`, `rust/fpr-ff1-rust/src/lib.rs`, `rust/fpr-ff1-rust/src/tests.rs`, `tests/test_rust_aes_validation.py`, `tests/vectors/aes_kat_fips197.json`): `96b81c8873e6a6d503cf227788a177082319631c2a93947e0d1b9097312a755f` | Verification results below | Awaiting user review; on continuation, commit STEP-09 and begin STEP-10 |
 | 2026-09-07T10:19:35Z | PLAN-00003-STEP-09 | User approved the staged checkpoint ("Approved. Proceed to the next step."); staged-checkpoint gate re-verified (branch `plan/v2.0.0`, HEAD `afe9950`, staged set, digest match `96b81c88...`, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-09, then begin STEP-10 (Python integration: backend keyword and dispatch) |
+| 2026-09-07T10:37:31Z | PLAN-00003-STEP-10 | STEP-10 implemented and verified (TDD: red run confirmed `BackendError` missing before implementation). **New exception:** `BackendError(FF1Error)` in `_exceptions.py`, exported from `__all__` (REQ-19: every backend rejection roots at `FF1Error`). **Constructor:** keyword-only `backend: str = "python"` (REQ-13), validated type-then-value like every other parameter; `"rust"` fails fast via `_load_rust_backend()` (typed `BackendError` with remedy message, never an opaque `ImportError`). **Dispatch:** `encrypt_numerals`/`decrypt_numerals` route to `_rust_ff1` after `_prepare` — validation runs in Python for both backends (D4/REQ-18), so exception types AND messages are identical (asserted by parity tests). The extension is stateless; per-call `sys.modules` lookup adds no shared mutable state. **Pickling:** `_backend` rides the pickled `__dict__`; `__setstate__` defaults missing `_backend` to `"python"` (1.x pickles unpickle cleanly), rejects non-str and unknown values, and re-validates rust availability on the far side. **No top-level extension import** — the package imports fine without it (REQ-19 by construction). **Tests:** `tests/test_backend_dispatch.py`, 16 tests: default/explicit-python equality, unknown + non-str backend raises, missing-extension (simulated via `sys.modules` None-entry) raises, rust-vs-python bit-for-bit equality across radices 10/36/256 and n ∈ {6,7,60} (odd n and the d>16 expansion), string-interface dispatch, validation parity (length/range/tweak, message-identical), rust pickle round-trip, legacy-state default, corrupt-state rejection (both non-str and unknown value — the second added when the coverage floor caught the untested raise). Availability mirrors the oracle contract (`FPR_FF1_REQUIRE_RUST_BACKEND`; CI wiring at STEP-14). One test bug fixed during the red-green cycle (min_tweak_len construction needs a compliant default tweak). **Gates:** 874 passed, 100% line/branch coverage (327 stmts, 112 branches), ruff/pyright clean; NIST/KAT/interoperability suites passed unmodified within the gate — the pure-Python path is unchanged when `backend` is not passed. Checkpoint staged for review: implementation paths `src/fpr_ff1/__init__.py`, `src/fpr_ff1/_exceptions.py`, `src/fpr_ff1/_ff1.py`, `tests/test_backend_dispatch.py`; proposed commit subject `build: complete PLAN-00003-STEP-10 - Python integration: backend keyword and dispatch`. Staged-diff SHA-256 for the implementation paths (`src/fpr_ff1/__init__.py`, `src/fpr_ff1/_exceptions.py`, `src/fpr_ff1/_ff1.py`, `tests/test_backend_dispatch.py`): `f696bab3065bf3d51a4e1c2ccb2319fd9b6e063e2bdca8ea2321d62ab4d60562` | Verification results below | Awaiting user review; on continuation, commit STEP-10 and begin STEP-11 |
+| 2026-09-07T11:07:39Z | PLAN-00003-STEP-10 | User approved the staged checkpoint ("Approved. Proceed to the next step.") and instructed that the step-body **Status placeholder** lines (section 11) be kept current; staged-checkpoint gate re-verified (branch `plan/v2.0.0`, HEAD `095ad3a`, staged set, digest match `f696bab3...`, no unstaged/untracked changes); commit authorised. Status placeholders synced under explicit user instruction (steps 01–10 → `completed`, 11 → `in-progress`; recorded here as the authorization; Builder keeps them current at every checkpoint from now on) | This entry | Commit STEP-10, then begin STEP-11 (trace bridge and dual-backend conformance) |
 
 ### Deviations and blockers
 
@@ -1301,6 +1303,10 @@ Write `None` until an entry is required.
 | 2026-09-07T08:41:15Z | PLAN-00003-STEP-09 | `uv run pytest tests/test_rust_aes_validation.py -v` | 19 passed (3 KAT, 15 PRF-equality, 1 sensitivity) | AES KAT green; PRF equality green — STEP-09 completion criteria met |
 | 2026-09-07T08:41:15Z | PLAN-00003-STEP-09 | `just backend-dev` underlying command (`VIRTUAL_ENV=.venv uvx maturin develop`) | Extension imports as `_fpr_ff1_rs` with surface `_test_prf`, `_test_cipher_block`, `encrypt_numerals`, `decrypt_numerals`; Python package intact at 1.1.0 | Dev loop verified end-to-end |
 | 2026-09-07T08:41:15Z | PLAN-00003-STEP-09 | `uv run ruff format --check .` / `ruff check .` / `uv run pyright` / full coverage gate | Clean; 0 errors, 0 warnings; 858 passed, 100% line/branch coverage (353.8 s) | No `fpr_ff1` source changed; floor unaffected by construction |
+| 2026-09-07T10:37:31Z | PLAN-00003-STEP-10 | Red run: `uv run pytest tests/test_backend_dispatch.py -q` | ImportError: cannot import name 'BackendError' — the expected missing behaviour, not a syntax/environment failure | TDD red phase recorded |
+| 2026-09-07T10:37:31Z | PLAN-00003-STEP-10 | `uv run pytest tests/test_backend_dispatch.py -q` | 16 passed (after one test fix: min_tweak_len construction needs a compliant default tweak) | Green phase |
+| 2026-09-07T10:37:31Z | PLAN-00003-STEP-10 | `uv run ruff format --check .` / `ruff check .` / `uv run pyright` | Clean; 0 errors, 0 warnings | Whole project |
+| 2026-09-07T10:37:31Z | PLAN-00003-STEP-10 | `uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100` | 874 passed; 100% line/branch coverage (327 stmts, 112 branches, 0 missed) — the floor caught one untested raise (non-str unpickled backend), test added, re-run green | Full gate incl. slow sweeps (352.1 s) |
 | 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | `uv run pytest tests/test_conversion_equivalence.py -v` | 87 passed → 88 passed after rewrite (0.62–0.84 s) | Focused run; all differential, boundary, degenerate, truncation, property, and end-to-end cases green |
 | 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | `uv run pytest -m 'not slow' --no-cov -q` | 836 passed, 2 deselected (1.40 s) | No regression to the existing suite |
 | 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | `uv run ruff format --check .` / `uv run ruff check .` | 45 files formatted; all checks passed | Includes the new module |

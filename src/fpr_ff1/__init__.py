@@ -4,6 +4,7 @@ from importlib.metadata import version
 
 from fpr_ff1._exceptions import (
     AlphabetError,
+    BackendError,
     FF1Error,
     KeyLengthError,
     LengthError,
@@ -20,6 +21,7 @@ __version__ = version("fpr-ff1")
 __all__ = [
     "FF1",
     "AlphabetError",
+    "BackendError",
     "FF1Error",
     "KeyLengthError",
     "LengthError",

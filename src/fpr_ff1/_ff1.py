@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import importlib
 import operator
 from collections.abc import Sequence
+from types import ModuleType
 from typing import ClassVar, NamedTuple, SupportsIndex, cast
 
 from cryptography.hazmat.primitives.ciphers import (
@@ -14,6 +16,7 @@ from cryptography.hazmat.primitives.ciphers import (
 
 from fpr_ff1._exceptions import (
     AlphabetError,
+    BackendError,
     FF1Error,
     KeyLengthError,
     LengthError,
@@ -117,6 +120,46 @@ class _Aes(NamedTuple):
     cbc_zero_iv: modes.CBC
 
 
+#: The compiled accelerated backend's module name (plan 00003 E2).  The
+#: extension is optional: the pure-Python path is the reference and the
+#: default, and the package imports fine without it (REQ-19).
+_RUST_MODULE = "_fpr_ff1_rs"
+
+#: The backend names accepted by :class:`FF1` (REQ-13).
+_BACKENDS = ("python", "rust")
+
+
+def _load_rust_backend() -> ModuleType:
+    """Import the compiled backend, raising :class:`BackendError` if absent.
+
+    Called at construction (and unpickling) of a ``backend="rust"``
+    instance so the fault surfaces immediately with a typed error, never
+    as an opaque ``ImportError`` from inside an encrypt call.  The import
+    itself is idempotent and thread-safe (``sys.modules`` caches it).
+    """
+    try:
+        return importlib.import_module(_RUST_MODULE)
+    except ImportError as exc:
+        raise BackendError(
+            "the compiled 'rust' backend is not available in this "
+            "installation; the pure-Python backend is the default and "
+            "remains available"
+        ) from exc
+
+
+def _rust_ff1(key: bytes, radix: int, x: list[int], tweak: bytes, *, encrypt: bool) -> list[int]:
+    """Run one FF1 call on the compiled backend (plan 00003 REQ-13/REQ-18).
+
+    Inputs arrive already validated by :meth:`FF1._prepare`, which runs in
+    Python for both backends (plan decision D4) so exception types and
+    messages are identical.  The extension is stateless and immutable, so
+    per-call lookup through ``sys.modules`` adds no shared mutable state.
+    """
+    rs = importlib.import_module(_RUST_MODULE)
+    fn = rs.encrypt_numerals if encrypt else rs.decrypt_numerals
+    return cast("list[int]", fn(key, radix, x, tweak))
+
+
 class FF1:
     """FF1 format-preserving encryption primitive and string wrapper.
 
@@ -145,6 +188,7 @@ class FF1:
         tweak: bytes = b"",
         min_tweak_len: int | None = None,
         max_tweak_len: int | None = None,
+        backend: str = "python",
     ) -> None:
         """Create an FF1 instance.
 
@@ -156,12 +200,19 @@ class FF1:
             tweak: Default tweak used when not provided per call.
             min_tweak_len: Optional inclusive lower bound on tweak length.
             max_tweak_len: Optional inclusive upper bound on tweak length.
+            backend: ``"python"`` (the default, and the reference
+                implementation) or ``"rust"`` for the opt-in compiled
+                backend.  Both produce identical ciphertext; validation
+                and exceptions are identical because they run in Python
+                for both.
 
         Raises:
             KeyLengthError: if the key is not bytes-like or has an invalid length.
             RadixError: if the radix is not an integer or is out of range.
             TweakLengthError: if the tweak is not bytes-like or out of bounds.
             AlphabetError: if the alphabet is not a string or is malformed.
+            BackendError: if ``backend`` is not a known name, or is
+                ``"rust"`` and the compiled extension is not installed.
         """
         # Types are checked before values throughout: a wrong type is the more
         # fundamental fault, and reporting a range error for a float would be
@@ -176,6 +227,18 @@ class FF1:
                 f"radix must satisfy {self._RADIX_MIN} <= radix < {self._RADIX_MAX_EXCLUSIVE}, "
                 f"got {radix!r}"
             )
+
+        # Backend selection (plan 00003 REQ-13): opt-in only, validated like
+        # every other configuration parameter -- type first, then value.
+        # "rust" fails fast here when the extension is absent, so an
+        # unusable instance can never be built (REQ-19).
+        if not isinstance(backend, str):  # pyright: ignore[reportUnnecessaryIsInstance]
+            raise BackendError(f"backend must be a str, got {type(backend).__name__}")
+        if backend not in _BACKENDS:
+            raise BackendError(f"unknown backend {backend!r}; expected 'python' or 'rust'")
+        if backend == "rust":
+            _load_rust_backend()
+        self._backend = backend
 
         # Retained deliberately: the sole reader is __setstate__, which
         # rebuilds the cipher configuration after unpickling.  Without it the
@@ -251,6 +314,22 @@ class FF1:
             raise KeyLengthError(
                 f"unpickled FF1 state must carry a bytes key, got {type(key).__name__}"
             )
+        # The backend rides in the pickled __dict__ (a plain string).  A
+        # pickle from before the backend existed (1.x) has no ``_backend``
+        # key and defaults to "python" -- the only backend those versions
+        # had.  A hand-crafted state with an unknown backend is rejected
+        # rather than silently ignored, mirroring the key check above.
+        backend = state.get("_backend", "python")
+        if not isinstance(backend, str):  # pyright: ignore[reportUnnecessaryIsInstance]
+            raise BackendError(
+                f"unpickled FF1 state must carry a str backend, got {type(backend).__name__}"
+            )
+        if backend not in _BACKENDS:
+            raise BackendError(f"unknown backend {backend!r}; expected 'python' or 'rust'")
+        if backend == "rust":
+            # Re-validate availability on the far side of the pickle: the
+            # receiving process may not have the extension installed.
+            _load_rust_backend()
         self._aes = _Aes(
             algorithm=algorithms.AES(key),
             cbc_zero_iv=modes.CBC(b"\x00" * 16),
@@ -386,6 +465,10 @@ class FF1:
             TweakLengthError: if the tweak is out of bounds.
         """
         numerals, t = self._prepare(x, tweak, "plaintext")
+        if self._backend == "rust":
+            # Validation already ran in _prepare (identical exceptions for
+            # both backends, plan decision D4); dispatch to the compiled core.
+            return _rust_ff1(self._key, self._radix, numerals, t, encrypt=True)
         return _ff1(self._aes, self._radix, numerals, t, encrypt=True)
 
     def decrypt_numerals(self, x: Sequence[int], tweak: bytes | None = None) -> list[int]:
@@ -404,6 +487,8 @@ class FF1:
             TweakLengthError: if the tweak is out of bounds.
         """
         numerals, t = self._prepare(x, tweak, "ciphertext")
+        if self._backend == "rust":
+            return _rust_ff1(self._key, self._radix, numerals, t, encrypt=False)
         return _ff1(self._aes, self._radix, numerals, t, encrypt=False)
 
     def _encrypt_traced(
