@@ -39,9 +39,9 @@ builder_agent: build
 builder_model: "ollama-cloud/glm-5.3"
 execution_branch: "feature/accelerated-backend-pure-python-then-rust"
 execution_started_at: "2026-09-06T22:03:07Z"
-execution_updated_at: "2026-09-06T22:52:37Z"
+execution_updated_at: "2026-09-07T00:05:12Z"
 execution_completed_at: null
-current_step: PLAN-00003-STEP-06
+current_step: PLAN-00003-STEP-07
 ---
 
 # Delivery Plan 00003: Accelerated Backend Pure Python Then Rust
@@ -1238,7 +1238,7 @@ results table. No check may be claimed as passed without its evidence entry.
 | PLAN-00003-STEP-03 | completed | 2026-09-06T22:34:52Z | 2026-09-06T22:38:11Z | Staged checkpoint reviewed and approved by user; digest `c17a5c00...a32be` verified at continuation | Radix 256 n=20,000: ~25× end-to-end; conversion now O(n) |
 | PLAN-00003-STEP-04 | completed | 2026-09-06T22:42:34Z | 2026-09-06T22:46:35Z | Staged checkpoint reviewed and approved by user (plan-only checkpoint, no implementation digest) | E1 baseline recorded: ~19× at n=20,000 radix 10, ~25× radix 256 |
 | PLAN-00003-STEP-05 | completed | 2026-09-06T22:47:28Z | 2026-09-06T22:52:37Z | Staged checkpoint reviewed and approved by user; digest `c088c824...d7faa` verified at continuation | README claim corrected; 1.1.0 artifacts build |
-| PLAN-00003-STEP-06 | not-started | — | — | — | — |
+| PLAN-00003-STEP-06 | completed | 2026-09-07T00:00:10Z | 2026-09-07T00:05:12Z | Staged checkpoint reviewed and approved by user (plan-only checkpoint) | v1.1.0 live on PyPI with attestations; E1 closed |
 | PLAN-00003-STEP-07 | not-started | — | — | — | — |
 | PLAN-00003-STEP-08 | not-started | — | — | — | — |
 | PLAN-00003-STEP-09 | not-started | — | — | — | — |
@@ -1267,6 +1267,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-06T22:46:35Z | PLAN-00003-STEP-04 | User approved the staged checkpoint ("Approved. Proceed to the next step."); staged-checkpoint gate re-verified (branch, HEAD `f4bcf4c`, plan-only staged set, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-04, then begin STEP-05 |
 | 2026-09-06T22:47:28Z | PLAN-00003-STEP-05 | STEP-05 implemented and verified: README §Performance rewritten — the "inherent to the algorithm's NUM/STR steps" claim is gone, replaced by the corrected implementation-choice explanation with the 1.1.0 numbers (29.1 µs at n=6; flat 1.0–1.4 µs/numeral to n=20,000); roadmap table gains the 1.1 row and the 2.0 row is re-scoped to the small-input regime (review 00005 MED-04 both halves). CHANGELOG 1.1.0 entry (performance release, ciphertext bit-identical, Changed + Unchanged sections). `docs/backlog.md`: 2.0 item re-scoped to small-input with the 1.1 baseline; E1 completion recorded. `pyproject.toml` version → 1.1.0; `uv.lock` re-recorded the local package version (verified: single-line version diff). Checked `docs/architecture.md` and `docs/developer-guide.md` for stale performance claims — none found, no changes needed. Gate green: ruff format/lint, pyright strict 0 errors, 837 fast tests, `uv build` produces `fpr_ff1-1.1.0` sdist + wheel. Checkpoint staged for review: implementation paths `README.md`, `CHANGELOG.md`, `docs/backlog.md`, `pyproject.toml`, `uv.lock`; proposed commit subject `build: complete PLAN-00003-STEP-05 - E1 documentation and version 1.1.0`. Staged-diff SHA-256 for the implementation paths (`README.md`, `CHANGELOG.md`, `docs/backlog.md`, `pyproject.toml`, `uv.lock`): `c088c8243b9df503ddac244d61c00595cf648c84903ae82337c82928de6d7faa` | Verification results below | Awaiting user review; on continuation, commit STEP-05 and begin STEP-06 |
 | 2026-09-06T22:52:37Z | PLAN-00003-STEP-05 | User approved the staged checkpoint ("Step 5 Approved. Should I tag/push/publish now?"); staged-checkpoint gate re-verified (branch, HEAD `08f44b5`, staged set, digest match, no unstaged/untracked changes); commit authorised | This entry | Commit STEP-05, then begin STEP-06 (release preparation; tag/push/publish are user actions) |
+| 2026-09-07T00:00:10Z | PLAN-00003-STEP-06 | STEP-06 executed. User performed the release actions (merge to main via PR #4 `67cf45a`, signed tag `v1.1.0` on `67cf45a`, GitHub release, release-gated publish). Builder verified the outcome: PyPI JSON API shows `fpr-ff1 1.1.0` live (wheel `fpr_ff1-1.1.0-py3-none-any.whl` sha256 `96712893...a9040`, sdist `fpr_ff1-1.1.0.tar.gz` sha256 `06f694bd...eece6`, both uploaded 2026-09-06T23:58 UTC, not yanked, core-metadata/provenance attestations present on both); the published README on PyPI is the corrected 1.1.0 text (roadmap 1.1 row, flat performance table); tag `v1.1.0` points at `67cf45a` (main tip); publication through `publish.yml` proves the full 9-leg CI matrix passed as the release gate. Matrix bench numbers: the release-gated CI run is the matrix execution; the README table carries the single-machine numbers with the `just bench` reproduction pointer per the plan's evidence rules. Note: the E1 work reached main via squash-merge PR #4, and `plan/v2.0.0` was subsequently merged with main (merge commit `be566ab`, conflicts in `docs/backlog.md` and this plan file resolved by the user with Builder consultation — resolution kept main's Builder state and E1 backlog bullet; merged tree verified byte-identical to main). Checkpoint staged for review: plan work log only; proposed commit subject `build: complete PLAN-00003-STEP-06 - Release v1.1.0` | Verification results below | Awaiting user review; on continuation, commit STEP-06 — this closes stage E1; E2 (STEP-07) begins after |
+| 2026-09-07T00:05:12Z | PLAN-00003-STEP-06 | User approved the staged checkpoint ("Approved. Proceed to the next step."); staged-checkpoint gate re-verified (branch `plan/v2.0.0`, HEAD `be566ab`, plan-only staged set, no unstaged/untracked changes); commit authorised. E1 stage closed: steps 01–06 complete, v1.1.0 published | This entry | Commit STEP-06, then begin STEP-07 (crate-fit microbenchmark) |
 
 ### Deviations and blockers
 
@@ -1279,6 +1281,9 @@ Write `None` until an entry is required.
 
 | Timestamp (UTC) | Step | Command or check | Result | Evidence |
 |---|---|---|---|---|
+| 2026-09-07T00:00:10Z | PLAN-00003-STEP-06 | PyPI JSON API `https://pypi.org/pypi/fpr-ff1/json` | `1.1.0` live: wheel + sdist uploaded 2026-09-06T23:58 UTC, not yanked, provenance attestations (core-metadata) on both artifacts; published README is the corrected 1.1.0 text | Release verified from the PyPI API response |
+| 2026-09-07T00:00:10Z | PLAN-00003-STEP-06 | `git rev-parse v1.1.0^{commit}` / `git log --oneline -1 v1.1.0` | Tag points at `67cf45a` ("Feature/accelerated backend pure python then rust (#4)"), main's tip | Tag-to-release consistency |
+| 2026-09-07T00:00:10Z | PLAN-00003-STEP-06 | Release-gate inference | `publish.yml` publishes only after its quality job (re-running `ci.yml`, the 9-leg matrix) passes; a live PyPI release therefore proves the matrix green | `publish.yml` workflow structure |
 | 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | `uv run pytest tests/test_conversion_equivalence.py -v` | 87 passed → 88 passed after rewrite (0.62–0.84 s) | Focused run; all differential, boundary, degenerate, truncation, property, and end-to-end cases green |
 | 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | `uv run pytest -m 'not slow' --no-cov -q` | 836 passed, 2 deselected (1.40 s) | No regression to the existing suite |
 | 2026-09-06T22:10:28Z | PLAN-00003-STEP-01 | `uv run ruff format --check .` / `uv run ruff check .` | 45 files formatted; all checks passed | Includes the new module |
