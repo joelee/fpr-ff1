@@ -29,8 +29,10 @@ _VALID_KEY = b"\x00" * 16
 _LONG_PLAINTEXT = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0] * 6
 
 
-def _make() -> FF1:
-    return FF1(key=_VALID_KEY, radix=10, tweak=b"tweak")
+def _make(ff1_factory: Any) -> FF1:
+    """Build the test instance on the parameterised backend (plan 00003
+    STEP-12, REQ-17: pickling must hold for the rust backend too)."""
+    return ff1_factory(key=_VALID_KEY, radix=10, tweak=b"tweak")
 
 
 def _worker(ff1: FF1, plaintext: list[int], queue: Any) -> None:
@@ -38,9 +40,9 @@ def _worker(ff1: FF1, plaintext: list[int], queue: Any) -> None:
     queue.put(ff1.encrypt_numerals(plaintext))
 
 
-def test_pickle_round_trip_encrypts_identically() -> None:
+def test_pickle_round_trip_encrypts_identically(ff1_factory: Any) -> None:
     """A pickled instance must behave exactly like the original."""
-    original = _make()
+    original = _make(ff1_factory)
     # S301: loading only bytes this test just dumped itself.
     restored = pickle.loads(pickle.dumps(original))  # noqa: S301
 
@@ -50,18 +52,18 @@ def test_pickle_round_trip_encrypts_identically() -> None:
         assert restored.decrypt_numerals(ciphertext) == plaintext
 
 
-def test_deepcopy_round_trip_encrypts_identically() -> None:
+def test_deepcopy_round_trip_encrypts_identically(ff1_factory: Any) -> None:
     """copy.deepcopy must produce an independent, equivalent instance."""
-    original = _make()
+    original = _make(ff1_factory)
     duplicate = copy.deepcopy(original)
 
     ciphertext = original.encrypt_numerals(_LONG_PLAINTEXT)
     assert duplicate.decrypt_numerals(ciphertext) == _LONG_PLAINTEXT
 
 
-def test_copy_copy_is_independent() -> None:
+def test_copy_copy_is_independent(ff1_factory: Any) -> None:
     """copy.copy shares configuration but must remain fully functional."""
-    original = _make()
+    original = _make(ff1_factory)
     duplicate = copy.copy(original)
 
     assert duplicate.encrypt_numerals([1, 2, 3, 4, 5, 6]) == original.encrypt_numerals(
@@ -69,7 +71,7 @@ def test_copy_copy_is_independent() -> None:
     )
 
 
-def test_multiprocessing_spawn_round_trip() -> None:
+def test_multiprocessing_spawn_round_trip(ff1_factory: Any) -> None:
     """A spawn-context worker must be able to use a pickled instance.
 
     This is the archetypal batch use case: the instance is constructed in
@@ -78,7 +80,7 @@ def test_multiprocessing_spawn_round_trip() -> None:
     """
     ctx = multiprocessing.get_context("spawn")
     queue = ctx.Queue()
-    original = _make()
+    original = _make(ff1_factory)
     expected = original.encrypt_numerals(_LONG_PLAINTEXT)
 
     process = ctx.Process(target=_worker, args=(original, _LONG_PLAINTEXT, queue))
@@ -94,13 +96,13 @@ def test_multiprocessing_spawn_round_trip() -> None:
     assert result == expected
 
 
-def test_pickle_does_not_serialise_cipher_objects() -> None:
+def test_pickle_does_not_serialise_cipher_objects(ff1_factory: Any) -> None:
     """The pickle payload must carry configuration, not opaque cipher state.
 
     ``Cipher`` objects are unserialisable by design; the state dict must
     contain the key and parameters but no ``_aes`` entry.
     """
-    state = _make().__getstate__()  # pyright: ignore[reportPrivateUsage]
+    state = _make(ff1_factory).__getstate__()  # pyright: ignore[reportPrivateUsage]
     assert isinstance(state, dict)
     assert "_aes" not in state, "cipher objects must be rebuilt, never serialised"
     assert state["_key"] == _VALID_KEY
@@ -114,7 +116,7 @@ def test_setstate_rejects_non_bytes_key() -> None:
     under ``python -O``, and an ungated wrong type would surface later as an
     opaque cryptography error outside ``FF1Error``.
     """
-    ff1 = _make()
+    ff1 = FF1(key=_VALID_KEY, radix=10, tweak=b"tweak")
     state = ff1.__getstate__()  # pyright: ignore[reportPrivateUsage]
     state["_key"] = "not-bytes"  # pyright: ignore[reportArgumentType]
 
@@ -140,9 +142,9 @@ def test_version_in_all() -> None:
 
 
 @pytest.mark.parametrize("protocol", range(2, pickle.HIGHEST_PROTOCOL + 1))
-def test_all_pickle_protocols_round_trip(protocol: int) -> None:
+def test_all_pickle_protocols_round_trip(ff1_factory: Any, protocol: int) -> None:
     """Every pickle protocol Python 3.12 supports must work."""
-    original = _make()
+    original = _make(ff1_factory)
     # S301: loading only bytes this test just dumped itself.
     restored = pickle.loads(pickle.dumps(original, protocol=protocol))  # noqa: S301
     assert restored.encrypt_numerals([1, 2, 3, 4, 5, 6]) == original.encrypt_numerals(
