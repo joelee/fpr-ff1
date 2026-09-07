@@ -152,17 +152,67 @@ pub fn str_radix(value: &BigUint, radix: u32, length: usize) -> Vec<u16> {
     out
 }
 
+/// One round's intermediate values, mirroring the Python reference's
+/// ``TraceRecord`` (see ``FF1._encrypt_traced``). Test-only; consumed by
+/// the STEP-11 dual-backend conformance suite through the
+/// ``_test_encrypt_traced`` binding.
+///
+/// ``y`` and ``c`` travel as big-endian byte strings (arbitrary-precision
+/// integers have no direct pyo3 mapping); the Python-side bridge
+/// normalizes them to ``int`` so both backends' traces share one shape.
+pub struct TraceRecord {
+    pub i: u8,
+    pub u: usize,
+    pub v: usize,
+    pub b: usize,
+    pub d: usize,
+    pub p: Vec<u8>,
+    pub q: Vec<u8>,
+    pub r: Vec<u8>,
+    pub s: Vec<u8>,
+    pub y: Vec<u8>,
+    pub m: usize,
+    pub c: Vec<u8>,
+    pub c_block: Vec<u16>,
+}
+
 /// SP 800-38G Algorithm 7 core (encrypt when `encrypt`, decrypt otherwise).
 ///
-/// Mirrors `_ff1.py::_ff1` step for step. Inputs are pre-validated on the
-/// Python side (`_prepare` runs in Python for both backends — plan 00003
-/// decision D4), so this function receives only well-formed data.
+/// Mirrors `_ff1.py::_ff1` step for step, including its optional trace
+/// collector: one code path serves both the production entry points and
+/// the test-only traced entry point, so the traced and untraced cores can
+/// never drift apart. Inputs are pre-validated on the Python side
+/// (`_prepare` runs in Python for both backends — plan 00003 decision D4).
+#[allow(clippy::too_many_arguments)]
 pub fn ff1(
     key: &[u8],
     radix: u32,
     x: &[u16],
     tweak: &[u8],
     encrypt: bool,
+) -> Result<Vec<u16>, String> {
+    ff1_impl(key, radix, x, tweak, encrypt, None)
+}
+
+/// The traced core: same loop, recording each round (test-only, STEP-11).
+pub fn ff1_traced(
+    key: &[u8],
+    radix: u32,
+    x: &[u16],
+    tweak: &[u8],
+) -> Result<(Vec<u16>, Vec<TraceRecord>), String> {
+    let mut trace: Vec<TraceRecord> = Vec::with_capacity(10);
+    let out = ff1_impl(key, radix, x, tweak, true, Some(&mut trace))?;
+    Ok((out, trace))
+}
+
+fn ff1_impl(
+    key: &[u8],
+    radix: u32,
+    x: &[u16],
+    tweak: &[u8],
+    encrypt: bool,
+    mut trace: Option<&mut Vec<TraceRecord>>,
 ) -> Result<Vec<u16>, String> {
     let n = x.len();
     if n == 0 {
@@ -271,16 +321,36 @@ pub fn ff1(
         // (decrypt subtracts y from NUM_radix(B) instead)
         let modulus = if m_is_u { &radix_u } else { &radix_v };
         let c = if encrypt {
-            (num_radix(radix, &a) + y) % modulus
+            (num_radix(radix, &a) + &y) % modulus
         } else {
             // (NUM_radix(B) - y) mod radix**m, computed without going
             // negative: add modulus before reducing.
-            (num_radix(radix, &b_side) + modulus - (y % modulus)) % modulus
+            (num_radix(radix, &b_side) + modulus - (&y % modulus)) % modulus
         };
 
         // Step 6.vii: C = STR^m_radix(c)
         let m = if m_is_u { u } else { v };
         let c_block = str_radix(&c, radix, m);
+
+        if let Some(trace) = trace.as_deref_mut() {
+            // Same position as the Python hook: after C is built, before
+            // the A/B swap, so the pre-swap a/b_side are captured here.
+            trace.push(TraceRecord {
+                i,
+                u,
+                v,
+                b,
+                d,
+                p: p_block.clone(),
+                q: q_block.clone(),
+                r: r_block.clone(),
+                s: s_block.clone(),
+                y: y.to_bytes_be(),
+                m,
+                c: c.to_bytes_be(),
+                c_block: c_block.clone(),
+            });
+        }
 
         // Steps 6.viii and 6.ix: A = B, B = C (decrypt assigns B = A, A = C)
         if encrypt {
@@ -345,5 +415,45 @@ fn _fpr_ff1_rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     m.add_function(wrap_pyfunction!(_test_prf, m)?)?;
     m.add_function(wrap_pyfunction!(_test_cipher_block, m)?)?;
+
+    /// Test-only: the traced encrypt, mirroring ``FF1._encrypt_traced``
+    /// (plan 00003 STEP-11, REQ-16). Returns ``(ciphertext, trace)`` where
+    /// each trace record is a dict with the same keys as the Python hook;
+    /// ``y`` and ``c`` are big-endian byte strings that the Python-side
+    /// bridge normalizes to ``int``. Never exported from the ``fpr_ff1``
+    /// public API.
+    #[pyfunction]
+    fn _test_encrypt_traced(
+        key: Vec<u8>,
+        radix: u32,
+        x: Vec<u16>,
+        tweak: Vec<u8>,
+        py: Python<'_>,
+    ) -> PyResult<(Vec<u16>, Vec<pyo3::Py<pyo3::types::PyDict>>)> {
+        let (out, trace) = ff1_traced(&key, radix, &x, &tweak).map_err(PyValueError::new_err)?;
+        let records = trace
+            .into_iter()
+            .map(|rec| {
+                let dict = pyo3::types::PyDict::new(py);
+                dict.set_item("i", rec.i)?;
+                dict.set_item("u", rec.u)?;
+                dict.set_item("v", rec.v)?;
+                dict.set_item("b", rec.b)?;
+                dict.set_item("d", rec.d)?;
+                dict.set_item("P", rec.p)?;
+                dict.set_item("Q", rec.q)?;
+                dict.set_item("R", rec.r)?;
+                dict.set_item("S", rec.s)?;
+                dict.set_item("y", rec.y)?;
+                dict.set_item("m", rec.m)?;
+                dict.set_item("c", rec.c)?;
+                dict.set_item("C", rec.c_block)?;
+                Ok(dict.unbind())
+            })
+            .collect::<PyResult<Vec<pyo3::Py<pyo3::types::PyDict>>>>()?;
+        Ok((out, records))
+    }
+
+    m.add_function(wrap_pyfunction!(_test_encrypt_traced, m)?)?;
     Ok(())
 }
