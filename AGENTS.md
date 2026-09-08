@@ -47,6 +47,7 @@ class FF1:
         tweak: bytes = b"",  # default tweak
         min_tweak_len: int | None = None,
         max_tweak_len: int | None = None,
+        backend: str = "python",  # "python" (reference) or "rust" (opt-in)
     ) -> None: ...
 
     # numeral interface - the primitive
@@ -66,6 +67,7 @@ class FF1:
 Rules:
 
 - `encrypt_numerals` / `decrypt_numerals` are the primitive; `encrypt` / `decrypt` are thin string wrappers. Do not duplicate logic between them.
+- `backend` selects the implementation, never the behaviour: `"python"` is the default and the reference, `"rust"` is the opt-in compiled core. Both produce bit-identical ciphertext and identical typed exceptions — validation runs in Python for both (plan 00003 decision D4). An unknown name, or `"rust"` without the extension installed, raises `BackendError`.
 - String methods without an `alphabet` raise, with a message pointing at the numeral interface.
 - Validate `alphabet` length and uniqueness at construction.
 - No global or module-level state, no implicit default key, no environment-variable configuration.
@@ -83,6 +85,7 @@ These are the failure modes that produce **plausible but wrong output** — ever
 - The PRF is CBC-MAC with a zero IV over 16-byte-aligned input.
 - Cipher contexts: **never cache any encryptor on the instance** — instances are thread-safe and a live context would be shared mutable state. Create the ECB encryptor locally inside the `d > 16` expansion branch (zero cost when `d <= 16`); the PRF already builds a fresh CBC encryptor per call (it carries chaining state).
 - Cite spec steps in internal docstrings, e.g. "SP 800-38G Algorithm 7, step 6.iii".
+- The Rust core (`rust/fpr-ff1-rust/src/lib.rs`) mirrors `_ff1.py` step for step, with the same spec-step comments. **A change to one core is a change to both**, verified by the dual-backend suite. Every gotcha above applies to the Rust port identically — it has the same `b`-from-`v`, same exact-integer bit length, same padding, same three encrypt/decrypt differences.
 
 ## Local development
 
@@ -91,6 +94,14 @@ These are the failure modes that produce **plausible but wrong output** — ever
 - `just quality` — format check, lint, typecheck, tests with coverage.
 - `just build` — quality gate plus `uv build`.
 - `just secrets` — gitleaks scan (must be installed locally).
+
+The optional compiled backend has its own loop, which requires a local Rust toolchain (`rust-toolchain.toml` pins the channel; rustup reads it automatically):
+
+- `just backend-dev` — build the cdylib in release mode and copy it into `src/fpr_ff1/` as the importable `fpr_ff1._rs`.
+- `just rust-test` — `cargo test` for the Rust core's unit tests.
+- `just rust-lint` — `cargo fmt --check` plus `cargo clippy --all-targets -- -D warnings`.
+
+**`just quality` stays Rust-free, deliberately.** The pure-Python path must never depend on a Rust toolchain being installed, so none of the three recipes above is part of it. CI's `rust-conformance` job is what runs them on every push, along with the full suite under `FPR_FF1_REQUIRE_RUST_BACKEND=1`.
 
 `pyproject.toml` enforces a **100% line and branch coverage floor** on the FF1 module (`fail_under = 100`, branch coverage on). Every raise path must be exercised by a test; delete unreachable branches rather than leaving dead code.
 
@@ -110,6 +121,8 @@ Conformance is the product. A change that makes tests pass by weakening them is 
 8. **Edge cases:** empty tweak vs absent tweak (must be equivalent); very long tweaks; minimum and maximum practical lengths; odd and even `n` (the `u != v` path); all-zero and all-max numerals; radix 2 and radix `2**16 - 1`.
 9. **Interoperability:** a documented test matching `ubiq_security_fpe` output for the same inputs, so migrating users can verify ciphertext portability. A correctness obligation to downstream users, not a nicety.
 
+10. **Dual-backend conformance:** every conformance module must construct its instances through the `ff1_factory` fixture (or draw `backend` from `tests.conftest.BACKENDS`) rather than calling `FF1(...)` directly, so each assertion runs unchanged against both backends. A conformance test pinned to one backend silently halves its own coverage. `FPR_FF1_REQUIRE_RUST_BACKEND=1` turns a missing extension into a hard failure, and CI's `rust-conformance` job sets it.
+
 Vector files live in `tests/vectors/` as JSON, never inline literals. Never regenerate NIST fixtures from this implementation.
 
 ## Never do
@@ -128,14 +141,20 @@ Vector files live in `tests/vectors/` as JSON, never inline literals. Never rege
 - Full type annotations; ship `py.typed`. Runtime dependency: `cryptography` only.
 - Licence: MIT (decided).
 - Semantic versioning; any change to accepted inputs or produced outputs is a major version.
+- The version lives in two files and they are bumped **together**: `pyproject.toml` `[project].version` and `rust/fpr-ff1-rust/Cargo.toml` `[package].version`. Cargo cannot parse PEP 440 pre-release spellings, so the crate carries the semver form (`2.0.0-rc1` for `2.0.0rc1`); `tests/test_contract.py` compares them after normalising with `packaging.version.Version`, on every CI leg. Git tags follow `pyproject.toml` exactly — `publish.yml` compares the tag against it.
 - Migration from `ubiq_security_fpe` is **guide only** (decided 2026-08-21); no compatibility shim ships.
 - CI matrix across all supported Python versions on Linux, macOS and Windows. Publish via PyPI Trusted Publishing; do not commit tokens.
 - README must cover: what FF1 is, why FF3 is excluded, the Rev. 1 constraints applied, the FIPS disclaimer, and a migration section for `ubiq_security_fpe` users. Include `SECURITY.md` with a disclosure contact.
 - Prefer clarity over cleverness. This module is read far more often than written, and a subtle bug is invisible without the vectors.
 - When writing to `docs/` or any of its subdirectories, read the `AGENTS.md` in that directory first (`docs/AGENTS.md`, `docs/ideas/AGENTS.md`, `docs/reviews/AGENTS.md`, `docs/plans/AGENTS.md`) and follow its rules and format.
 
+## Decided
+
+- **Optional accelerated backend — built, opt-in only** (plan 00003 decision D3, shipped in 2.0.0rc1). The pure-Python implementation remains the reference and the default; `backend="rust"` is opt-in and produces bit-identical ciphertext. Do not re-litigate this, and do not make the compiled backend the default.
+- **`Development Status :: 5 - Production/Stable` stays on release-candidate uploads** (plan 00005 decision D7). PyPI hides pre-releases from default resolution regardless of the classifier, and the classifier describes the project line rather than one tag.
+
 ## Open decisions
 
 Ask before deciding:
 
-1. Optional accelerated backend (backlogged for post-1.0): whether to build it at all; if built, opt-in only — the pure-Python implementation stays the reference and the default.
+None currently.

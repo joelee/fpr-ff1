@@ -15,9 +15,9 @@ _VECTOR_DIR = pathlib.Path(__file__).parent / "vectors"
 
 #: Mirrors the differential-oracle availability contract (AGENTS.md tests
 #: section 7): the rust backend parameterisation skips locally when the
-#: extension is not built and fails hard when required. CI sets this from
-#: STEP-14 on, exactly as FPR_FF1_REQUIRE_ORACLE preceded the oracle's
-#: release-gate use.
+#: extension is not built and fails hard when required. CI's
+#: `rust-conformance` job sets FPR_FF1_REQUIRE_RUST_BACKEND=1, so a missing
+#: extension fails the release gate rather than silently halving the suite.
 _RUST_REQUIRED = os.environ.get("FPR_FF1_REQUIRE_RUST_BACKEND", "").strip() not in {"", "0"}
 
 

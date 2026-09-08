@@ -8,8 +8,9 @@ identical for both backends, and a missing compiled extension is a clear
 
 Availability mirrors the oracle contract (AGENTS.md tests section 7): the
 rust-backend tests skip locally when the extension is not built and fail
-hard when ``FPR_FF1_REQUIRE_RUST_BACKEND`` is set (CI wiring lands in
-STEP-14).  The pure-Python and validation-parity tests always run.
+hard when ``FPR_FF1_REQUIRE_RUST_BACKEND`` is set.  CI's ``rust-conformance``
+job sets that variable, so a missing extension fails the release gate rather
+than skipping.  The pure-Python and validation-parity tests always run.
 """
 
 import importlib
@@ -49,7 +50,7 @@ requires_rust = pytest.mark.skipif(
     reason="Rust backend not built; run `just backend-dev`",
 )
 if _REQUIRED and not _rust_available:
-    raise ImportError("FPR_FF1_REQUIRE_RUST_BACKEND is set but _fpr_ff1_rs is not built")
+    raise ImportError("FPR_FF1_REQUIRE_RUST_BACKEND is set but fpr_ff1._rs is not built")
 
 
 def _plaintext(n: int = 10, radix: int = 10) -> list[int]:

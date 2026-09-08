@@ -98,7 +98,7 @@ include = [
 # (plan 00003 STEP-14, decision D5). Read only by `maturin build -m
 # rust/fpr-ff1-rust/Cargo.toml`; completely inert to hatchling, so the sdist
 # and the pure wheel above are unchanged. Produces mixed wheels --
-# src/fpr_ff1/** plus the top-level _fpr_ff1_rs extension -- tagged
+# src/fpr_ff1/** plus the in-package extension fpr_ff1/_rs.abi3.so -- tagged
 # cp312-abi3 per platform. The pure-Python path never imports the
 # extension; a wheel without it (the sdist, the py3-none-any wheel) is
 # fully functional and `backend="rust"` raises a clear BackendError.

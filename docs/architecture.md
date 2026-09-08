@@ -54,6 +54,7 @@ The primitive numeral interface (`encrypt_numerals` / `decrypt_numerals`) is the
 - The package does not generate, store, derive, or manage keys.
 - The package does not persist data or provide application-specific alphabets.
 - The compiled backend is stateless: free functions, per-call immutable key schedules, call-local cipher contexts — no shared mutable state, so instances are thread-safe by construction on both backends.
+- The compiled backend releases the GIL for the duration of the FF1 computation (`Python::detach`), so concurrent calls on one instance run in parallel rather than merely interleaving, and a long call does not stall unrelated threads. The pure-Python backend is GIL-bound.
 
 ## Key Implementation Details
 

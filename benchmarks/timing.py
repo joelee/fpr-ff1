@@ -39,6 +39,16 @@ _VALUE_CASES = [
 #: Throughput/per-numeral cases from the README performance table.
 _LENGTH_CASES = [100, 1_000, 5_000, 20_000]
 
+#: Backend-comparison cases behind the README crossover claim. Two radices,
+#: because the crossover is not radix-independent: the conversion work that
+#: dominates long inputs scales with the numeral count *and* the radix. The
+#: n = 1,000 / 5,000 pair brackets the crossover on this hardware, so the
+#: README can state a band rather than a point.
+_BACKEND_CASES = [
+    (10, (6, 100, 1_000, 5_000, 20_000)),
+    (256, (100, 1_000, 5_000, 20_000)),
+]
+
 _BATCHES = 25
 _BATCH_SECONDS = 0.1
 _MAX_INNER = 500
@@ -118,11 +128,17 @@ def backend_comparison_table() -> None:
 
     The small-input regime is E2's case (review 00005: ~55% of an n=6 call
     is per-call cipher-context construction that a full Rust core with
-    in-process AES eliminates; estimated ceiling ~8x). The long-input row is
-    context: E1 already removed the conversion cliff, so parity there is
-    the expected result, not the target. The park rule (idea r02 section
+    in-process AES eliminates; estimated ceiling ~8x). The long-input rows
+    are context: E1 already removed the conversion cliff, so parity there
+    is the expected result, not the target. The park rule (idea r02 section
     10): a measured speedup below 2x on the small-input cases means the
     backend is not worth shipping and the plan escalates.
+
+    Two radices and five lengths, because the crossover -- the length past
+    which the pure-Python path catches up -- is what the README quotes, and
+    review 00006 found the published figure roughly 10x too low. Quoting a
+    band bracketed by measured rows is honest in a way a single remembered
+    number is not.
     """
     if not _rust_built():
         print("\n## Backend comparison\n")
@@ -134,13 +150,17 @@ def backend_comparison_table() -> None:
     print("| Case | python µs/op | rust µs/op | speedup |")
     print("|---|---:|---:|---:|")
 
-    py = FF1(key=_KEY, radix=10, backend="python")
-    rs = FF1(key=_KEY, radix=10, backend="rust")
-    for n in (6, 100, 20_000):
-        plaintext = [i % 10 for i in range(n)]
-        t_py = _timed_encrypt(py, plaintext)
-        t_rs = _timed_encrypt(rs, plaintext)
-        print(f"| n = {n:,}, radix 10 | {t_py * 1e6:.1f} | {t_rs * 1e6:.1f} | {t_py / t_rs:.2f}x |")
+    for radix, lengths in _BACKEND_CASES:
+        py = FF1(key=_KEY, radix=radix, backend="python")
+        rs = FF1(key=_KEY, radix=radix, backend="rust")
+        for n in lengths:
+            plaintext = [i % radix for i in range(n)]
+            t_py = _timed_encrypt(py, plaintext)
+            t_rs = _timed_encrypt(rs, plaintext)
+            print(
+                f"| n = {n:,}, radix {radix} | {t_py * 1e6:.1f} | "
+                f"{t_rs * 1e6:.1f} | {t_py / t_rs:.2f}x |"
+            )
 
 
 def gil_probe_table() -> None:

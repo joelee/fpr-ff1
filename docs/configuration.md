@@ -44,3 +44,5 @@ The library does not generate, store, derive, or manage keys. Callers are respon
 ## Thread safety
 
 `FF1` instances **are thread-safe**, on both backends. No mutable state is shared between calls — every cipher context is created locally to the call that uses it — so separate calls on one instance may run concurrently and produce exactly the single-threaded results. The compiled backend is stateless by construction (free functions, per-call immutable key schedules, call-local contexts). There is no module-level or global state, so any number of instances may be used concurrently.
+
+Thread-safe is not the same as parallel. The pure-Python backend holds the GIL throughout, so concurrent calls interleave. The compiled backend releases the GIL for the duration of the FF1 computation, so concurrent calls genuinely overlap — measured 3.8× on four threads at n=5,000 — and a long call does not stall unrelated threads. `just bench` reproduces both figures.

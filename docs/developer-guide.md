@@ -32,6 +32,7 @@ just build           # quality gate + uv build
 just secrets         # gitleaks secret scan (must be installed locally)
 just bench           # reproducible timing/throughput tables (benchmarks/timing.py)
 just rust-test       # Rust core unit tests (cargo test)
+just rust-lint       # cargo fmt --check + cargo clippy --all-targets -- -D warnings
 just backend-dev     # build the compiled backend into src/fpr_ff1/_rs.so (dev loop)
 just ci              # sync + quality + build + secrets
 ```
@@ -94,9 +95,15 @@ The optional `backend="rust"` path is a PyO3 extension (`fpr_ff1._rs`) built fro
 tests skip locally when the extension is not built and fail hard when
 `FPR_FF1_REQUIRE_RUST_BACKEND=1` (the same contract as the oracle).
 
-- `just backend-dev` builds the extension and copies it to `src/fpr_ff1/_rs.so` (gitignored) so
-  the editable install can import it — no pip involvement, so `uv sync` never strips it.
+- `just backend-dev` builds the extension and copies it into `src/fpr_ff1/` (gitignored) so the
+  editable install can import it — no pip involvement, so `uv sync` never strips it. Cargo names
+  the artifact per platform and CPython requires a per-platform import suffix, so the recipe
+  copies `lib_fpr_ff1_rs.so` → `_rs.so` on Linux, `lib_fpr_ff1_rs.dylib` → `_rs.so` on macOS, and
+  `_fpr_ff1_rs.dll` → `_rs.pyd` on Windows.
 - `just rust-test` runs the Rust unit tests (`cargo test`).
+- `just rust-lint` runs the Rust hygiene gates: `cargo fmt --check` and `cargo clippy
+  --all-targets -- -D warnings`. Like `rust-test` it is deliberately outside `just quality`, which
+  stays Rust-free; CI's `rust-conformance` job runs both commands on every push.
 - The Rust AES core is validated against the NIST FIPS 197 Appendix C vectors and the Python
   path's PRF output in `tests/test_rust_aes_validation.py`; the per-round intermediates are
   asserted on both backends in `tests/test_intermediates.py` via the trace bridge.
@@ -150,6 +157,14 @@ uv build
 gitleaks dir . --redact
 ```
 
+CI also runs a `rust-conformance` job (`ubuntu-latest`): it builds the extension with the same two
+commands as `just backend-dev`, then runs the full suite on **both** backends with
+`FPR_FF1_REQUIRE_RUST_BACKEND=1` at the 100% coverage floor, asserts that `-k rust` still selects at
+least 500 tests (a collapsed parameterisation is a silent failure), and runs `cargo test`,
+`cargo fmt --check` and `cargo clippy --all-targets -- -D warnings`. Before it existed the only
+Rust execution in the pipeline was a single NIST vector, so a defect reachable only at `d > 16`
+could have passed the gate. `publish.yml` reuses the whole workflow, so this job gates releases.
+
 CI additionally runs a dependency-audit job (`pip-audit` against `uv.lock` and against the declared
 minimum dependency set, plus `cargo-audit` against `rust/Cargo.lock`), installs gitleaks only after
 verifying the release tarball against the published checksums, asserts the sdist contents against a
@@ -157,8 +172,9 @@ forbidden-path list, installs the built wheel into a clean environment to exerci
 surface from it, builds the platform wheels (maturin, abi3-py312, the five-platform matrix) and
 installs the linux wheel to exercise both backends, and installs the sdist to prove the pure-Python
 fallback and the `BackendError` contract. Every action is pinned to a full commit SHA with the
-version in a trailing comment; Dependabot (`.github/dependabot.yml`) raises PRs when a pinned action
-or a dependency moves. The publish workflow downloads the distributions and wheels artifacts built
+version in a trailing comment; Dependabot (`.github/dependabot.yml`) covers three ecosystems —
+`github-actions`, `uv`, and `cargo` for `/rust` — and raises PRs when a pinned action or a
+dependency in either lock file moves. The publish workflow downloads the distributions and wheels artifacts built
 and checked by the release gate rather than rebuilding, and it verifies the release tag matches the
 project version before publishing.
 
@@ -169,3 +185,11 @@ sync). The CI pin is authoritative; `just secrets` warns if a locally installed 
 ## Release Notes
 
 Releases follow Semantic Versioning. Any change to accepted inputs or produced outputs is a major version bump.
+
+**Bump the version in two files together:** `pyproject.toml` `[project].version` and
+`rust/fpr-ff1-rust/Cargo.toml` `[package].version`. Cargo cannot parse PEP 440 pre-release
+spellings, so the crate carries the semver equivalent — `2.0.0-rc1` for `2.0.0rc1` — and
+`tests/test_contract.py::test_crate_version_matches_project_version` compares them after
+normalising with `packaging.version.Version`. That test reads both manifests without importing the
+extension, so it runs on every CI leg. The Git tag follows `pyproject.toml` exactly (`v2.0.0rc1`,
+no hyphen); `publish.yml` verifies it before publishing.

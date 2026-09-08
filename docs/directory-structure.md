@@ -4,7 +4,8 @@
 .
 ├── .github/
 │   ├── workflows/          # CI and release pipelines
-│   │   ├── ci.yml         # Quality matrix (3 OS × 3 Pythons), audit, build, wheel-test, secret scan
+│   │   ├── ci.yml         # Quality matrix (3 OS × 3 Pythons), rust-conformance, audit,
+│   │   │                  # build, wheel-build/test, sdist-test, secret scan
 │   │   └── publish.yml    # Release gate + Trusted Publishing to PyPI (publishes the gated artifact)
 │   ├── dependabot.yml     # Automated updates for pinned actions and dependencies
 │   ├── ISSUE_TEMPLATE/    # Bug report, feature request, security redirect
@@ -60,13 +61,17 @@
 │   ├── test_thread_safety.py # Structural and concurrency thread-safety tests
 │   ├── test_backend_dispatch.py # backend keyword, dispatch, and BackendError tests
 │   ├── test_rust_aes_validation.py # Rust AES KAT + PRF-equality validation
-│   ├── test_contract.py    # Whole-surface assertions (typed rejections, repo hygiene)
+│   ├── test_contract.py    # Whole-surface assertions (typed rejections, repo hygiene,
+│   │                       # the pyproject/Cargo version lock-step)
+│   ├── test_conversion_equivalence.py # Divide-and-conquer NUM/STR_radix vs the
+│   │                       # spec-reference implementations
 │   └── vectors/            # External test fixtures (never regenerated from this code)
 │       ├── nist_ff1_samples.json
 │       ├── nist_ff1_intermediates.json
 │       ├── aes_kat_fips197.json # NIST FIPS 197 Appendix C AES KAT vectors
 │       └── oracle_kat_frozen.json # Oracle-generated KAT vectors with provenance header
 ├── AGENTS.md                # Agent contract for the repository
+├── CLAUDE.md                # Claude Code entry point; defers to AGENTS.md
 ├── CHANGELOG.md             # Release history, including accepted-input changes
 ├── CODE_OF_CONDUCT.md       # Contributor Covenant
 ├── CONTRIBUTING.md          # Contribution rules (vector provenance, quality gate, security)
