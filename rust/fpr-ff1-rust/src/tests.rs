@@ -58,9 +58,13 @@ fn b_derivation_uses_v_not_u() {
     // radix 256, n=5: u=2, v=3. b from v = ceil(bits(256**3 - 1)/8) = 3;
     // b from u would be 2. Pin the correct derivation (AGENTS.md gotcha).
     let v = 3usize;
+    // Kept as `(bits + 7) / 8` rather than `bits.div_ceil(8)` to match
+    // SP 800-38G Algorithm 7 step 3 / `_ff1.py` line for line (decision D5).
+    #[allow(clippy::manual_div_ceil)]
     let b = ((BigUint::from(256u32).pow(v as u32) - BigUint::one()).bits() + 7) / 8;
     assert_eq!(b, 3);
     let u = 2usize;
+    #[allow(clippy::manual_div_ceil)]
     let b_wrong = ((BigUint::from(256u32).pow(u as u32) - BigUint::one()).bits() + 7) / 8;
     assert_eq!(b_wrong, 2, "sanity: the two derivations must disagree here");
 }

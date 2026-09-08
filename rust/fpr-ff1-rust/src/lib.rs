@@ -189,7 +189,6 @@ pub struct TraceRecord {
 /// the test-only traced entry point, so the traced and untraced cores can
 /// never drift apart. Inputs are pre-validated on the Python side
 /// (`_prepare` runs in Python for both backends — plan 00003 decision D4).
-#[allow(clippy::too_many_arguments)]
 pub fn ff1(
     key: &[u8],
     radix: u32,
@@ -237,11 +236,17 @@ fn ff1_impl(
     // Exact integer arithmetic: the bit length of radix**v - 1, never a
     // float logarithm (the Bouncy Castle bug class).
     let radix_big = BigUint::from(radix);
+    // Kept as `(bits + 7) / 8` rather than `bits.div_ceil(8)` to match
+    // SP 800-38G Algorithm 7 step 3 / `_ff1.py` line for line (decision D5).
+    #[allow(clippy::manual_div_ceil)]
     let b: usize = (((radix_big.pow(v as u32) - BigUint::one()).bits() + 7) / 8)
         .try_into()
         .expect("b fits usize");
 
     // Step 4: d = 4 * ceil(b/4) + 4
+    // Kept as `(b + 3) / 4` rather than `b.div_ceil(4)` to match SP 800-38G
+    // Algorithm 7 step 4 / `_ff1.py` line for line (decision D5).
+    #[allow(clippy::manual_div_ceil)]
     let d: usize = 4 * ((b + 3) / 4) + 4;
 
     let t = tweak.len();
