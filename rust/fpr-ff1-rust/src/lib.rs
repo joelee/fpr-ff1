@@ -91,8 +91,14 @@ impl Aes {
 /// the underlying single-block cipher) and against the Python path's `_prf`
 /// output across key sizes and block counts
 /// (`tests/test_rust_aes_validation.py`).
-pub fn prf(key: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
-    let cipher = Aes::new(key)?;
+///
+/// Crate-internal because `Aes` is: `prf_with_key` is the outward form.
+///
+/// Takes the expanded key schedule rather than the raw key: `ff1_impl`
+/// builds it once per call and lends it to all ten rounds. `Aes` is
+/// immutable and call-local, so sharing it across the rounds of one call
+/// introduces no state that outlives the call and no shared mutability.
+pub(crate) fn prf(cipher: &Aes, data: &[u8]) -> Result<Vec<u8>, String> {
     // Zero IV: the chain register starts as all-zero and each block is
     // XORed in before encrypting; the final chain IS the MAC tag.
     let mut chain = [0u8; 16];
@@ -119,13 +125,27 @@ pub fn prf(key: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
 /// `_ff1.py` and AGENTS.md.)
 ///
 /// Covered by the same NIST FIPS 197 KAT validation as the PRF.
-pub fn cipher_block(key: &[u8], block: &[u8; 16]) -> Result<[u8; 16], String> {
-    let cipher = Aes::new(key)?;
+///
+/// Takes the expanded key schedule, for the reason given on `prf`.
+pub(crate) fn cipher_block(cipher: &Aes, block: &[u8; 16]) -> Result<[u8; 16], String> {
     let mut b = Block::clone_from_slice(block);
     cipher.encrypt_block(&mut b);
     let mut out = [0u8; 16];
     out.copy_from_slice(&b);
     Ok(out)
+}
+
+/// `prf` from a raw key, for callers outside the ten-round loop.
+///
+/// Used only by the test-only `_test_prf` binding and by `tests.rs`; the
+/// production path builds the schedule once in `ff1_impl` instead.
+pub fn prf_with_key(key: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
+    prf(&Aes::new(key)?, data)
+}
+
+/// `cipher_block` from a raw key. Same status as `prf_with_key`.
+pub fn cipher_block_with_key(key: &[u8], block: &[u8; 16]) -> Result<[u8; 16], String> {
+    cipher_block(&Aes::new(key)?, block)
 }
 
 /// Decode a numeral sequence as a big-endian base-radix integer
@@ -224,6 +244,13 @@ fn ff1_impl(
         return Err("empty input".to_string());
     }
 
+    // The AES key schedule is built ONCE per call and lent to every round
+    // (review 00006 LOW-03): the previous code rebuilt it inside each of
+    // the ten `prf` calls and once more per S-expansion block. It is
+    // immutable and call-local -- never cached on an instance -- so the
+    // thread-safety argument is unchanged.
+    let cipher = Aes::new(key)?;
+
     // Step 1: u = floor(n/2), v = n - u
     let u = n / 2;
     let v = n - u;
@@ -298,7 +325,7 @@ fn ff1_impl(
         // Step 6.ii: R = PRF(P || Q)
         let mut prf_input = p_block.clone();
         prf_input.extend_from_slice(&q_block);
-        let r_block = prf(key, &prf_input)?;
+        let r_block = prf(&cipher, &prf_input)?;
 
         // Step 6.iii: S is the first d bytes of
         //   R || CIPH_K(R XOR [1]^16) || CIPH_K(R XOR [2]^16) || ...
@@ -308,13 +335,11 @@ fn ff1_impl(
         // invisible to the NIST samples, none of which reach d > 16.
         let mut s_block = r_block.clone();
         if s_block.len() < d {
-            // The ECB encryptor is created per call: caching one would be
-            // shared mutable state, and instances are thread-safe.
             let mut j: u128 = 1;
             while s_block.len() < d {
                 let j_be = j.to_be_bytes();
                 let xored: [u8; 16] = std::array::from_fn(|idx| r_block[idx] ^ j_be[idx]);
-                s_block.extend_from_slice(&cipher_block(key, &xored)?);
+                s_block.extend_from_slice(&cipher_block(&cipher, &xored)?);
                 j += 1;
             }
         }
@@ -424,7 +449,7 @@ fn _rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     /// `fpr_ff1` public API, mirroring `_encrypt_traced`'s status.
     #[pyfunction]
     fn _test_prf(key: Vec<u8>, data: Vec<u8>) -> PyResult<Vec<u8>> {
-        prf(&key, &data).map_err(PyValueError::new_err)
+        prf_with_key(&key, &data).map_err(PyValueError::new_err)
     }
 
     /// Test-only: the raw single-block forward cipher, exposed for the
@@ -434,7 +459,7 @@ fn _rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
         let arr: [u8; 16] = block
             .try_into()
             .map_err(|_| PyValueError::new_err("block must be exactly 16 bytes"))?;
-        cipher_block(&key, &arr)
+        cipher_block_with_key(&key, &arr)
             .map(|out| out.to_vec())
             .map_err(PyValueError::new_err)
     }

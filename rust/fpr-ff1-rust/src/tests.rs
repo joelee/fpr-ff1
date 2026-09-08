@@ -17,7 +17,7 @@
 use num_bigint::BigUint;
 use num_traits::One;
 
-use crate::{ff1, num_radix, prf, str_radix};
+use crate::{ff1, num_radix, prf_with_key, str_radix};
 
 #[test]
 fn num_radix_decodes_big_endian() {
@@ -100,18 +100,18 @@ fn prf_structural_properties() {
     // validated Python-side (KAT + equality with the reference path).
     let key = [7u8; 32];
     let data = [1u8; 48]; // three aligned blocks
-    let tag1 = prf(&key, &data).expect("valid key");
-    let tag2 = prf(&key, &data).expect("valid key");
+    let tag1 = prf_with_key(&key, &data).expect("valid key");
+    let tag2 = prf_with_key(&key, &data).expect("valid key");
     assert_eq!(tag1.len(), 16, "CBC-MAC tag is one block");
     assert_eq!(tag1, tag2, "PRF is deterministic for fixed inputs");
     // Key sensitivity: a different key must move the tag.
     let other_key = [8u8; 32];
-    let tag3 = prf(&other_key, &data).expect("valid key");
+    let tag3 = prf_with_key(&other_key, &data).expect("valid key");
     assert_ne!(tag1, tag3);
     // Data sensitivity: flipping one input bit must move the tag.
     let mut flipped = data;
     flipped[0] ^= 1;
-    let tag4 = prf(&key, &flipped).expect("valid key");
+    let tag4 = prf_with_key(&key, &flipped).expect("valid key");
     assert_ne!(tag1, tag4);
 }
 
