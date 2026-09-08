@@ -101,8 +101,13 @@ impl Aes {
 pub(crate) fn prf(cipher: &Aes, data: &[u8]) -> Result<Vec<u8>, String> {
     // Zero IV: the chain register starts as all-zero and each block is
     // XORed in before encrypting; the final chain IS the MAC tag.
+    //
+    // `as_chunks::<16>()` rather than `chunks_exact(16)`: it yields
+    // `&[u8; 16]`, so the block width the spec fixes is carried in the type
+    // instead of being a runtime argument. Both forms discard a trailing
+    // partial block identically -- callers guarantee there is none.
     let mut chain = [0u8; 16];
-    for block in data.chunks_exact(16) {
+    for block in data.as_chunks::<16>().0 {
         for (slot, byte) in chain.iter_mut().zip(block) {
             *slot ^= byte;
         }

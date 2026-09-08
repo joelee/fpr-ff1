@@ -104,6 +104,16 @@ tests skip locally when the extension is not built and fail hard when
 - `just rust-lint` runs the Rust hygiene gates: `cargo fmt --check` and `cargo clippy
   --all-targets -- -D warnings`. Like `rust-test` it is deliberately outside `just quality`, which
   stays Rust-free; CI's `rust-conformance` job runs both commands on every push.
+
+**Run `rustup update stable` before trusting a green `just rust-lint`.** `rust-toolchain.toml`
+pins the *channel*, not a version, so CI always lints with the newest stable while a local
+toolchain can be months behind — and `-D warnings` means a lint introduced in the interim is a
+red gate. That is a deliberate trade (a version pin would force every contributor onto one
+release); the cost is that a stale local toolchain can pass a check CI fails. When it happens,
+fix the lint or add a narrowly scoped `#[allow]` — never weaken the gate. Prefer the fix: an
+`#[allow]` naming a lint that does not exist yet on an older toolchain trips `unknown_lints`
+there, which `-D warnings` turns into an error, so the workaround breaks the contributors it was
+meant to help.
 - The Rust AES core is validated against the NIST FIPS 197 Appendix C vectors and the Python
   path's PRF output in `tests/test_rust_aes_validation.py`; the per-round intermediates are
   asserted on both backends in `tests/test_intermediates.py` via the trace bridge.
