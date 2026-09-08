@@ -419,25 +419,41 @@ fn _rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", "0.1.0")?;
 
     /// Encrypt a numeral sequence (values validated Python-side).
+    ///
+    /// The ten-round computation runs inside `Python::detach`, so the
+    /// calling thread releases the GIL for its duration (review 00006
+    /// MED-01). Without it the whole computation was a GIL-held block:
+    /// concurrent calls serialised, and a long input (n = 20,000 is ~125
+    /// ms) stalled every other thread in the process for that whole time.
+    /// The closure captures only owned `Vec`s and a `u32` -- no Python
+    /// object crosses the boundary -- so it satisfies pyo3's `Ungil` bound
+    /// without `unsafe`.
     #[pyfunction]
     fn encrypt_numerals(
+        py: Python<'_>,
         key: Vec<u8>,
         radix: u32,
         x: Vec<u16>,
         tweak: Vec<u8>,
     ) -> PyResult<Vec<u16>> {
-        ff1(&key, radix, &x, &tweak, true).map_err(PyValueError::new_err)
+        py.detach(|| ff1(&key, radix, &x, &tweak, true))
+            .map_err(PyValueError::new_err)
     }
 
     /// Decrypt a numeral sequence (values validated Python-side).
+    ///
+    /// Releases the GIL for the computation, exactly as `encrypt_numerals`
+    /// does; see its comment.
     #[pyfunction]
     fn decrypt_numerals(
+        py: Python<'_>,
         key: Vec<u8>,
         radix: u32,
         x: Vec<u16>,
         tweak: Vec<u8>,
     ) -> PyResult<Vec<u16>> {
-        ff1(&key, radix, &x, &tweak, false).map_err(PyValueError::new_err)
+        py.detach(|| ff1(&key, radix, &x, &tweak, false))
+            .map_err(PyValueError::new_err)
     }
 
     m.add_function(wrap_pyfunction!(encrypt_numerals, m)?)?;

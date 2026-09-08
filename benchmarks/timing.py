@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import importlib
 import statistics
+import threading
 import time
 from collections.abc import Callable
 
@@ -41,6 +42,20 @@ _LENGTH_CASES = [100, 1_000, 5_000, 20_000]
 _BATCHES = 25
 _BATCH_SECONDS = 0.1
 _MAX_INNER = 500
+
+#: GIL-probe shape: long enough per call that thread scheduling overhead is
+#: negligible, short enough that the whole probe stays a few seconds.
+_GIL_LENGTH = 5_000
+_GIL_CALLS = 80
+_GIL_THREADS = 4
+
+
+def _rust_built() -> bool:
+    try:
+        importlib.import_module("fpr_ff1._rs")
+    except ImportError:
+        return False
+    return True
 
 
 def _median_seconds_per_call(fn: Callable[[], object]) -> float:
@@ -109,9 +124,7 @@ def backend_comparison_table() -> None:
     10): a measured speedup below 2x on the small-input cases means the
     backend is not worth shipping and the plan escalates.
     """
-    try:
-        importlib.import_module("fpr_ff1._rs")
-    except ImportError:
+    if not _rust_built():
         print("\n## Backend comparison\n")
         print("Rust backend not built; run `just backend-dev` (or a release\n")
         print("maturin develop for meaningful numbers) to include this table.\n")
@@ -130,12 +143,60 @@ def backend_comparison_table() -> None:
         print(f"| n = {n:,}, radix 10 | {t_py * 1e6:.1f} | {t_rs * 1e6:.1f} | {t_py / t_rs:.2f}x |")
 
 
+def gil_probe_table() -> None:
+    """Review 00006 MED-01: does a backend run FF1 calls in parallel?
+
+    The pure-Python backend is GIL-bound by construction, so its speedup is
+    the control: at or a little below 1x however many threads are used --
+    the threads cannot overlap, and switching between them costs. The
+    compiled backend releases the GIL for the duration of the ten-round
+    computation (`Python::detach` in `lib.rs`), so its threaded run should
+    scale with the core count until memory bandwidth or the FF1 call's own
+    Python-side validation becomes the limit.
+
+    The same total work is done both ways -- `_GIL_CALLS` encrypt calls at
+    n = `_GIL_LENGTH` -- so serial and threaded wall times are directly
+    comparable.
+    """
+    print("\n## GIL probe (same total work, serial vs 4 threads)\n")
+    print(f"n = {_GIL_LENGTH:,}, radix 10, {_GIL_CALLS} encrypt calls\n")
+    print("| backend | serial ms/call | 4 threads ms/call | speedup |")
+    print("|---|---:|---:|---:|")
+
+    plaintext = [i % 10 for i in range(_GIL_LENGTH)]
+    backends = ["python"] + (["rust"] if _rust_built() else [])
+    for name in backends:
+        ff1 = FF1(key=_KEY, radix=10, backend=name)
+
+        def run(count: int, cipher: FF1 = ff1) -> None:
+            for _ in range(count):
+                cipher.encrypt_numerals(plaintext)
+
+        start = time.perf_counter()
+        run(_GIL_CALLS)
+        serial = time.perf_counter() - start
+
+        per_thread = _GIL_CALLS // _GIL_THREADS
+        threads = [threading.Thread(target=run, args=(per_thread,)) for _ in range(_GIL_THREADS)]
+        start = time.perf_counter()
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        parallel = time.perf_counter() - start
+
+        serial_ms = serial / _GIL_CALLS * 1e3
+        parallel_ms = parallel / (per_thread * _GIL_THREADS) * 1e3
+        print(f"| {name} | {serial_ms:.2f} | {parallel_ms:.2f} | {serial / parallel:.2f}x |")
+
+
 def main() -> None:
     print(f"# fpr-ff1 timing harness ({time.strftime('%Y-%m-%d %H:%M %Z')})\n")
     print(f"Batches per measurement: {_BATCHES} (adaptive inner batch size)\n")
     value_dependent_table()
     throughput_table()
     backend_comparison_table()
+    gil_probe_table()
 
 
 if __name__ == "__main__":
