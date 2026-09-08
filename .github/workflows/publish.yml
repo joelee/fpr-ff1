@@ -47,13 +47,13 @@ jobs:
           name: distributions
           path: dist/
 
-      # The five wheel-build matrix legs all upload to the shared `wheels`
-      # artifact name; merge-multiple collects every platform wheel so the
-      # release publishes the full decided set, not a single arbitrary leg.
+      # Each wheel-build leg uploads under a unique name (wheels-<target>);
+      # a pattern download with merge-multiple collects every platform wheel
+      # so the release publishes the full decided set, not a single leg.
       - name: Download gated platform wheels
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: wheels
+          pattern: wheels-*
           path: dist/
           merge-multiple: true
 

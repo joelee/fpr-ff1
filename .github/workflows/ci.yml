@@ -193,7 +193,10 @@ jobs:
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: wheels
+          # Unique per matrix leg: GitHub treats same-named artifacts as
+          # versions of one artifact, so a shared name would collapse the
+          # five platform wheels to a single (newest) one on download.
+          name: wheels-${{ matrix.target }}
           path: dist-wheels/
 
   wheel-test:
@@ -261,16 +264,14 @@ jobs:
       # must reproduce the NIST vectors on BOTH backends (plan 00003
       # STEP-14, REQ-20): the pure-Python code and the extension ship in
       # one wheel, and the reference path must not depend on the extension.
-      # The five wheel-build matrix legs all upload to the shared `wheels`
-      # artifact name; merge-multiple collects every platform wheel into one
-      # directory so the linux x86_64 glob below can match its wheel (without
-      # it, download-artifact returns a single arbitrary leg -- e.g. the
-      # Windows wheel -- and the glob matches nothing).
+      # Each wheel-build leg uploads under a unique name (wheels-<target>);
+      # download the linux x86_64 leg specifically. A name-based download
+      # always returns a single artifact, so the glob below matches exactly
+      # one wheel.
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: wheels
+          name: wheels-x86_64-unknown-linux-gnu
           path: dist-wheels/
-          merge-multiple: true
 
       - name: Install the linux x86_64 wheel into a clean environment
         run: |
