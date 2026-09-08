@@ -69,35 +69,39 @@ def _legacy(key: bytes, tweak: bytes) -> Any:
     return _oracle.Context(key, tweak, 0, 0, _RADIX, _ALPHABET)
 
 
-def _migrated(key: bytes, tweak: bytes) -> FF1:
-    """Build the equivalent `fpr-ff1` context."""
-    return FF1(key, _RADIX, alphabet=_ALPHABET, tweak=tweak)
+def _migrated(key: bytes, tweak: bytes, ff1_factory: Any) -> FF1:
+    """Build the equivalent `fpr-ff1` context on the parameterised backend."""
+    return ff1_factory(key=key, radix=_RADIX, alphabet=_ALPHABET, tweak=tweak)
 
 
 @pytest.mark.parametrize(("key_len", "tweak"), _CASES)
-def test_legacy_ciphertext_decrypts_after_migration(key_len: int, tweak: bytes) -> None:
+def test_legacy_ciphertext_decrypts_after_migration(
+    ff1_factory: Any, key_len: int, tweak: bytes
+) -> None:
     """Data encrypted before migrating must still be readable after."""
     key = bytes(range(key_len))
     legacy_ciphertext = _legacy(key, tweak).Encrypt(_PLAINTEXT, None)
 
-    assert _migrated(key, tweak).decrypt(legacy_ciphertext) == _PLAINTEXT
+    assert _migrated(key, tweak, ff1_factory).decrypt(legacy_ciphertext) == _PLAINTEXT
 
 
 @pytest.mark.parametrize(("key_len", "tweak"), _CASES)
-def test_new_ciphertext_decrypts_with_legacy_library(key_len: int, tweak: bytes) -> None:
+def test_new_ciphertext_decrypts_with_legacy_library(
+    ff1_factory: Any, key_len: int, tweak: bytes
+) -> None:
     """Migration is reversible: a rollback must not strand new data."""
     key = bytes(range(key_len))
-    new_ciphertext = _migrated(key, tweak).encrypt(_PLAINTEXT)
+    new_ciphertext = _migrated(key, tweak, ff1_factory).encrypt(_PLAINTEXT)
 
     assert _legacy(key, tweak).Decrypt(new_ciphertext, None) == _PLAINTEXT
 
 
 @pytest.mark.parametrize(("key_len", "tweak"), _CASES)
-def test_ciphertexts_are_identical(key_len: int, tweak: bytes) -> None:
+def test_ciphertexts_are_identical(ff1_factory: Any, key_len: int, tweak: bytes) -> None:
     """The two libraries agree byte for byte, so stored data needs no rewrite."""
     key = bytes(range(key_len))
 
-    assert _migrated(key, tweak).encrypt(_PLAINTEXT) == _legacy(key, tweak).Encrypt(
+    assert _migrated(key, tweak, ff1_factory).encrypt(_PLAINTEXT) == _legacy(key, tweak).Encrypt(
         _PLAINTEXT, None
     )
 

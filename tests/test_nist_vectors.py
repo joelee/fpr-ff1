@@ -1,12 +1,15 @@
-"""NIST SP 800-38G FF1 sample vector tests."""
+"""NIST SP 800-38G FF1 sample vector tests.
+
+Parameterised over both backends (plan 00003 STEP-11, REQ-16): the
+published vectors must pass identically on the pure-Python reference and
+the compiled core.
+"""
 
 import json
 import pathlib
 from typing import Any
 
 import pytest
-
-from fpr_ff1 import FF1
 
 _VECTOR_FILE = pathlib.Path(__file__).with_suffix("").parent / "vectors" / "nist_ff1_samples.json"
 
@@ -21,8 +24,8 @@ _VECTORS = _load_vectors()
 
 
 @pytest.mark.parametrize("vector", _VECTORS, ids=lambda v: v["name"])
-def test_nist_vector_encrypt(vector: dict[str, Any]) -> None:
-    ff1 = FF1(
+def test_nist_vector_encrypt(ff1_factory: Any, vector: dict[str, Any]) -> None:
+    ff1 = ff1_factory(
         key=bytes.fromhex(vector["key"]),
         radix=vector["radix"],
         alphabet=vector["alphabet"],
@@ -32,8 +35,8 @@ def test_nist_vector_encrypt(vector: dict[str, Any]) -> None:
 
 
 @pytest.mark.parametrize("vector", _VECTORS, ids=lambda v: v["name"])
-def test_nist_vector_decrypt(vector: dict[str, Any]) -> None:
-    ff1 = FF1(
+def test_nist_vector_decrypt(ff1_factory: Any, vector: dict[str, Any]) -> None:
+    ff1 = ff1_factory(
         key=bytes.fromhex(vector["key"]),
         radix=vector["radix"],
         alphabet=vector["alphabet"],
@@ -43,8 +46,8 @@ def test_nist_vector_decrypt(vector: dict[str, Any]) -> None:
 
 
 @pytest.mark.parametrize("vector", _VECTORS, ids=lambda v: v["name"])
-def test_nist_vector_round_trip(vector: dict[str, Any]) -> None:
-    ff1 = FF1(
+def test_nist_vector_round_trip(ff1_factory: Any, vector: dict[str, Any]) -> None:
+    ff1 = ff1_factory(
         key=bytes.fromhex(vector["key"]),
         radix=vector["radix"],
         alphabet=vector["alphabet"],

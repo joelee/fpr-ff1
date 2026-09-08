@@ -19,8 +19,6 @@ import json
 import pathlib
 from typing import Any
 
-from fpr_ff1 import FF1
-
 _KAT_PATH = pathlib.Path(__file__).parent / "vectors" / "oracle_kat_frozen.json"
 
 #: The radices the live differential suite covers.  10 and 36 also have NIST
@@ -76,16 +74,17 @@ def test_frozen_kat_reaches_s_expansion_branch() -> None:
     raise AssertionError("no frozen vector reaches the S-expansion branch")
 
 
-def test_frozen_kat_vectors_reproduce() -> None:
+def test_frozen_kat_vectors_reproduce(ff1_factory: Any) -> None:
     """This implementation must reproduce every frozen oracle-derived vector.
 
     The expected values come from the independent implementation, so a
     failure here means this package deviated from the oracle's behaviour --
     the same claim the live tests make, durable against the oracle one day
-    being uninstallable.
+    being uninstallable. Parameterised over both backends (plan 00003
+    STEP-11, REQ-16).
     """
     for vector in _load_kat()["vectors"]:
-        ff1 = FF1(
+        ff1 = ff1_factory(
             key=bytes.fromhex(vector["key_hex"]),
             radix=vector["radix"],
             alphabet=vector["alphabet"],

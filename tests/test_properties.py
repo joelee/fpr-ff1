@@ -16,6 +16,7 @@ from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from fpr_ff1 import FF1
+from tests.conftest import BACKENDS
 
 _SETTINGS = settings(
     max_examples=50,
@@ -51,6 +52,10 @@ class Case(NamedTuple):
 
 @st.composite
 def ff1_case(draw: st.DrawFn) -> Case:
+    # Plan 00003 STEP-11 (REQ-16): the backend is drawn per case, so the
+    # property suite exercises both the reference and the compiled core.
+    # _BACKENDS comes from conftest (python always; rust when built).
+    backend = draw(st.sampled_from(BACKENDS))
     key_len = draw(st.sampled_from([16, 24, 32]))
     key = draw(st.binary(min_size=key_len, max_size=key_len))
     # Span the whole legal radix range, not just 2..10.  Large radices reach
@@ -62,7 +67,7 @@ def ff1_case(draw: st.DrawFn) -> Case:
             st.sampled_from([10, 16, 36, 62, 256, 1000, 2**15, 2**16 - 1]),
         )
     )
-    return Case(FF1(key=key, radix=radix), key, radix)
+    return Case(FF1(key=key, radix=radix, backend=backend), key, radix)
 
 
 @given(ff1_case(), st.data())
@@ -111,7 +116,9 @@ def test_key_sensitivity(case: Case, data: st.DataObject) -> None:
     plaintext = case.plaintext(data)
     flipped = case.key[:-1] + bytes([case.key[-1] ^ 0x01])
     assert flipped != case.key
-    other = FF1(key=flipped, radix=case.radix)
+    # Same backend as the case: the sensitivity claim is about the key
+    # schedule, not about backend differences.
+    other = FF1(key=flipped, radix=case.radix, backend=case.ff1._backend)  # pyright: ignore[reportPrivateUsage]
     assert case.ff1.encrypt_numerals(plaintext) != other.encrypt_numerals(plaintext)
 
 
@@ -126,13 +133,15 @@ def test_length_and_alphabet_preservation(case: Case, data: st.DataObject) -> No
 
 @pytest.mark.slow
 @pytest.mark.parametrize(("radix", "length"), [(2, 20), (10, 6)])
-def test_bijectivity_small_domain(radix: int, length: int) -> None:
+@pytest.mark.parametrize("backend", BACKENDS)
+def test_bijectivity_small_domain(backend: str, radix: int, length: int) -> None:
     """Exhaustively verify the image is the full domain for a tiny FF1 domain.
 
     The strongest correctness statement available: no gaps and no repeats over
-    every point of the domain.
+    every point of the domain. Parameterised over both backends (plan 00003
+    STEP-11, REQ-16).
     """
-    ff1 = FF1(key=b"\x00" * 16, radix=radix)
+    ff1 = FF1(key=b"\x00" * 16, radix=radix, backend=backend)
     total = radix**length
     seen: Counter[tuple[int, ...]] = Counter()
     for value in range(total):

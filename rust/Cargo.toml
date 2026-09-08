@@ -1,0 +1,9 @@
+[workspace]
+resolver = "2"
+members = ["fpr-ff1-rust"]
+
+# Rust workspace for the fpr-ff1 optional accelerated backend (plan 00003
+# E2, idea 00001 r02). The pure-Python implementation in src/fpr_ff1/_ff1.py
+# remains the reference and the default; this crate is the opt-in
+# backend="rust" path. Cargo.lock is committed for supply-chain pinning,
+# mirroring uv.lock.

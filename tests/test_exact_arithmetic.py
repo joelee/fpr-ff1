@@ -7,11 +7,10 @@ source for forbidden floating-point operations.
 
 import ast
 import pathlib
-from typing import cast
+from typing import Any, cast
 
 import pytest
 
-from fpr_ff1 import FF1
 from fpr_ff1._ff1 import TraceRecord
 
 
@@ -57,10 +56,15 @@ def test_no_float_operations_in_ff1_core() -> None:
         (256, 3),
     ],
 )
-def test_power_of_two_radix_round_trip(radix: int, length: int) -> None:
-    """Radices where radix**v sits on a power-of-two boundary must round-trip."""
+def test_power_of_two_radix_round_trip(ff1_factory: Any, radix: int, length: int) -> None:
+    """Radices where radix**v sits on a power-of-two boundary must round-trip.
+
+    Parameterised over both backends (plan 00003 STEP-11): the python path
+    exercises the O(n) byte-packing fast path, the rust path its own
+    conversion.
+    """
     key = b"\x00" * 16
-    ff1 = FF1(key=key, radix=radix)
+    ff1 = ff1_factory(key=key, radix=radix)
     plaintext = [i % radix for i in range(length)]
     ciphertext = ff1.encrypt_numerals(plaintext)
     assert len(ciphertext) == length
@@ -84,7 +88,7 @@ def _int_field(record: TraceRecord, key: str) -> int:
     return value
 
 
-def test_b_is_derived_from_v_not_u_for_odd_length() -> None:
+def test_b_is_derived_from_v_not_u_for_odd_length(ff1_factory: Any, encrypt_traced: Any) -> None:
     """When n is odd, u != v, and b must come from v.
 
     radix 256, n=5 gives u=2, v=3, and the two derivations disagree:
@@ -100,9 +104,12 @@ def test_b_is_derived_from_v_not_u_for_odd_length() -> None:
     derivations agree.  It also cannot detect a b that is too *large*, which
     encodes fine with leading zeros and round-trips cleanly while producing
     non-conformant ciphertext.
+
+    Parameterised over both backends (plan 00003 STEP-11): the trace bridge
+    carries the same assertion onto the compiled core.
     """
-    ff1 = FF1(key=b"\x00" * 16, radix=256)
-    _, trace = ff1._encrypt_traced([0, 1, 2, 3, 4])  # pyright: ignore[reportPrivateUsage]
+    ff1 = ff1_factory(key=b"\x00" * 16, radix=256)
+    _, trace = encrypt_traced(ff1, [0, 1, 2, 3, 4])
 
     assert _int_field(trace[0], "u") == 2
     assert _int_field(trace[0], "v") == 3
@@ -114,15 +121,18 @@ def test_b_is_derived_from_v_not_u_for_odd_length() -> None:
 
 
 @pytest.mark.parametrize("tweak_len", [0, 1, 3, 11, 12, 13, 16, 27, 32])
-def test_padding_formula_matches_spec(tweak_len: int) -> None:
+def test_padding_formula_matches_spec(
+    ff1_factory: Any, encrypt_traced: Any, tweak_len: int
+) -> None:
     """Q is padded by (-t - b - 1) % 16, keeping P || Q 16-byte aligned.
 
     Asserts the padding actually emitted into Q, across tweak lengths spanning
-    every residue class, rather than restating the arithmetic.
+    every residue class, rather than restating the arithmetic. Parameterised
+    over both backends (plan 00003 STEP-11).
     """
-    ff1 = FF1(key=b"\x00" * 16, radix=10)
+    ff1 = ff1_factory(key=b"\x00" * 16, radix=10)
     tweak = bytes(range(1, tweak_len + 1))  # non-zero, so padding is visible
-    _, trace = ff1._encrypt_traced([1] * 10, tweak)  # pyright: ignore[reportPrivateUsage]
+    _, trace = encrypt_traced(ff1, [1] * 10, tweak)
 
     round0 = trace[0]
     b = _int_field(round0, "b")

@@ -1,0 +1,9 @@
+# Rust toolchain for the optional accelerated backend (plan 00003 STEP-14).
+# Pinned to the stable channel with the minimal profile so CI wheel builds
+# and local development agree; rustup reads this file automatically and
+# installs/switchs on demand. A version pin would force every contributor
+# to that exact release; the channel pin keeps builds current and
+# reproducible-in-kind, with Cargo.lock carrying the dependency pinning.
+[toolchain]
+channel = "stable"
+profile = "minimal"

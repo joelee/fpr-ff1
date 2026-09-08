@@ -12,6 +12,7 @@ at all.  These tests pin both the structure and the behaviour.
 """
 
 import threading
+from typing import Any
 
 from cryptography.hazmat.primitives.ciphers import CipherContext
 
@@ -39,9 +40,14 @@ def test_aes_carries_no_live_cipher_context() -> None:
         )
 
 
-def test_no_ciphercontext_attribute_on_instance() -> None:
-    """No attribute reachable from a constructed instance is a CipherContext."""
-    ff1 = FF1(key=_VALID_KEY, radix=10)
+def test_no_ciphercontext_attribute_on_instance(ff1_factory: Any) -> None:
+    """No attribute reachable from a constructed instance is a CipherContext.
+
+    Parameterised over both backends (plan 00003 STEP-12): a rust instance
+    holds only its configuration (strings, ints, the key) plus the rebuilt
+    ``_aes`` value objects -- never a live context.
+    """
+    ff1: FF1 = ff1_factory(key=_VALID_KEY, radix=10)
     for name, value in vars(ff1).items():
         assert not isinstance(value, CipherContext), (
             f"FF1.{name} holds a live CipherContext; instances cannot be "
@@ -54,15 +60,16 @@ def test_no_ciphercontext_attribute_on_instance() -> None:
                 )
 
 
-def test_shared_instance_concurrent_encryption_matches_serial() -> None:
+def test_shared_instance_concurrent_encryption_matches_serial(ff1_factory: Any) -> None:
     """Threads sharing one instance must produce exactly the serial results.
 
     Uses inputs with ``d > 16`` (radix 10 needs 57+ numerals), the only
     regime where the old shared context was touched.  A single wrong
     ciphertext would previously have been silent; here every result is
-    compared against the single-threaded expectation.
+    compared against the single-threaded expectation.  Parameterised over
+    both backends (plan 00003 STEP-12, REQ-17).
     """
-    ff1 = FF1(key=_VALID_KEY, radix=10)
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10)
     plaintexts = [[(thread_index * 17 + i) % 10 for i in range(60)] for thread_index in range(8)]
     expected = [ff1.encrypt_numerals(p) for p in plaintexts]
 
@@ -86,13 +93,14 @@ def test_shared_instance_concurrent_encryption_matches_serial() -> None:
     assert results == expected, "concurrent encryption diverged from serial results"
 
 
-def test_shared_instance_concurrent_mixed_operations() -> None:
+def test_shared_instance_concurrent_mixed_operations(ff1_factory: Any) -> None:
     """Encrypt and decrypt concurrently on one shared instance.
 
     Both directions run through the same expansion path; mixing them on one
     instance is the realistic web-service usage the old caveat warned about.
+    Parameterised over both backends (plan 00003 STEP-12, REQ-17).
     """
-    ff1 = FF1(key=_VALID_KEY, radix=10)
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10)
     plaintexts = [[(thread_index * 13 + i) % 10 for i in range(60)] for thread_index in range(4)]
     ciphertexts = [ff1.encrypt_numerals(p) for p in plaintexts]
 
@@ -119,15 +127,16 @@ def test_shared_instance_concurrent_mixed_operations() -> None:
     assert encrypted == ciphertexts
 
 
-def test_expansion_path_still_reaches_d_over_16() -> None:
+def test_expansion_path_still_reaches_d_over_16(ff1_factory: Any, encrypt_traced: Any) -> None:
     """The concurrency tests above must actually exercise the expansion.
 
     Radix 10 at length 60 gives ``d > 16`` (first expansion at 57 numerals),
     so the S-expansion loop -- the code the shared context used to live in --
-    runs on every round of every test encryption here.
+    runs on every round of every test encryption here. Parameterised over
+    both backends (plan 00003 STEP-12).
     """
-    ff1 = FF1(key=_VALID_KEY, radix=10)
-    _, trace = ff1._encrypt_traced([0] * 60)  # pyright: ignore[reportPrivateUsage]
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10)
+    _, trace = encrypt_traced(ff1, [0] * 60)
     d_value = trace[0]["d"]
     assert isinstance(d_value, int)
     assert d_value > 16, "length 60 at radix 10 must reach the S-expansion branch"

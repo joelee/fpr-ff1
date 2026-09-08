@@ -80,4 +80,30 @@ secrets:
 bench:
     uv run python benchmarks/timing.py
 
+# Rust core unit tests for the accelerated backend (plan 00003 E2).
+# Requires a local Rust toolchain; deliberately NOT part of `quality` —
+# the pure-Python path must never depend on Rust being installed.
+rust-test:
+    cargo test --manifest-path rust/Cargo.toml
+
+# Build the Rust accelerated backend into the source tree as fpr_ff1._rs
+# (plan 00003 E2 dev loop). Builds the cdylib with cargo and copies it into
+# src/fpr_ff1/ -- the editable install maps that directory, so the
+# extension is importable as fpr_ff1._rs with no pip involvement (uv sync
+# cannot strip it; the copy is gitignored). PYO3_PYTHON must be absolute:
+# cargo build scripts run with the crate directory as cwd, so a relative
+# venv path breaks pyo3's interpreter detection. Requires a local Rust
+# toolchain.
+backend-dev:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="$(pwd)"
+    PYO3_PYTHON="$root/.venv/bin/python" cargo build --release --manifest-path rust/Cargo.toml
+    case "$(uname -s)" in
+        Darwin) artifact=rust/target/release/lib_fpr_ff1_rs.dylib ;;
+        *) artifact=rust/target/release/lib_fpr_ff1_rs.so ;;
+    esac
+    cp "$artifact" src/fpr_ff1/_rs.so
+    echo "installed fpr_ff1._rs into src/fpr_ff1/"
+
 ci: sync quality build secrets

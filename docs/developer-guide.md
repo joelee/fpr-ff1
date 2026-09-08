@@ -6,6 +6,7 @@
 - `uv`
 - `just`
 - `gitleaks` (for `just secrets`)
+- A Rust toolchain (for the optional compiled backend; `rustup` recommended — see `rust-toolchain.toml`)
 
 ## Setup
 
@@ -30,6 +31,8 @@ just quality         # format-check + lint + typecheck + full test run
 just build           # quality gate + uv build
 just secrets         # gitleaks secret scan (must be installed locally)
 just bench           # reproducible timing/throughput tables (benchmarks/timing.py)
+just rust-test       # Rust core unit tests (cargo test)
+just backend-dev     # build the compiled backend into src/fpr_ff1/_rs.so (dev loop)
 just ci              # sync + quality + build + secrets
 ```
 
@@ -83,6 +86,24 @@ development. In CI, `FPR_FF1_REQUIRE_ORACLE=1` turns that skip into a hard failu
 silent skip would look exactly like a pass, and the differential suite is the only coverage for
 most radices.
 
+### The compiled backend
+
+The optional `backend="rust"` path is a PyO3 extension (`fpr_ff1._rs`) built from
+`rust/fpr-ff1-rust`. The conformance suite is parameterised over both backends via the
+`backend`/`ff1_factory`/`encrypt_traced` fixtures in `tests/conftest.py`; the rust-parameterised
+tests skip locally when the extension is not built and fail hard when
+`FPR_FF1_REQUIRE_RUST_BACKEND=1` (the same contract as the oracle).
+
+- `just backend-dev` builds the extension and copies it to `src/fpr_ff1/_rs.so` (gitignored) so
+  the editable install can import it — no pip involvement, so `uv sync` never strips it.
+- `just rust-test` runs the Rust unit tests (`cargo test`).
+- The Rust AES core is validated against the NIST FIPS 197 Appendix C vectors and the Python
+  path's PRF output in `tests/test_rust_aes_validation.py`; the per-round intermediates are
+  asserted on both backends in `tests/test_intermediates.py` via the trace bridge.
+
+The pure-Python path never imports the extension, so the package builds, installs, and passes the
+full suite without a Rust toolchain; `backend="rust"` then raises `BackendError`.
+
 ### Frozen oracle KAT vectors
 
 The oracle is deprecated and unmaintained; the day it stops installing, the live differential
@@ -130,13 +151,16 @@ gitleaks dir . --redact
 ```
 
 CI additionally runs a dependency-audit job (`pip-audit` against `uv.lock` and against the declared
-minimum dependency set), installs gitleaks only after verifying the release tarball against the
-published checksums, asserts the sdist contents against a forbidden-path list, and installs the
-built wheel into a clean environment to exercise the public surface from it. Every action is
-pinned to a full commit SHA with the version in a trailing comment; Dependabot
-(`.github/dependabot.yml`) raises PRs when a pinned action or a dependency moves. The publish
-workflow downloads the distributions artifact built and checked by the release gate rather than
-rebuilding, and it verifies the release tag matches the project version before publishing.
+minimum dependency set, plus `cargo-audit` against `rust/Cargo.lock`), installs gitleaks only after
+verifying the release tarball against the published checksums, asserts the sdist contents against a
+forbidden-path list, installs the built wheel into a clean environment to exercise the public
+surface from it, builds the platform wheels (maturin, abi3-py312, the five-platform matrix) and
+installs the linux wheel to exercise both backends, and installs the sdist to prove the pure-Python
+fallback and the `BackendError` contract. Every action is pinned to a full commit SHA with the
+version in a trailing comment; Dependabot (`.github/dependabot.yml`) raises PRs when a pinned action
+or a dependency moves. The publish workflow downloads the distributions and wheels artifacts built
+and checked by the release gate rather than rebuilding, and it verifies the release tag matches the
+project version before publishing.
 
 The secret scan is pinned to **gitleaks 8.30.1** in CI (`GITLEAKS_VERSION` in
 `.github/workflows/ci.yml`, mirrored as `gitleaks_version` in the `justfile` — keep the two in

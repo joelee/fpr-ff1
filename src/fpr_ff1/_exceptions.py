@@ -32,3 +32,14 @@ class TweakLengthError(FF1Error):
 
 class AlphabetError(FF1Error):
     """Alphabet length or uniqueness does not match the radix."""
+
+
+class BackendError(FF1Error):
+    """The requested FF1 backend is unavailable or misspelled.
+
+    Raised when ``backend="rust"`` is requested but the compiled extension
+    is not installed in this environment, when the ``backend`` value is
+    not a ``str`` or is not one of the supported names, and when unpickled
+    state carries an unknown backend.  The pure-Python backend is always
+    available and remains the default.
+    """

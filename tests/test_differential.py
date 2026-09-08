@@ -101,10 +101,10 @@ _LENGTH_CASES = [(radix, n) for radix in (10, 16, 36) for n in range(_min_length
 
 
 @pytest.mark.parametrize(("radix", "n"), _LENGTH_CASES)
-def test_encrypt_matches_oracle(radix: int, n: int) -> None:
+def test_encrypt_matches_oracle(ff1_factory: Any, radix: int, n: int) -> None:
     """Byte-exact agreement with the oracle across the full length range."""
     alphabet = _alphabet_for(radix)
-    ff1 = FF1(key=_KEY, radix=radix, alphabet=alphabet, tweak=_TWEAK)
+    ff1 = ff1_factory(key=_KEY, radix=radix, alphabet=alphabet, tweak=_TWEAK)
 
     plaintext = _plaintext(n, alphabet)
     expected = _oracle_context(_KEY, _TWEAK, radix, alphabet).Encrypt(plaintext, None)
@@ -113,9 +113,9 @@ def test_encrypt_matches_oracle(radix: int, n: int) -> None:
 
 
 @pytest.mark.parametrize(("radix", "n"), _LENGTH_CASES)
-def test_decrypt_matches_oracle(radix: int, n: int) -> None:
+def test_decrypt_matches_oracle(ff1_factory: Any, radix: int, n: int) -> None:
     alphabet = _alphabet_for(radix)
-    ff1 = FF1(key=_KEY, radix=radix, alphabet=alphabet, tweak=_TWEAK)
+    ff1 = ff1_factory(key=_KEY, radix=radix, alphabet=alphabet, tweak=_TWEAK)
 
     ciphertext = _plaintext(n, alphabet)
     expected = _oracle_context(_KEY, _TWEAK, radix, alphabet).Decrypt(ciphertext, None)
@@ -142,7 +142,8 @@ def test_decrypt_matches_oracle(radix: int, n: int) -> None:
         (256, 57, 29, 36, 2),
     ],
 )
-def test_s_expansion_boundary(
+def test_s_expansion_boundary(  # noqa: PLR0917
+    ff1_factory: Any,
     radix: int,
     n: int,
     expected_b: int,
@@ -155,7 +156,7 @@ def test_s_expansion_boundary(
     ``CIPH_K(R XOR [j]^16)``.  No NIST sample reaches ``d > 16``.
     """
     alphabet = _alphabet_for(radix)
-    ff1 = FF1(key=_KEY, radix=radix, alphabet=alphabet, tweak=_TWEAK)
+    ff1 = ff1_factory(key=_KEY, radix=radix, alphabet=alphabet, tweak=_TWEAK)
 
     # Confirm the case really does target the intended branch.
     v = n - n // 2
@@ -174,7 +175,9 @@ def test_s_expansion_boundary(
 
 @pytest.mark.parametrize("radix", [2, 16, 32, 62, 256, 2**16 - 1])
 @pytest.mark.parametrize("offset", [0, 1, 2, 7, 20])
-def test_radices_without_nist_vectors_match_oracle(radix: int, offset: int) -> None:
+def test_radices_without_nist_vectors_match_oracle(
+    ff1_factory: Any, radix: int, offset: int
+) -> None:
     """Radices 2, 16, 32, 62, 256 and 65535 have no published vectors.
 
     AGENTS.md section 7: for these, correctness is established only by
@@ -183,7 +186,7 @@ def test_radices_without_nist_vectors_match_oracle(radix: int, offset: int) -> N
     upward, including odd and even ``n`` (the ``u != v`` path).
     """
     alphabet = _alphabet_for(radix)
-    ff1 = FF1(key=_KEY, radix=radix, alphabet=alphabet, tweak=_TWEAK)
+    ff1 = ff1_factory(key=_KEY, radix=radix, alphabet=alphabet, tweak=_TWEAK)
     n = ff1.min_length + offset
 
     plaintext = _plaintext(n, alphabet)
@@ -195,10 +198,10 @@ def test_radices_without_nist_vectors_match_oracle(radix: int, offset: int) -> N
 
 
 @pytest.mark.parametrize("radix", [2, 10, 36, 256])
-def test_degenerate_inputs_match_oracle(radix: int) -> None:
+def test_degenerate_inputs_match_oracle(ff1_factory: Any, radix: int) -> None:
     """All-zero and all-max numerals are the arithmetic corner cases."""
     alphabet = _alphabet_for(radix)
-    ff1 = FF1(key=_KEY, radix=radix, alphabet=alphabet, tweak=_TWEAK)
+    ff1 = ff1_factory(key=_KEY, radix=radix, alphabet=alphabet, tweak=_TWEAK)
     n = ff1.min_length + 1
     context = _oracle_context(_KEY, _TWEAK, radix, alphabet)
 
@@ -210,27 +213,27 @@ def test_degenerate_inputs_match_oracle(radix: int) -> None:
 
 
 @pytest.mark.parametrize("tweak_len", [0, 1, 15, 16, 17, 64])
-def test_tweak_lengths_match_oracle(tweak_len: int) -> None:
+def test_tweak_lengths_match_oracle(ff1_factory: Any, tweak_len: int) -> None:
     """Tweak length shifts the Q-block padding; verify each residue class."""
     radix = 10
     alphabet = _alphabet_for(radix)
     tweak = bytes(range(tweak_len))
     plaintext = _plaintext(20, alphabet)
 
-    ff1 = FF1(key=_KEY, radix=radix, alphabet=alphabet, tweak=tweak)
+    ff1 = ff1_factory(key=_KEY, radix=radix, alphabet=alphabet, tweak=tweak)
     expected = _oracle_context(_KEY, tweak, radix, alphabet).Encrypt(plaintext, None)
 
     assert ff1.encrypt(plaintext) == expected
 
 
 @pytest.mark.parametrize("key_len", [16, 24, 32])
-def test_all_key_sizes_match_oracle(key_len: int) -> None:
+def test_all_key_sizes_match_oracle(ff1_factory: Any, key_len: int) -> None:
     radix = 36
     alphabet = _alphabet_for(radix)
     key = bytes(range(key_len))
     plaintext = _plaintext(40, alphabet)
 
-    ff1 = FF1(key=key, radix=radix, alphabet=alphabet, tweak=_TWEAK)
+    ff1 = ff1_factory(key=key, radix=radix, alphabet=alphabet, tweak=_TWEAK)
     expected = _oracle_context(key, _TWEAK, radix, alphabet).Encrypt(plaintext, None)
 
     assert ff1.encrypt(plaintext) == expected

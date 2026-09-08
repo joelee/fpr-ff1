@@ -5,6 +5,12 @@ round-by-round values (P, Q, R, S, y, m, c, C plus derived u, v, b, d) using
 the private ``FF1._encrypt_traced`` hook. The hook is a private method rather
 than a parameter on the public methods, so the documented API surface stays
 exactly as the contract specifies.
+
+Parameterised over both backends (plan 00003 STEP-11, REQ-16): the rust
+backend's trace comes from the extension's test-only
+``_test_encrypt_traced`` binding, normalized to the same shape by the
+``encrypt_traced`` fixture. Two compensating bugs can pass an output test;
+they cannot pass this one on either backend.
 """
 
 import json
@@ -12,8 +18,6 @@ import pathlib
 from typing import Any
 
 import pytest
-
-from fpr_ff1 import FF1
 
 _VECTOR_FILE = (
     pathlib.Path(__file__).with_suffix("").parent / "vectors" / "nist_ff1_intermediates.json"
@@ -34,15 +38,15 @@ def _numerals_from_plaintext(plaintext: str, radix: int) -> list[int]:
 
 
 @pytest.mark.parametrize("vector", _VECTORS, ids=lambda v: v["name"])
-def test_nist_intermediate_values(vector: dict[str, Any]) -> None:
-    ff1 = FF1(
+def test_nist_intermediate_values(
+    ff1_factory: Any, encrypt_traced: Any, vector: dict[str, Any]
+) -> None:
+    ff1 = ff1_factory(
         key=bytes.fromhex(vector["key"]),
         radix=vector["radix"],
         tweak=bytes.fromhex(vector["tweak"]),
     )
-    _, trace = ff1._encrypt_traced(  # pyright: ignore[reportPrivateUsage]
-        _numerals_from_plaintext(vector["plaintext"], vector["radix"])
-    )
+    _, trace = encrypt_traced(ff1, _numerals_from_plaintext(vector["plaintext"], vector["radix"]))
 
     assert len(trace) == 10, "FF1 must run exactly 10 rounds"
 

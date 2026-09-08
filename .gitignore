@@ -39,3 +39,11 @@ tmp/
 # Codegraph index (tool-local, per-machine; was self-ignored via a tracked
 # .codegraph/.gitignore until review 00003 L1 moved it here)
 .codegraph/
+
+# Rust (plan 00003 E2): cargo build artifacts are per-machine and never
+# committed; Cargo.lock IS committed (supply-chain pinning, like uv.lock).
+# The dev-loop extension copy lands inside the source tree (just
+# backend-dev) and is equally per-machine.
+rust/target/
+target/
+src/fpr_ff1/_rs*.so

@@ -12,6 +12,7 @@
 | `tweak` | `bytes` | No | Default tweak used when not provided per call. |
 | `min_tweak_len` | `int \| None` | No | Inclusive minimum tweak length. |
 | `max_tweak_len` | `int \| None` | No | Inclusive maximum tweak length. |
+| `backend` | `str` | No | `"python"` (default, the reference) or `"rust"` (the opt-in compiled backend). Both produce identical ciphertext and exceptions; see the README Backends section for when to use each. |
 
 ## Runtime Constraints
 
@@ -42,4 +43,4 @@ The library does not generate, store, derive, or manage keys. Callers are respon
 
 ## Thread safety
 
-`FF1` instances **are thread-safe**. No mutable state is shared between calls — every cipher context is created locally to the call that uses it — so separate calls on one instance may run concurrently and produce exactly the single-threaded results. There is no module-level or global state, so any number of instances may be used concurrently.
+`FF1` instances **are thread-safe**, on both backends. No mutable state is shared between calls — every cipher context is created locally to the call that uses it — so separate calls on one instance may run concurrently and produce exactly the single-threaded results. The compiled backend is stateless by construction (free functions, per-call immutable key schedules, call-local contexts). There is no module-level or global state, so any number of instances may be used concurrently.
