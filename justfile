@@ -101,7 +101,8 @@ rust-lint:
 # cannot strip it; the copy is gitignored). PYO3_PYTHON must be absolute:
 # cargo build scripts run with the crate directory as cwd, so a relative
 # venv path breaks pyo3's interpreter detection. Requires a local Rust
-# toolchain.
+# toolchain.  CI's `rust-conformance` job inlines these same two
+# commands (just is not installed on the runner) -- keep them in sync.
 backend-dev:
     #!/usr/bin/env bash
     set -euo pipefail

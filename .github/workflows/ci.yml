@@ -60,6 +60,80 @@ jobs:
       - name: Test with 100% coverage gate
         run: uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100
 
+  # Review 00006 MAJ-01: before this job the release gate never executed the
+  # compiled backend's conformance suite. The matrix above runs 856 tests
+  # with no extension present, and the only Rust execution anywhere in the
+  # pipeline was a single NIST vector (d = 12) in wheel-test-platform -- so a
+  # bug reachable only at d > 16 would have shipped green.
+  #
+  # Three things make this job hard to fake:
+  #   * FPR_FF1_REQUIRE_RUST_BACKEND turns a missing extension into a
+  #     collection error, never a skip;
+  #   * the `-k rust` floor fails if the dual-backend parameterisation ever
+  #     collapses to the python leg alone;
+  #   * the coverage gate still demands 100% with the extension in place.
+  #
+  # It deliberately does not `needs: quality` -- it is independent of the
+  # matrix and runs beside it, so it adds nothing to the critical path.
+  rust-conformance:
+    name: Rust backend conformance (full suite, both backends)
+    runs-on: ubuntu-latest
+    env:
+      # A missing extension is a hard failure here, never a skip.
+      FPR_FF1_REQUIRE_RUST_BACKEND: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@d1031067263f94b142dd6c0ce24c5eb9d02d52a0
+        with:
+          # The action requires an explicit `toolchain` input; it does not
+          # read rust-toolchain.toml (that file is consumed by rustup/cargo
+          # themselves). Keep this in sync with the channel pin there.
+          toolchain: stable
+
+      - name: Sync dependencies
+        run: uv sync --locked --all-extras --dev
+
+      # These two steps are exactly what `just backend-dev` runs; `just` is
+      # not installed on ubuntu-latest, so they are inlined. Keep the recipe
+      # and these commands in sync -- the import check below fails fast if
+      # they drift. PYO3_PYTHON must be absolute: cargo build scripts run
+      # with the crate directory as cwd.
+      - name: Build the compiled backend
+        run: PYO3_PYTHON="$PWD/.venv/bin/python" cargo build --release --manifest-path rust/Cargo.toml
+      - name: Install it as fpr_ff1._rs
+        run: cp rust/target/release/lib_fpr_ff1_rs.so src/fpr_ff1/_rs.so
+
+      - name: Verify the extension imports
+        run: uv run python -c "import fpr_ff1._rs as r; print('extension', r.__version__)"
+
+      # A floor, not an exact count: an absolute number goes stale every time
+      # anyone adds a parametrised case, but only a silent skip can push the
+      # rust selection below 500 (it is 550 at the time of writing).
+      - name: Assert the rust parameterisation is collected
+        run: |
+          n=$(uv run pytest --collect-only -q -k rust | tail -1 | grep -oE '^[0-9]+')
+          echo "rust-parameterised tests collected: ${n:-0}"
+          test "${n:-0}" -ge 500 || { echo "only ${n:-0} rust-parameterised tests collected" >&2; exit 1; }
+
+      # FPR_FF1_REQUIRE_ORACLE comes from the workflow-level env.
+      - name: Full suite on both backends with the 100% coverage gate
+        run: uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100
+
+      - name: Rust unit tests
+        run: cargo test --manifest-path rust/Cargo.toml
+
+      # `just rust-lint` runs these two locally.
+      - name: Rust format check
+        run: cargo fmt --check --manifest-path rust/Cargo.toml
+      - name: Rust lint
+        run: cargo clippy --manifest-path rust/Cargo.toml --all-targets -- -D warnings
+
   audit:
     name: Dependency audit
     runs-on: ubuntu-latest
