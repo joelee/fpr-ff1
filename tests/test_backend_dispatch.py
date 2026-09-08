@@ -20,7 +20,9 @@ import types
 from typing import Any
 
 import pytest
+from packaging.version import Version
 
+import fpr_ff1
 from fpr_ff1 import FF1
 from fpr_ff1._exceptions import (  # pyright: ignore[reportPrivateUsage]
     BackendError,
@@ -276,3 +278,20 @@ def test_non_str_unpickled_backend_raises() -> None:
     clone = FF1(key=_KEY, radix=10)
     with pytest.raises(BackendError, match="str backend"):
         clone.__setstate__(state)  # pyright: ignore[reportPrivateUsage]
+
+
+@requires_rust
+def test_extension_version_matches_distribution() -> None:
+    """``_rs.__version__`` reports the crate version, and it is ours.
+
+    It was a hard-coded ``"0.1.0"`` -- a literal unrelated to anything
+    shipped, and untested, so nothing noticed. It now comes from
+    ``CARGO_PKG_VERSION``, which makes it a real provenance signal for a
+    wheel: the compiled core in your site-packages says which release it
+    was built from.
+
+    Compared after normalisation, for the reason given in
+    ``test_crate_version_matches_project_version``.
+    """
+    rs = importlib.import_module("fpr_ff1._rs")
+    assert Version(rs.__version__) == Version(fpr_ff1.__version__)

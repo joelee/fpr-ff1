@@ -416,7 +416,11 @@ fn ff1_impl(
 /// it and `backend="rust"` raises a clear `BackendError` (REQ-19).
 #[pymodule]
 fn _rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add("__version__", "0.1.0")?;
+    // From the crate manifest, which is held in lock-step with
+    // pyproject.toml (see Cargo.toml). A hard-coded literal here was
+    // unrelated to anything shipped and untested, so nothing noticed it
+    // was wrong (review 00006 LOW-06).
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
 
     /// Encrypt a numeral sequence (values validated Python-side).
     ///

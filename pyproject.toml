@@ -56,6 +56,9 @@ Security = "https://github.com/joelee/fpr-ff1/blob/main/SECURITY.md"
 [dependency-groups]
 dev = [
     "hypothesis>=6.131.0",
+    # Normalises PEP 440 against Cargo's semver so
+    # tests/test_contract.py can compare the two version manifests.
+    "packaging>=24.0",
     "pre-commit>=4.2.0",
     "pyright>=1.1.400",
     "pytest>=8.4.0",
