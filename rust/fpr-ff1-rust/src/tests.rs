@@ -42,10 +42,13 @@ fn str_radix_encodes_big_endian_and_truncates() {
 fn round_trip_conversion() {
     for &radix in &[2u32, 10, 36, 256, 65_535] {
         for len in [1usize, 2, 7, 64, 130] {
-            let numerals: Vec<u16> =
-                (0..len).map(|i| (i % radix as usize) as u16).collect();
+            let numerals: Vec<u16> = (0..len).map(|i| (i % radix as usize) as u16).collect();
             let value = num_radix(radix, &numerals);
-            assert_eq!(str_radix(&value, radix, len), numerals, "radix {radix} len {len}");
+            assert_eq!(
+                str_radix(&value, radix, len),
+                numerals,
+                "radix {radix} len {len}"
+            );
         }
     }
 }
@@ -81,7 +84,10 @@ fn radix_bounds_representable() {
     assert_eq!(num_radix(2, &[1, 0, 1, 1]), BigUint::from(11u32));
     // radix 65535: numerals up to 65534, exercising the u16 width.
     // NUM_radix([65534, 1]) = 65534 * 65535 + 1.
-    assert_eq!(num_radix(65_535, &[65_534, 1]), BigUint::from(65534u64 * 65535 + 1));
+    assert_eq!(
+        num_radix(65_535, &[65_534, 1]),
+        BigUint::from(65534u64 * 65535 + 1)
+    );
 }
 
 #[test]

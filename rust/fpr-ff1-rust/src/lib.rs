@@ -57,9 +57,15 @@ impl Aes {
     /// defensive, exercised only through the test-only bindings.
     fn new(key: &[u8]) -> Result<Aes, String> {
         match key.len() {
-            16 => Ok(Aes::Aes128(Aes128::new_from_slice(key).expect("len checked"))),
-            24 => Ok(Aes::Aes192(Aes192::new_from_slice(key).expect("len checked"))),
-            32 => Ok(Aes::Aes256(Aes256::new_from_slice(key).expect("len checked"))),
+            16 => Ok(Aes::Aes128(
+                Aes128::new_from_slice(key).expect("len checked"),
+            )),
+            24 => Ok(Aes::Aes192(
+                Aes192::new_from_slice(key).expect("len checked"),
+            )),
+            32 => Ok(Aes::Aes256(
+                Aes256::new_from_slice(key).expect("len checked"),
+            )),
             n => Err(format!("key must be 16, 24, or 32 bytes, got {n}")),
         }
     }
@@ -302,8 +308,7 @@ fn ff1_impl(
             let mut j: u128 = 1;
             while s_block.len() < d {
                 let j_be = j.to_be_bytes();
-                let xored: [u8; 16] =
-                    std::array::from_fn(|idx| r_block[idx] ^ j_be[idx]);
+                let xored: [u8; 16] = std::array::from_fn(|idx| r_block[idx] ^ j_be[idx]);
                 s_block.extend_from_slice(&cipher_block(key, &xored)?);
                 j += 1;
             }
@@ -385,13 +390,23 @@ fn _rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     /// Encrypt a numeral sequence (values validated Python-side).
     #[pyfunction]
-    fn encrypt_numerals(key: Vec<u8>, radix: u32, x: Vec<u16>, tweak: Vec<u8>) -> PyResult<Vec<u16>> {
+    fn encrypt_numerals(
+        key: Vec<u8>,
+        radix: u32,
+        x: Vec<u16>,
+        tweak: Vec<u8>,
+    ) -> PyResult<Vec<u16>> {
         ff1(&key, radix, &x, &tweak, true).map_err(PyValueError::new_err)
     }
 
     /// Decrypt a numeral sequence (values validated Python-side).
     #[pyfunction]
-    fn decrypt_numerals(key: Vec<u8>, radix: u32, x: Vec<u16>, tweak: Vec<u8>) -> PyResult<Vec<u16>> {
+    fn decrypt_numerals(
+        key: Vec<u8>,
+        radix: u32,
+        x: Vec<u16>,
+        tweak: Vec<u8>,
+    ) -> PyResult<Vec<u16>> {
         ff1(&key, radix, &x, &tweak, false).map_err(PyValueError::new_err)
     }
 
