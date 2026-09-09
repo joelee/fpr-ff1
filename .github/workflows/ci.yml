@@ -200,7 +200,7 @@ jobs:
       - name: Assert sdist contents
         run: |
           tar -tzf dist/*.tar.gz > sdist-contents.txt
-          forbidden='AGENTS.md docs/plans/ docs/reviews/ .opencode/ .python-version .codegraph'
+          forbidden='AGENTS.md CLAUDE.md docs/plans/ docs/reviews/ .opencode/ .python-version .codegraph'
           for pattern in $forbidden; do
             if grep -q "$pattern" sdist-contents.txt; then
               echo "sdist contains forbidden path pattern: $pattern" >&2

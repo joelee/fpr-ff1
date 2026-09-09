@@ -9,7 +9,7 @@ expanding the accepted domain without changing existing behaviour is a minor ver
 
 ## [Unreleased]
 
-## [2.0.0rc1] — 2026-09-07
+## [2.0.0rc1] — 2026-09-09
 
 Release candidate for the optional accelerated backend. **The pure-Python path is unchanged and
 remains the default** — ciphertext is bit-identical to 1.1.0 for every valid input, and no
@@ -314,7 +314,9 @@ requiring a major version.
 
 <!-- Keep a Changelog link reference definitions (review 00003 B7): without
      these, the bracketed version headings render as literal brackets. -->
-[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v2.0.0rc1...HEAD
+[2.0.0rc1]: https://github.com/joelee/fpr-ff1/compare/v1.1.0...v2.0.0rc1
+[1.1.0]: https://github.com/joelee/fpr-ff1/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/joelee/fpr-ff1/compare/v0.1.1...v1.0.0
 [0.1.1]: https://github.com/joelee/fpr-ff1/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/joelee/fpr-ff1/releases/tag/v0.1.0
