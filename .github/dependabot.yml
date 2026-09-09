@@ -1,6 +1,10 @@
-# Dependabot keeps the pinned action SHAs and the uv lock current.
+# Dependabot keeps the pinned action SHAs and both lock files current.
 # The github-actions ecosystem raises PRs when a pinned action's tag moves;
-# the uv ecosystem raises PRs for dependency updates.
+# the uv ecosystem raises PRs for Python dependency updates; the cargo
+# ecosystem does the same for the optional compiled backend's crates.
+# Without the third entry `cargo audit` in ci.yml turns the release gate
+# red on an advisory and nothing raises the remediation PR (review 00006
+# LOW-04).
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -18,5 +22,16 @@ updates:
       interval: weekly
     groups:
       python:
+        patterns:
+          - "*"
+
+  # directory is /rust: that is where the workspace Cargo.toml and the
+  # committed Cargo.lock live, not the repository root.
+  - package-ecosystem: cargo
+    directory: /rust
+    schedule:
+      interval: weekly
+    groups:
+      rust:
         patterns:
           - "*"

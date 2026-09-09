@@ -86,6 +86,14 @@ bench:
 rust-test:
     cargo test --manifest-path rust/Cargo.toml
 
+# Rust hygiene gates: the crate's equivalent of ruff + pyright. Like
+# `rust-test`, deliberately NOT part of `quality` -- the pure-Python path
+# must never depend on a Rust toolchain being installed. CI runs both
+# commands in the `rust-conformance` job (.github/workflows/ci.yml).
+rust-lint:
+    cargo fmt --check --manifest-path rust/Cargo.toml
+    cargo clippy --manifest-path rust/Cargo.toml --all-targets -- -D warnings
+
 # Build the Rust accelerated backend into the source tree as fpr_ff1._rs
 # (plan 00003 E2 dev loop). Builds the cdylib with cargo and copies it into
 # src/fpr_ff1/ -- the editable install maps that directory, so the
@@ -93,17 +101,29 @@ rust-test:
 # cannot strip it; the copy is gitignored). PYO3_PYTHON must be absolute:
 # cargo build scripts run with the crate directory as cwd, so a relative
 # venv path breaks pyo3's interpreter detection. Requires a local Rust
-# toolchain.
+# toolchain.  CI's `rust-conformance` job inlines these same two
+# commands (just is not installed on the runner) -- keep them in sync.
 backend-dev:
     #!/usr/bin/env bash
     set -euo pipefail
     root="$(pwd)"
-    PYO3_PYTHON="$root/.venv/bin/python" cargo build --release --manifest-path rust/Cargo.toml
-    case "$(uname -s)" in
-        Darwin) artifact=rust/target/release/lib_fpr_ff1_rs.dylib ;;
-        *) artifact=rust/target/release/lib_fpr_ff1_rs.so ;;
+    venv_python="$root/.venv/bin/python"
+    [ -x "$venv_python" ] || venv_python="$root/.venv/Scripts/python.exe"
+    PYO3_PYTHON="$venv_python" cargo build --release --manifest-path rust/Cargo.toml
+    # Three platforms, three cdylib names and three import suffixes. Windows
+    # produces an undecorated .dll and CPython only loads it as .pyd.
+    case "${OS:-}$(uname -s 2>/dev/null || true)" in
+        *MINGW*|*MSYS*|*CYGWIN*|Windows_NT*)
+            artifact=rust/target/release/_fpr_ff1_rs.dll
+            dest=src/fpr_ff1/_rs.pyd ;;
+        *Darwin*)
+            artifact=rust/target/release/lib_fpr_ff1_rs.dylib
+            dest=src/fpr_ff1/_rs.so ;;
+        *)
+            artifact=rust/target/release/lib_fpr_ff1_rs.so
+            dest=src/fpr_ff1/_rs.so ;;
     esac
-    cp "$artifact" src/fpr_ff1/_rs.so
-    echo "installed fpr_ff1._rs into src/fpr_ff1/"
+    cp "$artifact" "$dest"
+    echo "installed fpr_ff1._rs into src/fpr_ff1/ ($dest)"
 
 ci: sync quality build secrets

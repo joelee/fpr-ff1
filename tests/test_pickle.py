@@ -125,6 +125,23 @@ def test_setstate_rejects_non_bytes_key() -> None:
         restored.__setstate__(state)  # pyright: ignore[reportPrivateUsage]
 
 
+def test_setstate_rejects_wrong_length_key() -> None:
+    """A bytes key of the wrong length must raise from the hierarchy too.
+
+    Type alone is not enough: a 15-byte ``bytes`` key passes the isinstance
+    gate and then reaches ``algorithms.AES``, which raises ``cryptography``'s
+    own ``ValueError`` -- outside ``FF1Error``, so a caller catching the
+    documented hierarchy misses it entirely.
+    """
+    ff1 = FF1(key=_VALID_KEY, radix=10, tweak=b"tweak")
+    state = ff1.__getstate__()  # pyright: ignore[reportPrivateUsage]
+    state["_key"] = b"\x00" * 15
+
+    restored = FF1.__new__(FF1)
+    with pytest.raises(KeyLengthError, match="byte key"):
+        restored.__setstate__(state)  # pyright: ignore[reportPrivateUsage]
+
+
 def test_version_is_exported_and_matches_distribution() -> None:
     """``__version__`` must exist, be a string, and match the installed dist.
 

@@ -11,9 +11,18 @@ This file tracks high-level feature ideas and technical debt for `fpr-ff1`.
 - Raise the `requires-python` floor as new Python versions enter the CI matrix and pass. The
   upper-bound cap policy was retired at 1.0.0 (review 00003 B4): a cap becomes a hard resolution
   failure on future interpreters, so classifiers state the tested versions instead.
+- **Port the divide-and-conquer conversion to the Rust core** (review 00006 open question 1) —
+  target `2.0.0rc2`. The compiled core uses the naive spec-reference `NUM_radix`/`STR_radix`,
+  which is why the pure-Python path overtakes it between n=1,000 and n=5,000. Deferred from plan
+  00005 by user decision D3 so the rc1 hardening stayed output-neutral.
 
 ## Completed Items
 
+- Review 00006 hardening for `2.0.0rc1` (plan 00005): a `rust-conformance` CI job that runs the
+  compiled backend's full conformance suite in the release gate, GIL release in the PyO3 bindings,
+  a once-per-call AES key schedule, `cargo` Dependabot coverage, a typed pickle key-length
+  rejection, `_rs.__version__` from the crate manifest with a two-file version contract test, Rust
+  hygiene gates, and a corrected crossover claim.
 - Initial FF1 implementation.
 - NIST sample vector conformance tests (9 vectors, encrypt + decrypt).
 - Per-round intermediate value conformance tests for all 9 NIST samples.

@@ -9,7 +9,7 @@ expanding the accepted domain without changing existing behaviour is a minor ver
 
 ## [Unreleased]
 
-## [2.0.0rc1] — 2026-09-07
+## [2.0.0rc1] — 2026-09-09
 
 Release candidate for the optional accelerated backend. **The pure-Python path is unchanged and
 remains the default** — ciphertext is bit-identical to 1.1.0 for every valid input, and no
@@ -20,9 +20,9 @@ existing caller is affected. The `backend` keyword is additive and opt-in.
 - **Opt-in compiled backend** (`backend="rust"`, plan 00003 E2). A PyO3 extension
   (`fpr_ff1._rs`) implementing SP 800-38G Algorithm 7 and the Algorithm 6 PRF with a pinned
   RustCrypto AES core, validated against the NIST FIPS 197 Appendix C vectors and the Python
-  path's PRF output. Measured ~6.8× faster than the pure-Python path at 6 numerals and ~3.3× at
-  n=100 (radix 10); the pure-Python path remains the better choice for long inputs (see the
-  README Backends section for the crossover guidance).
+  path's PRF output. Measured ~7.5× faster than the pure-Python path at 6 numerals and ~3.4× at
+  n=100 (radix 10); the pure-Python path remains the better choice for long inputs, with the
+  crossover between n=1,000 and n=5,000 (see the README Backends section).
 - **`BackendError`** — a typed exception (rooted at `FF1Error`) for an unknown `backend` name or
   a missing compiled extension.
 - **Dual-backend conformance.** The entire suite — NIST vectors, per-round intermediates, frozen
@@ -34,12 +34,33 @@ existing caller is affected. The `backend` keyword is additive and opt-in.
   the sdist installs and works without a Rust toolchain, and `backend="rust"` then raises
   `BackendError`.
 - **Rust supply-chain hardening**: `Cargo.lock` committed, `cargo-audit` in CI, SHA-pinned
-  toolchain action, `rust-toolchain.toml` channel pin.
+  toolchain action, `rust-toolchain.toml` channel pin, and a `cargo` Dependabot ecosystem for
+  `/rust` so an advisory has a remediation path rather than only a red gate.
+- **`rust-conformance` CI job.** The release gate now builds the extension and runs the full
+  suite on both backends with `FPR_FF1_REQUIRE_RUST_BACKEND=1` at the 100% coverage floor, plus
+  `cargo test`, `cargo fmt --check` and `cargo clippy -- -D warnings`. Previously the only Rust
+  execution in the pipeline was a single NIST vector, so a defect reachable only at `d > 16`
+  could have shipped green.
+- **`just rust-lint`** for the same hygiene gates locally; `just backend-dev` gained a Windows
+  arm.
 
 ### Changed
 
 - `FF1.__init__` gains the keyword-only `backend` parameter (default `"python"`).
 - Validation runs in Python for both backends, so exception types and messages are identical.
+- **The compiled backend releases the GIL** for the duration of the FF1 computation. Concurrent
+  calls on one instance now run in parallel — measured 3.8× on four threads at n=5,000 — and a
+  long call no longer stalls unrelated threads. Thread-safety semantics and output are unchanged.
+- The compiled core builds the AES key schedule once per call instead of once per PRF invocation
+  and per S-expansion block. Output-neutral.
+- `fpr_ff1._rs.__version__` reports the crate version, which is now held in lock-step with the
+  distribution version (semver form: `2.0.0-rc1` for `2.0.0rc1`) and enforced by a contract test.
+
+### Fixed
+
+- Unpickling an `FF1` whose state carries a wrong-length key now raises `KeyLengthError` rather
+  than `cryptography`'s untyped `ValueError`, which fell outside the documented `FF1Error`
+  hierarchy.
 
 ### Unchanged
 
@@ -293,7 +314,9 @@ requiring a major version.
 
 <!-- Keep a Changelog link reference definitions (review 00003 B7): without
      these, the bracketed version headings render as literal brackets. -->
-[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v2.0.0rc1...HEAD
+[2.0.0rc1]: https://github.com/joelee/fpr-ff1/compare/v1.1.0...v2.0.0rc1
+[1.1.0]: https://github.com/joelee/fpr-ff1/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/joelee/fpr-ff1/compare/v0.1.1...v1.0.0
 [0.1.1]: https://github.com/joelee/fpr-ff1/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/joelee/fpr-ff1/releases/tag/v0.1.0

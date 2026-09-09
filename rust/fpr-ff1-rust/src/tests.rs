@@ -17,7 +17,7 @@
 use num_bigint::BigUint;
 use num_traits::One;
 
-use crate::{ff1, num_radix, prf, str_radix};
+use crate::{ff1, num_radix, prf_with_key, str_radix};
 
 #[test]
 fn num_radix_decodes_big_endian() {
@@ -42,10 +42,13 @@ fn str_radix_encodes_big_endian_and_truncates() {
 fn round_trip_conversion() {
     for &radix in &[2u32, 10, 36, 256, 65_535] {
         for len in [1usize, 2, 7, 64, 130] {
-            let numerals: Vec<u16> =
-                (0..len).map(|i| (i % radix as usize) as u16).collect();
+            let numerals: Vec<u16> = (0..len).map(|i| (i % radix as usize) as u16).collect();
             let value = num_radix(radix, &numerals);
-            assert_eq!(str_radix(&value, radix, len), numerals, "radix {radix} len {len}");
+            assert_eq!(
+                str_radix(&value, radix, len),
+                numerals,
+                "radix {radix} len {len}"
+            );
         }
     }
 }
@@ -55,9 +58,13 @@ fn b_derivation_uses_v_not_u() {
     // radix 256, n=5: u=2, v=3. b from v = ceil(bits(256**3 - 1)/8) = 3;
     // b from u would be 2. Pin the correct derivation (AGENTS.md gotcha).
     let v = 3usize;
+    // Kept as `(bits + 7) / 8` rather than `bits.div_ceil(8)` to match
+    // SP 800-38G Algorithm 7 step 3 / `_ff1.py` line for line (decision D5).
+    #[allow(clippy::manual_div_ceil)]
     let b = ((BigUint::from(256u32).pow(v as u32) - BigUint::one()).bits() + 7) / 8;
     assert_eq!(b, 3);
     let u = 2usize;
+    #[allow(clippy::manual_div_ceil)]
     let b_wrong = ((BigUint::from(256u32).pow(u as u32) - BigUint::one()).bits() + 7) / 8;
     assert_eq!(b_wrong, 2, "sanity: the two derivations must disagree here");
 }
@@ -81,7 +88,10 @@ fn radix_bounds_representable() {
     assert_eq!(num_radix(2, &[1, 0, 1, 1]), BigUint::from(11u32));
     // radix 65535: numerals up to 65534, exercising the u16 width.
     // NUM_radix([65534, 1]) = 65534 * 65535 + 1.
-    assert_eq!(num_radix(65_535, &[65_534, 1]), BigUint::from(65534u64 * 65535 + 1));
+    assert_eq!(
+        num_radix(65_535, &[65_534, 1]),
+        BigUint::from(65534u64 * 65535 + 1)
+    );
 }
 
 #[test]
@@ -90,18 +100,18 @@ fn prf_structural_properties() {
     // validated Python-side (KAT + equality with the reference path).
     let key = [7u8; 32];
     let data = [1u8; 48]; // three aligned blocks
-    let tag1 = prf(&key, &data).expect("valid key");
-    let tag2 = prf(&key, &data).expect("valid key");
+    let tag1 = prf_with_key(&key, &data).expect("valid key");
+    let tag2 = prf_with_key(&key, &data).expect("valid key");
     assert_eq!(tag1.len(), 16, "CBC-MAC tag is one block");
     assert_eq!(tag1, tag2, "PRF is deterministic for fixed inputs");
     // Key sensitivity: a different key must move the tag.
     let other_key = [8u8; 32];
-    let tag3 = prf(&other_key, &data).expect("valid key");
+    let tag3 = prf_with_key(&other_key, &data).expect("valid key");
     assert_ne!(tag1, tag3);
     // Data sensitivity: flipping one input bit must move the tag.
     let mut flipped = data;
     flipped[0] ^= 1;
-    let tag4 = prf(&key, &flipped).expect("valid key");
+    let tag4 = prf_with_key(&key, &flipped).expect("valid key");
     assert_ne!(tag1, tag4);
 }
 

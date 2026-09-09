@@ -1,6 +1,13 @@
 [package]
 name = "fpr-ff1-rust"
-version = "0.1.0"
+# Kept in lock-step with [project].version in pyproject.toml, in semver
+# form: Cargo cannot parse the PEP 440 spelling ("2.0.0rc1" fails with
+# "unexpected character 'r' after patch version number"), so a pre-release
+# is written 2.0.0-rc1 here and 2.0.0rc1 there. packaging.version.Version
+# reads both as the same release, and
+# tests/test_contract.py::test_crate_version_matches_project_version
+# enforces the pair on every CI leg.
+version = "2.0.0-rc1"
 edition = "2021"
 description = "Opt-in Rust accelerated backend for the fpr-ff1 FF1 library (SP 800-38G Algorithm 7)."
 license = "MIT"

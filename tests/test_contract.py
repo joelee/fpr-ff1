@@ -26,6 +26,7 @@ from fractions import Fraction
 from typing import Any
 
 import pytest
+from packaging.version import Version
 
 from fpr_ff1 import FF1, FF1Error
 
@@ -203,3 +204,32 @@ def test_project_urls_match_the_git_remote() -> None:
         assert f"github.com/{slug}" in url, (
             f"project URL {label}={url!r} does not match the git remote {slug!r}"
         )
+
+
+def test_crate_version_matches_project_version() -> None:
+    """The Rust crate and the distribution must be bumped together.
+
+    They are two files, so nothing but a test keeps them in step, and a
+    drifted crate version silently mislabels ``fpr_ff1._rs.__version__`` and
+    the platform wheel's SBOM. This test reads both manifests and never
+    imports the extension, so it runs on every CI leg -- including the ones
+    with no Rust toolchain -- and a release that skips the Rust job still
+    cannot ship a mismatch.
+
+    The two strings are compared after normalisation, not literally: Cargo
+    rejects PEP 440 pre-release spellings (``version = "2.0.0rc1"`` fails to
+    parse), so the crate carries the semver form ``2.0.0-rc1`` while
+    ``pyproject.toml`` carries ``2.0.0rc1``. ``packaging.version.Version``
+    reads both as the same release.
+    """
+    with (_REPO_ROOT / "pyproject.toml").open("rb") as handle:
+        project_version = tomllib.load(handle)["project"]["version"]
+    crate_manifest = _REPO_ROOT / "rust" / "fpr-ff1-rust" / "Cargo.toml"
+    with crate_manifest.open("rb") as handle:
+        crate_version = tomllib.load(handle)["package"]["version"]
+
+    assert Version(crate_version) == Version(project_version), (
+        f"crate version {crate_version!r} and project version "
+        f"{project_version!r} disagree; bump both (Cargo needs the semver "
+        f"form, e.g. 2.0.0-rc1 for 2.0.0rc1)"
+    )

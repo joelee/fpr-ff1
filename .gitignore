@@ -47,3 +47,5 @@ tmp/
 rust/target/
 target/
 src/fpr_ff1/_rs*.so
+src/fpr_ff1/_rs*.pyd
+src/fpr_ff1/_rs*.dylib

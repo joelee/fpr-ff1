@@ -19,9 +19,8 @@ Two independent checks:
 
 Availability mirrors the differential-oracle contract (AGENTS.md tests
 section 7): optional locally, mandatory when ``FPR_FF1_REQUIRE_RUST_BACKEND``
-is set — the CI wiring for that flag lands with the wheel builds in
-STEP-14, exactly as ``FPR_FF1_REQUIRE_ORACLE`` preceded the oracle's
-release-gate use.
+is set — which CI's ``rust-conformance`` job does, so a missing extension
+fails the release gate rather than skipping.
 """
 
 import importlib
@@ -38,8 +37,8 @@ from fpr_ff1._ff1 import _Aes, _prf  # pyright: ignore[reportPrivateUsage]
 
 _VECTOR_FILE = pathlib.Path(__file__).parent / "vectors" / "aes_kat_fips197.json"
 
-#: Set (e.g. by CI from STEP-14 on) to turn a missing backend into a hard
-#: failure instead of a skip, mirroring ``FPR_FF1_REQUIRE_ORACLE``.
+#: Set by CI's ``rust-conformance`` job to turn a missing backend into a
+#: hard failure instead of a skip, mirroring ``FPR_FF1_REQUIRE_ORACLE``.
 _REQUIRED = os.environ.get("FPR_FF1_REQUIRE_RUST_BACKEND", "").strip() not in {"", "0"}
 
 

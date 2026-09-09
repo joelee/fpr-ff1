@@ -57,9 +57,15 @@ impl Aes {
     /// defensive, exercised only through the test-only bindings.
     fn new(key: &[u8]) -> Result<Aes, String> {
         match key.len() {
-            16 => Ok(Aes::Aes128(Aes128::new_from_slice(key).expect("len checked"))),
-            24 => Ok(Aes::Aes192(Aes192::new_from_slice(key).expect("len checked"))),
-            32 => Ok(Aes::Aes256(Aes256::new_from_slice(key).expect("len checked"))),
+            16 => Ok(Aes::Aes128(
+                Aes128::new_from_slice(key).expect("len checked"),
+            )),
+            24 => Ok(Aes::Aes192(
+                Aes192::new_from_slice(key).expect("len checked"),
+            )),
+            32 => Ok(Aes::Aes256(
+                Aes256::new_from_slice(key).expect("len checked"),
+            )),
             n => Err(format!("key must be 16, 24, or 32 bytes, got {n}")),
         }
     }
@@ -85,12 +91,23 @@ impl Aes {
 /// the underlying single-block cipher) and against the Python path's `_prf`
 /// output across key sizes and block counts
 /// (`tests/test_rust_aes_validation.py`).
-pub fn prf(key: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
-    let cipher = Aes::new(key)?;
+///
+/// Crate-internal because `Aes` is: `prf_with_key` is the outward form.
+///
+/// Takes the expanded key schedule rather than the raw key: `ff1_impl`
+/// builds it once per call and lends it to all ten rounds. `Aes` is
+/// immutable and call-local, so sharing it across the rounds of one call
+/// introduces no state that outlives the call and no shared mutability.
+pub(crate) fn prf(cipher: &Aes, data: &[u8]) -> Result<Vec<u8>, String> {
     // Zero IV: the chain register starts as all-zero and each block is
     // XORed in before encrypting; the final chain IS the MAC tag.
+    //
+    // `as_chunks::<16>()` rather than `chunks_exact(16)`: it yields
+    // `&[u8; 16]`, so the block width the spec fixes is carried in the type
+    // instead of being a runtime argument. Both forms discard a trailing
+    // partial block identically -- callers guarantee there is none.
     let mut chain = [0u8; 16];
-    for block in data.chunks_exact(16) {
+    for block in data.as_chunks::<16>().0 {
         for (slot, byte) in chain.iter_mut().zip(block) {
             *slot ^= byte;
         }
@@ -113,13 +130,27 @@ pub fn prf(key: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
 /// `_ff1.py` and AGENTS.md.)
 ///
 /// Covered by the same NIST FIPS 197 KAT validation as the PRF.
-pub fn cipher_block(key: &[u8], block: &[u8; 16]) -> Result<[u8; 16], String> {
-    let cipher = Aes::new(key)?;
+///
+/// Takes the expanded key schedule, for the reason given on `prf`.
+pub(crate) fn cipher_block(cipher: &Aes, block: &[u8; 16]) -> Result<[u8; 16], String> {
     let mut b = Block::clone_from_slice(block);
     cipher.encrypt_block(&mut b);
     let mut out = [0u8; 16];
     out.copy_from_slice(&b);
     Ok(out)
+}
+
+/// `prf` from a raw key, for callers outside the ten-round loop.
+///
+/// Used only by the test-only `_test_prf` binding and by `tests.rs`; the
+/// production path builds the schedule once in `ff1_impl` instead.
+pub fn prf_with_key(key: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
+    prf(&Aes::new(key)?, data)
+}
+
+/// `cipher_block` from a raw key. Same status as `prf_with_key`.
+pub fn cipher_block_with_key(key: &[u8], block: &[u8; 16]) -> Result<[u8; 16], String> {
+    cipher_block(&Aes::new(key)?, block)
 }
 
 /// Decode a numeral sequence as a big-endian base-radix integer
@@ -183,7 +214,6 @@ pub struct TraceRecord {
 /// the test-only traced entry point, so the traced and untraced cores can
 /// never drift apart. Inputs are pre-validated on the Python side
 /// (`_prepare` runs in Python for both backends — plan 00003 decision D4).
-#[allow(clippy::too_many_arguments)]
 pub fn ff1(
     key: &[u8],
     radix: u32,
@@ -219,6 +249,13 @@ fn ff1_impl(
         return Err("empty input".to_string());
     }
 
+    // The AES key schedule is built ONCE per call and lent to every round
+    // (review 00006 LOW-03): the previous code rebuilt it inside each of
+    // the ten `prf` calls and once more per S-expansion block. It is
+    // immutable and call-local -- never cached on an instance -- so the
+    // thread-safety argument is unchanged.
+    let cipher = Aes::new(key)?;
+
     // Step 1: u = floor(n/2), v = n - u
     let u = n / 2;
     let v = n - u;
@@ -231,11 +268,17 @@ fn ff1_impl(
     // Exact integer arithmetic: the bit length of radix**v - 1, never a
     // float logarithm (the Bouncy Castle bug class).
     let radix_big = BigUint::from(radix);
+    // Kept as `(bits + 7) / 8` rather than `bits.div_ceil(8)` to match
+    // SP 800-38G Algorithm 7 step 3 / `_ff1.py` line for line (decision D5).
+    #[allow(clippy::manual_div_ceil)]
     let b: usize = (((radix_big.pow(v as u32) - BigUint::one()).bits() + 7) / 8)
         .try_into()
         .expect("b fits usize");
 
     // Step 4: d = 4 * ceil(b/4) + 4
+    // Kept as `(b + 3) / 4` rather than `b.div_ceil(4)` to match SP 800-38G
+    // Algorithm 7 step 4 / `_ff1.py` line for line (decision D5).
+    #[allow(clippy::manual_div_ceil)]
     let d: usize = 4 * ((b + 3) / 4) + 4;
 
     let t = tweak.len();
@@ -287,7 +330,7 @@ fn ff1_impl(
         // Step 6.ii: R = PRF(P || Q)
         let mut prf_input = p_block.clone();
         prf_input.extend_from_slice(&q_block);
-        let r_block = prf(key, &prf_input)?;
+        let r_block = prf(&cipher, &prf_input)?;
 
         // Step 6.iii: S is the first d bytes of
         //   R || CIPH_K(R XOR [1]^16) || CIPH_K(R XOR [2]^16) || ...
@@ -297,14 +340,11 @@ fn ff1_impl(
         // invisible to the NIST samples, none of which reach d > 16.
         let mut s_block = r_block.clone();
         if s_block.len() < d {
-            // The ECB encryptor is created per call: caching one would be
-            // shared mutable state, and instances are thread-safe.
             let mut j: u128 = 1;
             while s_block.len() < d {
                 let j_be = j.to_be_bytes();
-                let xored: [u8; 16] =
-                    std::array::from_fn(|idx| r_block[idx] ^ j_be[idx]);
-                s_block.extend_from_slice(&cipher_block(key, &xored)?);
+                let xored: [u8; 16] = std::array::from_fn(|idx| r_block[idx] ^ j_be[idx]);
+                s_block.extend_from_slice(&cipher_block(&cipher, &xored)?);
                 j += 1;
             }
         }
@@ -381,18 +421,48 @@ fn ff1_impl(
 /// it and `backend="rust"` raises a clear `BackendError` (REQ-19).
 #[pymodule]
 fn _rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add("__version__", "0.1.0")?;
+    // From the crate manifest, which is held in lock-step with
+    // pyproject.toml (see Cargo.toml). A hard-coded literal here was
+    // unrelated to anything shipped and untested, so nothing noticed it
+    // was wrong (review 00006 LOW-06).
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
 
     /// Encrypt a numeral sequence (values validated Python-side).
+    ///
+    /// The ten-round computation runs inside `Python::detach`, so the
+    /// calling thread releases the GIL for its duration (review 00006
+    /// MED-01). Without it the whole computation was a GIL-held block:
+    /// concurrent calls serialised, and a long input (n = 20,000 is ~125
+    /// ms) stalled every other thread in the process for that whole time.
+    /// The closure captures only owned `Vec`s and a `u32` -- no Python
+    /// object crosses the boundary -- so it satisfies pyo3's `Ungil` bound
+    /// without `unsafe`.
     #[pyfunction]
-    fn encrypt_numerals(key: Vec<u8>, radix: u32, x: Vec<u16>, tweak: Vec<u8>) -> PyResult<Vec<u16>> {
-        ff1(&key, radix, &x, &tweak, true).map_err(PyValueError::new_err)
+    fn encrypt_numerals(
+        py: Python<'_>,
+        key: Vec<u8>,
+        radix: u32,
+        x: Vec<u16>,
+        tweak: Vec<u8>,
+    ) -> PyResult<Vec<u16>> {
+        py.detach(|| ff1(&key, radix, &x, &tweak, true))
+            .map_err(PyValueError::new_err)
     }
 
     /// Decrypt a numeral sequence (values validated Python-side).
+    ///
+    /// Releases the GIL for the computation, exactly as `encrypt_numerals`
+    /// does; see its comment.
     #[pyfunction]
-    fn decrypt_numerals(key: Vec<u8>, radix: u32, x: Vec<u16>, tweak: Vec<u8>) -> PyResult<Vec<u16>> {
-        ff1(&key, radix, &x, &tweak, false).map_err(PyValueError::new_err)
+    fn decrypt_numerals(
+        py: Python<'_>,
+        key: Vec<u8>,
+        radix: u32,
+        x: Vec<u16>,
+        tweak: Vec<u8>,
+    ) -> PyResult<Vec<u16>> {
+        py.detach(|| ff1(&key, radix, &x, &tweak, false))
+            .map_err(PyValueError::new_err)
     }
 
     m.add_function(wrap_pyfunction!(encrypt_numerals, m)?)?;
@@ -404,7 +474,7 @@ fn _rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
     /// `fpr_ff1` public API, mirroring `_encrypt_traced`'s status.
     #[pyfunction]
     fn _test_prf(key: Vec<u8>, data: Vec<u8>) -> PyResult<Vec<u8>> {
-        prf(&key, &data).map_err(PyValueError::new_err)
+        prf_with_key(&key, &data).map_err(PyValueError::new_err)
     }
 
     /// Test-only: the raw single-block forward cipher, exposed for the
@@ -414,7 +484,7 @@ fn _rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
         let arr: [u8; 16] = block
             .try_into()
             .map_err(|_| PyValueError::new_err("block must be exactly 16 bytes"))?;
-        cipher_block(&key, &arr)
+        cipher_block_with_key(&key, &arr)
             .map(|out| out.to_vec())
             .map_err(PyValueError::new_err)
     }

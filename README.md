@@ -250,22 +250,31 @@ messages are the same. The compiled backend ships as `fpr_ff1._rs` inside the pl
 pure-Python wheel and the sdist omit it, and requesting `backend="rust"` there raises a clear
 `BackendError` rather than an opaque `ImportError`.
 
-Measured on one core, CPython 3.12.13, macOS (Apple Silicon), radix 10 — reproduce with
-`just bench`:
+Measured on one core, CPython 3.12.13, Linux x86_64 — reproduce with `just bench`:
 
 | Input | `backend="python"` | `backend="rust"` | Speedup |
 |---|---:|---:|---:|
-| 6 numerals | 28.3 µs/op | 4.2 µs/op | ~6.8× |
-| n = 100 | 109.9 µs/op | 33.7 µs/op | ~3.3× |
-| n = 20,000 | 27.1 ms/op | 126.9 ms/op | 0.21× (slower) |
+| 6 numerals, radix 10 | 27.3 µs/op | 3.6 µs/op | ~7.5× |
+| n = 100, radix 10 | 106.8 µs/op | 31.9 µs/op | ~3.4× |
+| n = 1,000, radix 10 | 912.6 µs/op | 523.2 µs/op | ~1.7× |
+| n = 5,000, radix 10 | 5.1 ms/op | 8.5 ms/op | 0.60× (slower) |
+| n = 20,000, radix 10 | 26.5 ms/op | 124.5 ms/op | 0.21× (slower) |
+| n = 100, radix 256 | 139.0 µs/op | 43.6 µs/op | ~3.2× |
+| n = 1,000, radix 256 | 2.1 ms/op | 0.9 ms/op | ~2.3× |
+| n = 5,000, radix 256 | 10.7 ms/op | 17.2 ms/op | 0.62× (slower) |
+| n = 20,000, radix 256 | 43.2 ms/op | 253.8 ms/op | 0.17× (slower) |
 
 **Use the rust backend for short inputs, the default for long inputs.** The compiled core
 eliminates the per-call cipher-context construction that dominates short inputs (about 55% of an
-n=6 call), which is why it is ~6.8× faster there. It deliberately uses the naive spec-reference
-conversion, so at long inputs the pure-Python path's subquadratic conversion wins — the crossover
-is somewhere around a few hundred numerals. The two backends are complementary, not a
-replacement: the pure-Python path remains the reference, the default, and the better choice for
-long inputs.
+n=6 call), which is why it is ~7.5× faster there. It deliberately uses the naive spec-reference
+conversion, so at long inputs the pure-Python path's subquadratic conversion wins.
+
+**The crossover falls between n = 1,000 and n = 5,000** on both radices measured — the compiled
+backend is still ahead at n = 1,000 (1.7× at radix 10, 2.3× at radix 256) and behind at n = 5,000.
+Treat that as a band on this hardware, not a constant: measure your own shapes with `just bench`.
+
+The two backends are complementary, not a replacement: the pure-Python path remains the reference,
+the default, and the better choice for long inputs.
 
 ## API
 
@@ -358,6 +367,13 @@ context is created locally to the call that uses it — so separate calls on one
 concurrently and produce exactly the single-threaded results. There is no module-level or global
 state either, so any number of instances may be used concurrently. A web service may freely share
 one `FF1` across request threads.
+
+Thread-safe is not the same as parallel. The pure-Python backend holds the GIL throughout, so
+concurrent calls interleave rather than overlap. The compiled backend releases the GIL for the
+duration of the FF1 computation, so concurrent calls on one instance genuinely run in parallel —
+measured 3.8× on four threads (n = 5,000, radix 10) against 0.85× for the pure-Python control.
+Releasing the GIL also means a long call no longer stalls unrelated threads in the process.
+Reproduce both rows with `just bench`.
 
 ## Migrating from `ubiq_security_fpe`
 

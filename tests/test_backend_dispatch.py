@@ -8,8 +8,9 @@ identical for both backends, and a missing compiled extension is a clear
 
 Availability mirrors the oracle contract (AGENTS.md tests section 7): the
 rust-backend tests skip locally when the extension is not built and fail
-hard when ``FPR_FF1_REQUIRE_RUST_BACKEND`` is set (CI wiring lands in
-STEP-14).  The pure-Python and validation-parity tests always run.
+hard when ``FPR_FF1_REQUIRE_RUST_BACKEND`` is set.  CI's ``rust-conformance``
+job sets that variable, so a missing extension fails the release gate rather
+than skipping.  The pure-Python and validation-parity tests always run.
 """
 
 import importlib
@@ -20,7 +21,9 @@ import types
 from typing import Any
 
 import pytest
+from packaging.version import Version
 
+import fpr_ff1
 from fpr_ff1 import FF1
 from fpr_ff1._exceptions import (  # pyright: ignore[reportPrivateUsage]
     BackendError,
@@ -47,7 +50,7 @@ requires_rust = pytest.mark.skipif(
     reason="Rust backend not built; run `just backend-dev`",
 )
 if _REQUIRED and not _rust_available:
-    raise ImportError("FPR_FF1_REQUIRE_RUST_BACKEND is set but _fpr_ff1_rs is not built")
+    raise ImportError("FPR_FF1_REQUIRE_RUST_BACKEND is set but fpr_ff1._rs is not built")
 
 
 def _plaintext(n: int = 10, radix: int = 10) -> list[int]:
@@ -276,3 +279,20 @@ def test_non_str_unpickled_backend_raises() -> None:
     clone = FF1(key=_KEY, radix=10)
     with pytest.raises(BackendError, match="str backend"):
         clone.__setstate__(state)  # pyright: ignore[reportPrivateUsage]
+
+
+@requires_rust
+def test_extension_version_matches_distribution() -> None:
+    """``_rs.__version__`` reports the crate version, and it is ours.
+
+    It was a hard-coded ``"0.1.0"`` -- a literal unrelated to anything
+    shipped, and untested, so nothing noticed. It now comes from
+    ``CARGO_PKG_VERSION``, which makes it a real provenance signal for a
+    wheel: the compiled core in your site-packages says which release it
+    was built from.
+
+    Compared after normalisation, for the reason given in
+    ``test_crate_version_matches_project_version``.
+    """
+    rs = importlib.import_module("fpr_ff1._rs")
+    assert Version(rs.__version__) == Version(fpr_ff1.__version__)

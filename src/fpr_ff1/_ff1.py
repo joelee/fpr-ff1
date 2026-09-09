@@ -180,6 +180,9 @@ class FF1:
     _MAX_LEN: ClassVar[int] = 2**32 - 1
     _RADIX_MIN: ClassVar[int] = 2
     _RADIX_MAX_EXCLUSIVE: ClassVar[int] = 2**16
+    # AES-128/192/256 only.  Named because two entry points validate it --
+    # the constructor and __setstate__ -- and they must not drift.
+    _KEY_SIZES: ClassVar[frozenset[int]] = frozenset({16, 24, 32})
 
     def __init__(
         self,
@@ -220,7 +223,7 @@ class FF1:
         # fundamental fault, and reporting a range error for a float would be
         # actively misleading.
         key = _require_bytes(key, "key", KeyLengthError)
-        if len(key) not in {16, 24, 32}:
+        if len(key) not in self._KEY_SIZES:
             raise KeyLengthError(f"key must be 16, 24, or 32 bytes, got {len(key)}")
 
         radix = _require_int(radix, "radix", RadixError)
@@ -315,6 +318,17 @@ class FF1:
         if not isinstance(key, bytes):  # pyright: ignore[reportUnnecessaryIsInstance]
             raise KeyLengthError(
                 f"unpickled FF1 state must carry a bytes key, got {type(key).__name__}"
+            )
+        # Type is not enough, and for the same reason: a 15-byte bytes key
+        # passes the check above and then reaches algorithms.AES, which
+        # raises cryptography's own ValueError -- outside FF1Error, so a
+        # caller catching the documented hierarchy misses it.  Only the
+        # length is re-validated; radix, tweak and alphabet are not, because
+        # a pickle is trusted input by policy (SECURITY.md) and this is the
+        # one gap that escapes the hierarchy.
+        if len(key) not in self._KEY_SIZES:
+            raise KeyLengthError(
+                f"unpickled FF1 state carries a {len(key)}-byte key; expected 16, 24, or 32"
             )
         # The backend rides in the pickled __dict__ (a plain string).  A
         # pickle from before the backend existed (1.x) has no ``_backend``
