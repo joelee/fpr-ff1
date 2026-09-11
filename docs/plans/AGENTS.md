@@ -51,8 +51,7 @@ amend a plan:
 7. If it returns no output, record the baseline branch and full `HEAD` commit.
 
 Run the same status command again immediately before every plan create or edit.
-If the second check is not empty, release only a numbering lock acquired during
-the current operation, then stop without writing.
+If the second check is not empty, stop without writing.
 
 A dirty state includes modified, added, deleted, renamed, copied, conflicted,
 ignored-in-index, and untracked paths. Do not exempt existing plan files. A pure
@@ -70,29 +69,29 @@ docs/plans/00001-Plan_Description.md
 
 Allocate the path as follows:
 
-1. Complete the initial clean-state gate before creating a directory or lock.
-2. Create `docs/plans/` with `mkdir -p docs/plans` only when absent.
-3. Acquire the numbering lock with exactly `mkdir docs/plans/.plan-number-lock`.
-   Directory creation is atomic: if it fails because the lock exists, do **not**
-   remove or bypass it. Publish nothing and report that another allocation may
-   be active or that a stale lock requires human inspection.
-4. While holding the lock, list files matching
-   `docs/plans/[0-9][0-9][0-9][0-9][0-9]-*.md`.
-5. Parse only the leading five decimal digits from valid matching filenames.
-6. Set the next number to the highest existing value plus one; use `00001` when
-   none exist. **Never fill a gap or reuse a number.**
-7. Derive `Plan_Description` from the requested outcome. Keep it concise, no more
-   than six words, and use `Title_Case_With_Underscores`.
-8. Convert the description to ASCII words separated by underscores. Remove path
-   separators, `..`, shell metacharacters, control characters, and repeated
-   underscores. Limit the complete filename to 100 characters.
-9. Immediately before writing, re-run the strict clean-state command and list the
-   plan directory again. If the candidate exists despite the lock, increment
-   until an unused number is found.
-10. Write exactly one new Markdown plan.
-11. Release the empty lock with exactly `rmdir docs/plans/.plan-number-lock`
-    after a successful write (and after a generation failure when safe). Never
-    remove a lock not acquired in the current operation.
+1. Complete the initial clean-state gate before creating a directory or file.
+2. Derive `Plan_Description` from the requested outcome. Keep it concise, no more
+   than six words, and use `Title_Case_With_Underscores`. Convert the description
+   to ASCII words separated by underscores. Remove path separators, `..`, shell
+   metacharacters, control characters, and repeated underscores. Limit the
+   complete filename to 100 characters.
+3. Allocate the number and create the empty plan file with the
+   `allocating-report-numbers` skill:
+
+   ```bash
+   .agents/skills/allocating-report-numbers/allocate-report.sh docs/plans <Plan_Description>.md
+   ```
+
+   The script atomically allocates the next unused five-digit number (highest
+   existing plus one, starting at `00001`, never filling a gap or reusing a
+   number), creates the empty file, and prints the number and full path. If it
+   fails because the lock is held, do not bypass it and do not publish; report
+   that another allocation may be active or that a stale lock requires human
+   inspection.
+4. Immediately before writing, re-run the strict clean-state command. If it is
+   not empty, stop without writing.
+5. Write exactly one new Markdown plan into the file the script created. Never
+   overwrite, rename, delete, or edit another plan.
 
 Draft amendments and approval updates retain the same path and do not allocate a
 new number. They still require both clean-state checks.
@@ -478,8 +477,8 @@ satisfy a workflow shape.
 - Write only new Markdown plans below `docs/plans/`; never modify anything else.
 - Never write or amend a plan while the worktree is dirty; run the clean-state
   gate before and immediately before every create or edit.
-- Never fill a numbering gap or reuse a number; always hold the lock while
-  allocating.
+- Never fill a numbering gap or reuse a number; always allocate through the
+  `allocating-report-numbers` skill.
 - Never overwrite an existing numbered plan with a new planning target.
 - Never alter the planning sections of an approved plan; a material post-approval
   change requires a new superseding plan.

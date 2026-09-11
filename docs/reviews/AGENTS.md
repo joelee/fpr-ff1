@@ -44,28 +44,26 @@ docs/reviews/00001-Review_Description.md
 
 Allocate the number safely, in this order:
 
-1. Ensure the directory exists (`mkdir -p docs/reviews`).
-2. Acquire the numbering lock with `mkdir docs/reviews/.review-number-lock`.
-   Directory creation is atomic: if it fails because the lock already exists, do
-   **not** remove or bypass it, and do not publish. Report an `incomplete`
-   handoff — another writer may be allocating a number, or a stale lock needs
-   human inspection.
-3. While holding the lock, list `docs/reviews/[0-9][0-9][0-9][0-9][0-9]-*.md`.
-4. Parse only the leading five decimal digits from valid filenames.
-5. Set the next counter to the maximum existing value plus one; start at `00001`
-   when none exist.
-6. **Never fill a gap and never reuse a prior number.**
-7. Derive `Review_Description` from the review target: `PR_<number>_<short-title>`,
+1. Derive `Review_Description` from the review target: `PR_<number>_<short-title>`,
    `<branch>_<short-purpose>`, `<short-commit>_<commit-subject>`, or
    `Current_Code_State`. Keep it concise (≤ 6 words), `Title_Case_With_Underscores`,
    ASCII only, no path separators, `..`, shell metacharacters, or repeated
    underscores; maximum 80 characters before `.md`.
-8. Immediately before writing, list the directory again; if the candidate path
-   exists despite the lock, increment until an unused number is found.
-9. Write exactly one new report. Never overwrite, rename, delete, or edit another.
-10. Release the lock with `rmdir docs/reviews/.review-number-lock` after a
-    successful write (and after a failure when safe). Never remove a lock you did
-    not acquire in the current review.
+2. Allocate the number and create the empty report file with the
+   `allocating-report-numbers` skill:
+
+   ```bash
+   .agents/skills/allocating-report-numbers/allocate-report.sh docs/reviews <Review_Description>.md
+   ```
+
+   The script atomically allocates the next unused five-digit number (highest
+   existing plus one, starting at `00001`, never filling a gap or reusing a
+   number), creates the empty file, and prints the number and full path. If it
+   fails because the lock is held, do not bypass it and do not publish; report
+   that another allocation may be active or that a stale lock requires human
+   inspection.
+3. Write exactly one new report into the file the script created. Never
+   overwrite, rename, delete, or edit another.
 
 ## Front matter
 
@@ -387,7 +385,8 @@ rewritten into the agent schema:
 
 - Write only new Markdown reports below `docs/reviews/`; never modify anything else.
 - Never overwrite or revise a prior report; re-review creates the next number.
-- Never fill a numbering gap or reuse a number; always hold the lock while allocating.
+- Never fill a numbering gap or reuse a number; always allocate through the
+  `allocating-report-numbers` skill.
 - Never regenerate or reformat external review records.
 - Never reproduce secrets; describe type and location, redact the value.
 - Never claim tests passed unless trustworthy results were supplied; state that
