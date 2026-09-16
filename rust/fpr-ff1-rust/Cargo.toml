@@ -7,7 +7,7 @@ name = "fpr-ff1-rust"
 # reads both as the same release, and
 # tests/test_contract.py::test_crate_version_matches_project_version
 # enforces the pair on every CI leg.
-version = "2.0.0-rc1"
+version = "2.0.0-rc2"
 edition = "2021"
 description = "Opt-in Rust accelerated backend for the fpr-ff1 FF1 library (SP 800-38G Algorithm 7)."
 license = "MIT"

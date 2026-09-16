@@ -42,9 +42,9 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5"
 execution_branch: "release/v2"
 execution_started_at: "2026-09-16T12:32:08Z"
-execution_updated_at: "2026-09-16T21:32:04Z"
+execution_updated_at: "2026-09-16T21:33:18Z"
 execution_completed_at: null
-current_step: "PLAN-00007-STEP-09"
+current_step: "PLAN-00007-STEP-10"
 ---
 
 # Delivery Plan 00007: Stable v2.0.0 Release
@@ -745,7 +745,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 | PLAN-00007-STEP-06 | completed | 2026-09-16T13:19:43Z | 2026-09-16T14:29:09Z | 4de5fd6 + 58b8ed3 (provisioning fix); CI run 35106877945 green 36/36 | Two commits kept, not squashed: the fix-up documents a real CI finding (uv venv does not download for +gil requests). Squash is the user's call |
 | PLAN-00007-STEP-07 | completed | 2026-09-16T14:29:40Z | 2026-09-16T21:30:06Z | Run 35150890829 (every Rust-executing job red, pure-Python green); release/v2 run 35150893760 green 36/36; branch deleted; plus the f12ed42 test fix | First attempt (run 35111445198) exposed a CI-only stall in the STEP-04 agreement test; fixed in f12ed42 and re-run |
 | PLAN-00007-STEP-08 | completed | 2026-09-16T21:32:04Z | 2026-09-16T21:32:04Z | Commit (this one) | No NIST status change; Option A transcribed verbatim |
-| PLAN-00007-STEP-09 | not-started | — | — | — | — |
+| PLAN-00007-STEP-09 | completed | 2026-09-16T21:33:18Z | 2026-09-16T21:33:18Z | Commit (this one) | Contract test red then green; lock drift limited to the version lines |
 | PLAN-00007-STEP-10 | not-started | — | — | — | — |
 | PLAN-00007-STEP-11 | not-started | — | — | — | — |
 | PLAN-00007-STEP-12 | not-started | — | — | — | — |
@@ -787,6 +787,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T21:30:06Z | PLAN-00007-STEP-07 | Branch cleanup (authorized): deleted negative-control/plan-00007 on origin and locally | git ls-remote shows no such branch; no tag contains add926b; add926b is not an ancestor of release/v2; mutated source never tagged, merged into release/v2, or published | STEP-08 |
 | 2026-09-16T21:32:03Z | PLAN-00007-STEP-08 | Native-wheel coverage sourced from artifacts, not assumed: PyPI 2.0.0rc1 file list and the wheel filenames built by release/v2 run 35150893760 agree | Tags: manylinux_2_34_x86_64, manylinux_2_34_aarch64, macosx_10_12_x86_64, macosx_11_0_arm64, win_amd64, all cp312-abi3; plus py3-none-any and sdist | Write documentation |
 | 2026-09-16T21:32:03Z | PLAN-00007-STEP-08 | SECURITY.md Supported versions replaced with the §7.1 Option A text (placeholder <v2.0.0 date + six months> left for STEP-13); README Backends gains the platform/tag/requirement table and the fallback statement; README conformance paragraph, developer-guide Standards and CHANGELOG [Unreleased] state that 100% coverage measures the Python package only; docs/configuration.md gains a Distribution and backend availability section; developer-guide CI/CD describes wheel-test-native, wheel-conformance-abi3, the venv recipe, the import-origin script, --locked, the negative-control result and the long-list assertion pitfall | SECURITY.md section byte-identical to §7.1 Option A (diff empty); git diff --stat touches exactly README.md, SECURITY.md, CHANGELOG.md, docs/configuration.md, docs/developer-guide.md | Commit |
+| 2026-09-16T21:33:18Z | PLAN-00007-STEP-09 | Evidence first: pyproject.toml bumped to 2.0.0rc2 alone -> test_crate_version_matches_project_version red (Version('2.0.0rc1') != Version('2.0.0rc2')); Cargo.toml bumped to 2.0.0-rc2 -> green | tests/test_contract.py -k crate_version: 1 failed, then 1 passed | Locks |
+| 2026-09-16T21:33:18Z | PLAN-00007-STEP-09 | uv lock (fpr-ff1 v2.0.0rc1 -> v2.0.0rc2); cargo build updated rust/Cargo.lock; CHANGELOG [2.0.0rc2] dated 2026-09-16 with Fixed (1.x pickle, tweak encoding), Changed (SemVer note on newly rejected tweak lengths/bounds, Rust conversion with STEP-05 numbers, native wheel gate, --locked, support policy, coverage wording, platform docs), Added, Unchanged; links [Unreleased] -> v2.0.0rc2...HEAD and [2.0.0rc2] -> v2.0.0rc1...v2.0.0rc2; backlog: conversion item moved to Completed, review 00007 fixes recorded, stable v2.0.0 tracked as Ongoing | Lock diffs are exactly the local project version line in each file; installed fpr_ff1.__version__, distribution metadata and _rs.__version__ report 2.0.0rc2 / 2.0.0rc2 / 2.0.0-rc2 | Commit |
 
 ### Deviations and blockers
 
@@ -801,6 +803,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T18:45:39Z | PLAN-00007-STEP-07 | Stop condition hit: under the negative control, rust-conformance did not turn red; it stalled for hours in failure reporting. Root cause is a defect in Builder's own STEP-04 test module (long-list asserts), not a hole in detection: the abi3 and native jobs did go red | STEP-07 evidence incomplete. A CI run where the gate only fails by job timeout (default 360 min) is not acceptable evidence. Fixing requires a commit to release/v2 (a STEP-04 test file), a push of release/v2, updating and re-pushing the negative-control branch, and a new run | User: (1) approve the test fix approach; (2) authorize pushing release/v2 and the updated negative-control branch; (3) decide whether to cancel run 35111445198 now or let it time out |
 | 2026-09-16T21:30:06Z | PLAN-00007-STEP-07 | Observation for the re-review: each wheel-test-native leg detects the S-expansion mutation through only 2 of its 149 tests (the frozen KAT d > 16 case and the dispatch test's n = 60 case); the full-suite jobs detect it through 338. Enough to turn every leg red, but the per-platform subset's d > 16 coverage is thin | None on STEP-07 acceptance (every Rust-executing job red). A wider per-platform subset (e.g. adding test_backend_agreement or test_differential) would be a scope change to STEP-06 | Owner / re-review: decide whether to widen the subset |
 | 2026-09-16T21:32:03Z | PLAN-00007-STEP-08 | docs/configuration.md Thread safety still quoted the rc1 GIL figure (3.8x); STEP-05 updated the README but missed this copy. Corrected here to the STEP-05 run (2.9x, 0.96x control) | Documentation consistency only | None |
+| 2026-09-16T21:33:18Z | PLAN-00007-STEP-09 | The [2.0.0rc2] section is dated 2026-09-16 (the day it was cut). The plan dates candidate sections by tag date, which the owner sets in STEP-11 | If v2.0.0rc2 is tagged on another day, the section date needs a one-line edit before tagging | User: confirm the date at tagging |
 
 ### Verification results
 
@@ -834,6 +837,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T21:30:06Z | PLAN-00007-STEP-07 | release/v2 CI run 35150893760 on f12ed42 https://github.com/joelee/fpr-ff1/actions/runs/35150893760 | Pass | 36/36 jobs success, including rust-conformance (21:10:45Z -> 21:16:05Z) and wheel-conformance-abi3: the fast-failing test changes nothing on correct code |
 | 2026-09-16T21:32:03Z | PLAN-00007-STEP-08 | NIST SP 800-38G Rev. 1 status check (task 4): csrc.nist.gov/pubs/sp/800/38/g/r1/2pd and /r1/final, fetched 2026-09-16 | Pass (no change) | Rev. 1 is still the Second Public Draft published 2025-02-03 (comment deadline 2025-04-04), listed as the most recent version; the /r1/final URL returns HTTP 404. Documented baseline, radix subset, no-float and forward-AES rules retained; no document change |
 | 2026-09-16T21:32:03Z | PLAN-00007-STEP-08 | uv run ruff format --check .; uv run ruff check .; uv run pytest tests/test_contract.py | Pass | 55 files already formatted; All checks passed; 61 passed |
+| 2026-09-16T21:33:18Z | PLAN-00007-STEP-09 | uv lock --check; cargo build --locked twice (lock unchanged, cmp); pytest tests/test_contract.py; ruff format --check; ruff check | Pass | uv lock --check: Resolved 28 packages; Cargo.lock byte-identical after the --locked build; 61 passed; 55 files already formatted; All checks passed |
 
 ### Completion summary
 

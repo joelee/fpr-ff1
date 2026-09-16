@@ -9,19 +9,68 @@ expanding the accepted domain without changing existing behaviour is a minor ver
 
 ## [Unreleased]
 
+## [2.0.0rc2] — 2026-09-16
+
+Second release candidate, from review 00007 and plan 00007. **The pure-Python path's ciphertext is
+unchanged**: bit-identical to 1.1.0 and 2.0.0rc1 for every input either accepted. One input class
+is newly rejected (tweak lengths FF1 cannot encode, below), which the 2.0 major version permits.
+
+### Fixed
+
+- **Unpickling a 1.x `FF1` produced an unusable instance.** `__setstate__` validated the backend
+  of a pickle with no `_backend` key (every 1.x pickle) but never stored it, and real unpickling
+  bypasses `__init__`. Every operation on the restored instance then raised `AttributeError`. It
+  now restores as the python backend and works. The regression test had hidden this by restoring
+  onto a constructed instance; it now restores the way `pickle` does, round-trips a real
+  1.1-format payload, and checks attribute parity with a constructed instance on both backends.
+- **Tweak lengths FF1 cannot encode now fail closed, identically on both backends.** SP 800-38G
+  Algorithm 7 step 5 encodes the tweak length in four bytes. For a tweak of `2**32` bytes or more
+  the reference raised `OverflowError`, outside the `FF1Error` hierarchy, while the compiled core
+  silently wrapped the length. Both now raise `TweakLengthError` before any FF1 computation, and
+  the Rust core encodes both lengths with a checked conversion.
+
 ### Changed
 
-- **The compiled backend's numeral conversion is now subquadratic** (plan 00007 STEP-04). The Rust
-  core uses the same dispatch as the pure-Python reference: the spec's digit loop up to 64 numerals,
-  then O(n) byte packing for power-of-two radices and divide and conquer for every other radix. The
-  digit loops stay as the reference and are proven equal to the fast paths. Ciphertext is
-  unchanged. The compiled backend is no longer overtaken at long inputs. Measured on one Linux
-  x86_64 machine (README Backends): ~2.8× faster than the pure-Python path at n=20,000 radix 10,
-  and ~11× at radix 256, where `2.0.0rc1` was 0.21× and 0.17×. The "crossover between n=1,000 and
-  n=5,000" guidance is withdrawn.
+- **SemVer note — newly rejected inputs.** A tweak longer than `2**32 - 1` bytes, and a
+  `min_tweak_len` or `max_tweak_len` above `2**32 - 1`, now raise `TweakLengthError`. Bounds are
+  checked at construction and rejected, never clamped. No valid FF1 input is affected: a longer
+  tweak could never produce conformant ciphertext.
+- **The compiled backend's numeral conversion is now subquadratic.** The Rust core uses the same
+  dispatch as the pure-Python reference: the spec's digit loop up to 64 numerals, then O(n) byte
+  packing for power-of-two radices and divide and conquer for every other radix. The digit loops
+  stay as the reference and are proven equal to the fast paths across every supported radix.
+  Ciphertext is unchanged. The compiled backend is no longer overtaken at long inputs. Measured on
+  one Linux x86_64 machine (README Backends): ~2.8× faster than the pure-Python path at n=20,000
+  radix 10, and ~11× at radix 256, where `2.0.0rc1` was 0.21× and 0.17×. The "crossover between
+  n=1,000 and n=5,000" guidance is withdrawn.
+- **The release gate now executes every published native wheel.** Previously only the linux
+  x86_64 wheel was ever imported, and full conformance ran on a source-tree build rather than the
+  abi3 wheel that ships. Each of the five wheels is now installed on its own platform, including
+  Intel macOS for the first time, on CPython 3.12, 3.13 and 3.14. An import-origin check proves the
+  installed wheel is under test. The full suite also runs against the installed abi3 wheel at 100%
+  coverage. A deliberate defect in the Rust core on a disposable branch was shown to fail every one
+  of these jobs.
+- Release wheel builds use `--locked` and record the exact `rustc` and `cargo` versions.
+- **Security support policy clarified.** `2.0.x` receives bug and security fixes. `1.1.x` receives
+  security fixes only, until `2.1.0` ships or six months after `2.0.0`, whichever is later. `1.0.x`
+  is no longer supported. See `SECURITY.md`.
 - **Documentation states precisely what "100% coverage" covers.** It is line and branch coverage
   of the Python package. The Rust core has no line-coverage figure; it is covered by the full
   dual-backend conformance suite and `cargo test`.
+- The README and configuration docs list the native wheel platforms and their minimum glibc and
+  macOS versions, and the pure-Python fallback everywhere else.
+
+### Added
+
+- Direct same-input comparison of the two backends for encryption and decryption, across all key
+  sizes, tweaks of 0 to 255 bytes and lengths up to 5,000 numerals.
+- Seven more public-contract tests now run on both backends.
+
+### Unchanged
+
+- Public API, the default backend, produced ciphertext for every previously accepted input,
+  exception types for every previously rejected input, thread safety, pickling of 2.x instances,
+  and the single runtime dependency (`cryptography`) for the pure-Python path.
 
 ## [2.0.0rc1] — 2026-09-09
 
@@ -328,7 +377,8 @@ requiring a major version.
 
 <!-- Keep a Changelog link reference definitions (review 00003 B7): without
      these, the bracketed version headings render as literal brackets. -->
-[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v2.0.0rc1...HEAD
+[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v2.0.0rc2...HEAD
+[2.0.0rc2]: https://github.com/joelee/fpr-ff1/compare/v2.0.0rc1...v2.0.0rc2
 [2.0.0rc1]: https://github.com/joelee/fpr-ff1/compare/v1.1.0...v2.0.0rc1
 [1.1.0]: https://github.com/joelee/fpr-ff1/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/joelee/fpr-ff1/compare/v0.1.1...v1.0.0
