@@ -37,14 +37,14 @@ confidence: high
 
 # Builder-maintained front matter. Builder may update only these keys after
 # explicit user approval; Delivery Planner initializes them.
-implementation_status: blocked
+implementation_status: in-progress
 builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5"
 execution_branch: "release/v2"
 execution_started_at: "2026-09-16T12:32:08Z"
-execution_updated_at: "2026-09-16T13:42:27Z"
+execution_updated_at: "2026-09-16T14:29:09Z"
 execution_completed_at: null
-current_step: "PLAN-00007-STEP-06"
+current_step: "PLAN-00007-STEP-07"
 ---
 
 # Delivery Plan 00007: Stable v2.0.0 Release
@@ -742,7 +742,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 | PLAN-00007-STEP-03 | completed | 2026-09-16T12:51:56Z | 2026-09-16T13:00:49Z | Commit (this one); checkpoint logs checkpoint-125233 | No assertion weakened; pyright ignore comments on direct FF1 calls removed because ff1_factory returns Any |
 | PLAN-00007-STEP-04 | completed | 2026-09-16T13:00:49Z | 2026-09-16T13:11:58Z | Commit (this one); checkpoint logs checkpoint-130330 | docs/architecture.md gained a Numeral conversion section with the side-by-side function map |
 | PLAN-00007-STEP-05 | completed | 2026-09-16T13:11:58Z | 2026-09-16T13:14:05Z | Commit (this one); park rule PASS; bench output recorded in Execution log | Single run on one machine, as the plan specifies |
-| PLAN-00007-STEP-06 | blocked | 2026-09-16T13:19:43Z | — | Run 35101666336 failed 5/36 on interpreter provisioning; fix in the next commit; awaiting push | Awaiting push of the provisioning fix |
+| PLAN-00007-STEP-06 | completed | 2026-09-16T13:19:43Z | 2026-09-16T14:29:09Z | 4de5fd6 + 58b8ed3 (provisioning fix); CI run 35106877945 green 36/36 | Two commits kept, not squashed: the fix-up documents a real CI finding (uv venv does not download for +gil requests). Squash is the user's call |
 | PLAN-00007-STEP-07 | not-started | — | — | — | — |
 | PLAN-00007-STEP-08 | not-started | — | — | — | — |
 | PLAN-00007-STEP-09 | not-started | — | — | — | — |
@@ -777,6 +777,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T13:19:43Z | PLAN-00007-STEP-06 | ci.yml: wheel-build records rustc/cargo --version and builds --locked; rust-conformance cargo build --locked; wheel-test-platform replaced by wheel-test-native (5 targets x py3.12/3.13/3.14 = 15 legs) and wheel-conformance-abi3 (ubuntu-24.04, py3.14, full suite, -k rust >= 500, 100% coverage). wheel-test and sdist-test unchanged | actionlint 1.7.12 exit 0 on ci.yml and publish.yml (shellcheck not installed locally, so run: blocks were not shell-linted); job set parsed: audit, build, quality, rust-conformance, sdist-test, secrets, wheel-build, wheel-conformance-abi3, wheel-test, wheel-test-native | Verify runner labels |
 | 2026-09-16T13:24:27Z | PLAN-00007-STEP-06 | User pushed release/v2 ('branch pushed.'); origin/release/v2 = 4de5fd6. ci.yml triggers only on push to main, pull_request and workflow_dispatch, so the push started no run; Builder dispatched ci.yml on release/v2 (gh workflow run) to execute the gate the push was authorized for. Nothing is published by ci.yml | git rev-parse origin/release/v2 = 4de5fd6e10685e8409e950a3c5ce80f98c275e57; run https://github.com/joelee/fpr-ff1/actions/runs/35101666336 (workflow_dispatch, created 2026-09-16T13:24:03Z) | Watch the run to completion |
 | 2026-09-16T13:42:27Z | PLAN-00007-STEP-06 | Diagnosis: uv venv does not download an interpreter for a '+gil' request. Linux 3.12 passed only because ubuntu-24.04 ships it; macOS and Windows images carry 3.13/3.14. Reproduced locally with UV_PYTHON_PREFERENCE=only-managed and an empty install dir; 'uv python install 3.13' first fixed it (cpython-3.13.14, GIL enabled). Fix: 'uv python install <version>' before 'uv venv' in both new jobs, matching the quality matrix | Local repro output; actionlint clean | Commit fix; user pushes; re-dispatch |
+| 2026-09-16T14:12:17Z | PLAN-00007-STEP-06 | User pushed release/v2 ('release/v2 pushed.'); origin/release/v2 = 58b8ed3. Builder dispatched ci.yml on release/v2 | Run https://github.com/joelee/fpr-ff1/actions/runs/35106877945 (workflow_dispatch, created 2026-09-16T14:11:56Z, head 58b8ed3dc893ba3f689e8b354715745ad97f6671) | Watch the run to completion |
 
 ### Deviations and blockers
 
@@ -810,13 +811,16 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T13:14:05Z | PLAN-00007-STEP-05 | uv run ruff format --check .; uv run ruff check . | Pass | 54 files already formatted; All checks passed |
 | 2026-09-16T13:19:43Z | PLAN-00007-STEP-06 | Runner labels re-verified against github.com/actions/runner-images (fetched 2026-09-16) | Pass | ubuntu-24.04 x64; ubuntu-24.04-arm arm64; macos-latest arm64; macos-15-intel x64; windows-latest = Windows Server 2025 x64 |
 | 2026-09-16T13:42:27Z | PLAN-00007-STEP-06 | CI run 35101666336 on 4de5fd6 (workflow_dispatch) | Fail | 31 of 36 jobs green, including all 15 pre-existing jobs, all macOS and Windows native legs, and linux py3.12 on both arches. 5 failed at 'Install the wheel into a clean environment': linux x86_64 and aarch64 on py3.13 and py3.14, and wheel-conformance-abi3 (py3.14). Error: 'No interpreter found for Python 3.13+gil in managed installations or search path' |
+| 2026-09-16T14:29:09Z | PLAN-00007-STEP-06 | CI run 35106877945 on 58b8ed3 (workflow_dispatch) https://github.com/joelee/fpr-ff1/actions/runs/35106877945 | Pass | conclusion success; 36/36 jobs success. wheel-test-native: 15/15 legs '149 passed' (5 targets x py3.12/3.13/3.14). Import-origin step printed 'import origin: installed wheel' in all 16 wheel jobs; extension paths under wheel-venv site-packages (_rs.abi3.so on Linux and macOS, _rs.pyd on Windows). x86_64-apple-darwin legs ran on image macos-15 with cpython-3.12.14-macos-x86_64; aarch64 Linux legs used cpython-*-linux-aarch64-gnu |
+| 2026-09-16T14:29:09Z | PLAN-00007-STEP-06 | wheel-conformance-abi3 (same run) | Pass | rust-parameterised tests collected: 573 (floor 500); 1682 passed in 176.09s; TOTAL 342 stmts 120 branches 100%; Required test coverage of 100% reached |
+| 2026-09-16T14:29:09Z | PLAN-00007-STEP-06 | wheel-build toolchain record and --locked (same run) | Pass | All 5 wheel-build legs print rustc 1.98.1 (48a229cea 2026-09-01) and cargo 1.98.1 (797e8a9bc 2026-08-05); maturin invoked with --locked; rust-conformance cargo build --locked green |
 
 ### Completion summary
 
-- **Implementation status:** `blocked`
-- **Completed requirements:** PLAN-00007-REQ-01, REQ-02, REQ-03, REQ-04, REQ-05
-- **Incomplete requirements:** REQ-06 (implemented locally, awaiting CI), REQ-07 to REQ-13
-- **Outstanding blockers:** Push authorization for STEP-06 (see Deviations and blockers)
+- **Implementation status:** `in-progress`
+- **Completed requirements:** PLAN-00007-REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06
+- **Incomplete requirements:** REQ-07 to REQ-13
+- **Outstanding blockers:** STEP-07 needs user authorization to push, and later delete, the disposable negative-control branch
 - **Review request:** Not ready
 <!-- BUILDER_WORK_LOG_END -->
 
