@@ -19,6 +19,9 @@ expanding the accepted domain without changing existing behaviour is a minor ver
   x86_64 machine (README Backends): ~2.8× faster than the pure-Python path at n=20,000 radix 10,
   and ~11× at radix 256, where `2.0.0rc1` was 0.21× and 0.17×. The "crossover between n=1,000 and
   n=5,000" guidance is withdrawn.
+- **Documentation states precisely what "100% coverage" covers.** It is line and branch coverage
+  of the Python package. The Rust core has no line-coverage figure; it is covered by the full
+  dual-backend conformance suite and `cargo test`.
 
 ## [2.0.0rc1] — 2026-09-09
 

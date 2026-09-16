@@ -85,6 +85,10 @@ not a checkbox; it is the entire product, and it is evidenced rather than assert
 
 **The full suite — NIST sample vectors, per-round intermediate-value conformance for every round of every sample, differential tests against an independent implementation, exhaustive bijectivity sweeps, and a malformed-input sweep — runs in CI with 100% line and branch coverage enforced. The build fails below it.**
 
+That coverage figure measures the Python package. The compiled backend's Rust core is not
+line-coverage measured: it is held to the same bar by running the entire conformance suite,
+bit-exact, against it as well, plus its own `cargo test` unit tests.
+
 This is strong conformance evidence, not proof. It has not received an independent cryptographic
 audit or NIST validation; see [What this is *not*](#what-this-is-not) below.
 
@@ -249,6 +253,23 @@ and raise identical exceptions — validation runs in Python for both, so the ty
 messages are the same. The compiled backend ships as `fpr_ff1._rs` inside the platform wheels; the
 pure-Python wheel and the sdist omit it, and requesting `backend="rust"` there raises a clear
 `BackendError` rather than an opaque `ImportError`.
+
+**Where the compiled backend is available.** Native wheels are published for these platforms,
+each built once for the stable ABI (`abi3`) and so installable on CPython 3.12, 3.13 and 3.14:
+
+| Platform | Wheel tag | Requires |
+|---|---|---|
+| Linux x86_64 | `manylinux_2_34_x86_64` | glibc 2.34 or newer |
+| Linux aarch64 | `manylinux_2_34_aarch64` | glibc 2.34 or newer |
+| macOS x86_64 (Intel) | `macosx_10_12_x86_64` | macOS 10.12 or newer |
+| macOS arm64 (Apple silicon) | `macosx_11_0_arm64` | macOS 11 or newer |
+| Windows x64 | `win_amd64` | — |
+
+Every one of these wheels is installed and tested on its own platform, on all three Python
+versions, before release. Everywhere else, including Linux with a glibc older than 2.34, musl
+distributions such as Alpine, other architectures, and free-threaded CPython builds, `pip` installs
+the pure-Python wheel instead. The default backend then works unchanged, and only `backend="rust"`
+raises `BackendError`. No native support is implied beyond the table.
 
 Measured on one core, CPython 3.12.13, Linux x86_64 (AMD Ryzen AI Max+ PRO 395), extension built
 in release mode with rustc 1.98.1 — reproduce with `just bench`:
