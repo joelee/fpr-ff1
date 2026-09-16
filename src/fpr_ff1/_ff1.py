@@ -346,6 +346,12 @@ class FF1:
             # Re-validate availability on the far side of the pickle: the
             # receiving process may not have the extension installed.
             _load_rust_backend()
+        # Store the validated value.  ``self.__dict__.update(state)`` above
+        # already carries ``_backend`` for a 2.x pickle, but a 1.x pickle has
+        # no such key and real unpickling never runs ``__init__`` -- without
+        # this line every restored 1.x instance raises AttributeError on first
+        # use (review 00007 MAJ-01).
+        self._backend = backend
         self._aes = _Aes(
             algorithm=algorithms.AES(key),
             cbc_zero_iv=modes.CBC(b"\x00" * 16),

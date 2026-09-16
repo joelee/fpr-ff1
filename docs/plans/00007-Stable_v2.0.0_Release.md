@@ -37,14 +37,14 @@ confidence: high
 
 # Builder-maintained front matter. Builder may update only these keys after
 # explicit user approval; Delivery Planner initializes them.
-implementation_status: not-started
-builder_agent: null
-builder_model: null
-execution_branch: null
-execution_started_at: null
-execution_updated_at: null
+implementation_status: in-progress
+builder_agent: claude-code
+builder_model: "anthropic/claude-opus-5"
+execution_branch: "release/v2"
+execution_started_at: "2026-09-16T12:32:08Z"
+execution_updated_at: "2026-09-16T12:42:01Z"
 execution_completed_at: null
-current_step: null
+current_step: "PLAN-00007-STEP-02"
 ---
 
 # Delivery Plan 00007: Stable v2.0.0 Release
@@ -737,7 +737,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 
 | Step | Status | Started (UTC) | Completed (UTC) | Evidence | Builder notes |
 |---|---|---|---|---|---|
-| PLAN-00007-STEP-01 | not-started | — | — | — | — |
+| PLAN-00007-STEP-01 | completed | 2026-09-16T12:32:08Z | 2026-09-16T12:42:01Z | Commit (this one); red-then-green recorded; checkpoint green | The plan-named parity test passes before the fix by design (a current-format payload already carries _backend); the red evidence is the same vars() parity assertion inside the legacy round-trip test |
 | PLAN-00007-STEP-02 | not-started | — | — | — | — |
 | PLAN-00007-STEP-03 | not-started | — | — | — | — |
 | PLAN-00007-STEP-04 | not-started | — | — | — | — |
@@ -759,6 +759,9 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 
 | Timestamp (UTC) | Step | Event | Evidence or reference | Next action |
 |---|---|---|---|---|
+| 2026-09-16T12:32:08Z | — | Builder started on approved plan (approval commit 57c4794); clean worktree on release/v2 | git status --porcelain empty; HEAD 57c4794 | Record baseline, then STEP-01 |
+| 2026-09-16T12:42:01Z | PLAN-00007-STEP-01 | Tests written first: 3 __setstate__ tests restore onto FF1.__new__(FF1); added test_legacy_serialized_state_round_trips (real pickle payload with the pinned 1.1 attribute set) and test_unpickled_instance_has_every_constructor_attribute (both backends) | Before fix: 2 failed -- AttributeError '_backend' and the vars() parity assertion in the legacy test | Apply fix |
+| 2026-09-16T12:42:01Z | PLAN-00007-STEP-01 | Fix: __setstate__ assigns self._backend = backend after validation | src/fpr_ff1/_ff1.py; 44 passed in the two modules | Checkpoint |
 
 ### Deviations and blockers
 
@@ -771,6 +774,11 @@ None
 
 | Timestamp (UTC) | Step | Command or check | Result | Evidence |
 |---|---|---|---|---|
+| 2026-09-16T12:32:08Z | Baseline | just backend-dev; just rust-test; just rust-lint | Pass | cargo test 8 passed; fmt + clippy -D warnings exit 0; rustc 1.98.1, cargo 1.98.1 |
+| 2026-09-16T12:32:08Z | Baseline | FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR_FF1_REQUIRE_ORACLE=1 uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100 | Pass | 1406 passed in 255.76s; coverage 100.00% (330 stmts, 114 branches); -k rust collects 550/1406 |
+| 2026-09-16T12:42:01Z | PLAN-00007-STEP-01 | just format-check lint typecheck; just rust-test; just rust-lint | Pass | pyright 0 errors after annotating pickle.loads results as FF1 (first run: 4 reportUnknownArgumentType errors in the new tests) |
+| 2026-09-16T12:42:01Z | PLAN-00007-STEP-01 | FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR_FF1_REQUIRE_ORACLE=1 uv run pytest --cov=fpr_ff1 --cov-fail-under=100 | Pass | 1409 passed in 262.38s; TOTAL 331 stmts 0 miss 114 branches 100%; -k rust 551/1409. Run before the annotation-only test change |
+| 2026-09-16T12:42:01Z | PLAN-00007-STEP-01 | just quality with src/fpr_ff1/_rs.so moved aside (Rust-free) | Pass | 858 passed, 5 skipped in 217.70s; coverage 100% |
 
 ### Completion summary
 

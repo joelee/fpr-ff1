@@ -249,11 +249,18 @@ def test_rust_instance_pickles_and_round_trips() -> None:
 
 
 def test_legacy_pickle_state_defaults_to_python() -> None:
-    """A pickle from 1.x (no ``_backend`` key) unpickles as the python backend."""
+    """A pickle from 1.x (no ``_backend`` key) unpickles as the python backend.
+
+    The destination is ``FF1.__new__(FF1)``, not a constructed instance: real
+    unpickling bypasses ``__init__``, so a normally-constructed destination
+    would supply the very attribute ``__setstate__`` must restore (review
+    00007 MAJ-01 -- this test passed while every restored 1.x instance was
+    unusable).
+    """
     ff1 = FF1(key=_KEY, radix=10)
     state: dict[str, Any] = ff1.__getstate__()  # pyright: ignore[reportPrivateUsage]
     del state["_backend"]
-    clone = FF1(key=_KEY, radix=10)
+    clone = FF1.__new__(FF1)
     clone.__setstate__(state)  # pyright: ignore[reportPrivateUsage]
     assert clone._backend == "python"  # pyright: ignore[reportPrivateUsage]
     assert clone.encrypt_numerals(_plaintext(), _TWEAK) == ff1.encrypt_numerals(
@@ -261,12 +268,72 @@ def test_legacy_pickle_state_defaults_to_python() -> None:
     )
 
 
+#: The instance attributes a 1.1.x ``FF1.__getstate__`` produced: 2.0 added
+#: ``_backend`` and nothing else.  Pinned here rather than derived from the
+#: current class so the legacy format is a fixed fact, not a moving target.
+_LEGACY_1_1_STATE_KEYS = frozenset(
+    {
+        "_key",
+        "_radix",
+        "_min_tweak_len",
+        "_max_tweak_len",
+        "_default_tweak",
+        "_alphabet",
+        "_char_to_index",
+        "_index_to_char",
+        "_min_length",
+    }
+)
+
+
+def test_legacy_serialized_state_round_trips(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A real serialized 1.1-format payload restores into a working instance.
+
+    The payload goes through the pickle machinery itself -- ``dumps`` with a
+    ``__getstate__`` that emits exactly the 1.1 attribute set, then
+    ``loads`` -- so restoration runs on an object ``__init__`` never touched.
+    Every operation is exercised, then the restored instance is serialized
+    a second time with the current format.
+    """
+    alphabet = "0123456789"
+    ff1 = FF1(key=_KEY, radix=10, alphabet=alphabet, tweak=_TWEAK)
+    plaintext = _plaintext()
+    text = "".join(alphabet[d] for d in plaintext)
+
+    def legacy_getstate(self: FF1) -> dict[str, Any]:
+        state = dict(self.__dict__)
+        del state["_aes"]
+        del state["_backend"]
+        return state
+
+    monkeypatch.setattr(FF1, "__getstate__", legacy_getstate)
+    payload = pickle.dumps(ff1)
+    monkeypatch.undo()
+
+    restored: FF1 = pickle.loads(payload)  # noqa: S301 -- trusted, test-built payload
+    # Attribute parity with a constructed instance: the drift MAJ-01 was an
+    # instance of (restoration missing an attribute ``__init__`` sets).
+    assert set(vars(restored)) == set(vars(ff1))
+    assert set(vars(restored)) - {"_aes", "_backend"} == _LEGACY_1_1_STATE_KEYS
+    assert restored._backend == "python"  # pyright: ignore[reportPrivateUsage]
+
+    ciphertext = restored.encrypt_numerals(plaintext)
+    assert ciphertext == ff1.encrypt_numerals(plaintext)
+    assert restored.decrypt_numerals(ciphertext) == plaintext
+    assert restored.encrypt(text) == ff1.encrypt(text)
+    assert restored.decrypt(restored.encrypt(text)) == text
+
+    again: FF1 = pickle.loads(pickle.dumps(restored))  # noqa: S301
+    assert again._backend == "python"  # pyright: ignore[reportPrivateUsage]
+    assert again.encrypt_numerals(plaintext) == ciphertext
+
+
 def test_corrupt_unpickled_backend_raises() -> None:
     """A hand-crafted pickle with an unknown backend is rejected, not ignored."""
     ff1 = FF1(key=_KEY, radix=10)
     state: dict[str, Any] = ff1.__getstate__()  # pyright: ignore[reportPrivateUsage]
     state["_backend"] = "fortran"
-    clone = FF1(key=_KEY, radix=10)
+    clone = FF1.__new__(FF1)
     with pytest.raises(BackendError, match="fortran"):
         clone.__setstate__(state)  # pyright: ignore[reportPrivateUsage]
 
@@ -276,7 +343,7 @@ def test_non_str_unpickled_backend_raises() -> None:
     ff1 = FF1(key=_KEY, radix=10)
     state: dict[str, Any] = ff1.__getstate__()  # pyright: ignore[reportPrivateUsage]
     state["_backend"] = 42
-    clone = FF1(key=_KEY, radix=10)
+    clone = FF1.__new__(FF1)
     with pytest.raises(BackendError, match="str backend"):
         clone.__setstate__(state)  # pyright: ignore[reportPrivateUsage]
 
