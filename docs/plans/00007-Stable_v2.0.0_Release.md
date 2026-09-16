@@ -37,12 +37,12 @@ confidence: high
 
 # Builder-maintained front matter. Builder may update only these keys after
 # explicit user approval; Delivery Planner initializes them.
-implementation_status: in-progress
+implementation_status: blocked
 builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5"
 execution_branch: "release/v2"
 execution_started_at: "2026-09-16T12:32:08Z"
-execution_updated_at: "2026-09-16T13:14:05Z"
+execution_updated_at: "2026-09-16T13:19:43Z"
 execution_completed_at: null
 current_step: "PLAN-00007-STEP-06"
 ---
@@ -742,7 +742,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 | PLAN-00007-STEP-03 | completed | 2026-09-16T12:51:56Z | 2026-09-16T13:00:49Z | Commit (this one); checkpoint logs checkpoint-125233 | No assertion weakened; pyright ignore comments on direct FF1 calls removed because ff1_factory returns Any |
 | PLAN-00007-STEP-04 | completed | 2026-09-16T13:00:49Z | 2026-09-16T13:11:58Z | Commit (this one); checkpoint logs checkpoint-130330 | docs/architecture.md gained a Numeral conversion section with the side-by-side function map |
 | PLAN-00007-STEP-05 | completed | 2026-09-16T13:11:58Z | 2026-09-16T13:14:05Z | Commit (this one); park rule PASS; bench output recorded in Execution log | Single run on one machine, as the plan specifies |
-| PLAN-00007-STEP-06 | not-started | — | — | — | — |
+| PLAN-00007-STEP-06 | blocked | 2026-09-16T13:19:43Z | — | Workflow commit (this one); local dry run and actionlint green; CI run not yet possible | Awaiting push authorization; tasks 1-5 done, task 6 (push and iterate to green) pending |
 | PLAN-00007-STEP-07 | not-started | — | — | — | — |
 | PLAN-00007-STEP-08 | not-started | — | — | — | — |
 | PLAN-00007-STEP-09 | not-started | — | — | — | — |
@@ -772,6 +772,9 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T13:14:05Z | PLAN-00007-STEP-05 | just bench with the release extension (just backend-dev), started 2026-09-16T13:12:09Z. Machine: Linux 7.2.5 x86_64, AMD RYZEN AI MAX+ PRO 395, 32 CPUs, load average 2.46 at start; CPython 3.12.13; rustc 1.98.1 (48a229cea 2026-09-01), cargo 1.98.1; fpr_ff1 2.0.0rc1, _rs 2.0.0-rc1 (source at 85b0b6f) | Backend table python/rust µs/op: r10 n6 29.5/4.1 (7.25x); r10 n100 110.6/38.8 (2.85x); r10 n1000 966.0/399.5 (2.42x); r10 n5000 5307.4/2159.8 (2.46x); r10 n20000 27863.1/9895.4 (2.82x); r256 n100 145.6/50.2 (2.90x); r256 n1000 2243.8/201.7 (11.12x); r256 n5000 11220.8/999.1 (11.23x); r256 n20000 45669.0/4104.3 (11.13x). GIL probe n5000 r10: python 5.53 serial / 5.78 threaded ms (0.96x); rust 2.16 / 0.74 ms (2.93x). Throughput: n6 r10 ~34,856 ops/s 28.7 µs; construction ~704,310/s. Value-dependent deltas r10n10 -28.2%, r10n60 -0.7%, r10n200 +2.0%, r256n32 +2.9%, r65535n12 +2.4% | Apply park rule |
 | 2026-09-16T13:14:05Z | PLAN-00007-STEP-05 | Park rule (rust <= python per call at n=20,000, radix 10 and 256): PASS | radix 10: 9895.4 µs <= 27863.1 µs; radix 256: 4104.3 µs <= 45669.0 µs | Update README and changelog from this run |
 | 2026-09-16T13:14:05Z | PLAN-00007-STEP-05 | README Backends table and guidance rewritten from the run (crossover guidance withdrawn; hardware and rustc named); Features bullet, roadmap row and prose no longer say 'short inputs'; thread-safety GIL figure updated to this run (2.9x vs 0.96x); CHANGELOG [Unreleased] gains the performance note for STEP-09 | Every README table value is a rounding of the run above; the 55% per-call overhead share is pre-existing text sourced from review 00005, not from this run | Commit |
+| 2026-09-16T13:19:43Z | PLAN-00007-STEP-06 | Local dry run of the install recipe: uvx maturin@1.15.0 build --release --locked -> fpr_ff1-2.0.0rc1-cp312-abi3-manylinux_2_34_x86_64.whl; uv export --frozen --no-emit-project --no-hashes (58 lines, project not emitted); fresh venv; uv pip install -r requirements + wheel | First attempt with --python 3.14 picked the local free-threaded 3.14t and uv refused the abi3 wheel; --python 3.14+gil resolved GIL-enabled 3.14.7 and installed | Import-origin and subset |
+| 2026-09-16T13:19:43Z | PLAN-00007-STEP-06 | Import-origin script .github/scripts/assert_installed_wheel.py: fpr_ff1 and _rs under the venv purelib, not checkout src/; abi3 extension; py.typed present; __version__ matches metadata | Venv: exit 0 (site-packages/fpr_ff1/_rs.abi3.so). With PYTHONPATH=src: exit 1 'imported from the checkout'. Subset (7 modules) 149 passed. Full abi3 leg locally: -k rust 573; 1682 passed in 88.98s, 100%; coverage data files are the site-packages copies | Write workflow |
+| 2026-09-16T13:19:43Z | PLAN-00007-STEP-06 | ci.yml: wheel-build records rustc/cargo --version and builds --locked; rust-conformance cargo build --locked; wheel-test-platform replaced by wheel-test-native (5 targets x py3.12/3.13/3.14 = 15 legs) and wheel-conformance-abi3 (ubuntu-24.04, py3.14, full suite, -k rust >= 500, 100% coverage). wheel-test and sdist-test unchanged | actionlint 1.7.12 exit 0 on ci.yml and publish.yml (shellcheck not installed locally, so run: blocks were not shell-linted); job set parsed: audit, build, quality, rust-conformance, sdist-test, secrets, wheel-build, wheel-conformance-abi3, wheel-test, wheel-test-native | Verify runner labels |
 
 ### Deviations and blockers
 
@@ -779,6 +782,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 |---|---|---|---|---|
 | 2026-09-16T13:11:58Z | PLAN-00007-STEP-04 | Plan text STEP-04 task 4 lists the dispatch order as 'power of two, then threshold, then split'; _ff1.py::_num_radix/_str_radix actually check the threshold first, then power of two, then split. Implemented Python's actual order, per REQ-04 ('mirror _ff1.py') | None on output: all three paths are proven equal to the reference. Keeps small power-of-two inputs on the reference loop in both cores | None (recorded for the re-review) |
 | 2026-09-16T13:14:05Z | PLAN-00007-STEP-05 | The value-dependent table's radix 10 length 10 row measured -28.2% in this run (SECURITY.md publishes +0.8%). SECURITY.md is not in STEP-05's scope and was not changed | Likely noise from a shared, loaded machine (load 2.46) at the shortest case; the published table is from a different machine. No claim in this plan depends on it | None; flagged for the owner and the re-review |
+| 2026-09-16T13:19:43Z | PLAN-00007-STEP-06 | Four refinements beyond the plan text: (1) venvs request '<version>+gil' because a bare version can resolve to a free-threaded build that cannot load abi3 (seen locally); (2) the import-origin check is a shared script .github/scripts/assert_installed_wheel.py rather than inline YAML, and also asserts py.typed and __version__, because no test module checks py.typed; (3) the subset adds tests/test_pickle.py, which holds the distribution-version test; (4) the workflow uses shell: bash on every OS with a VENV_PY variable instead of a runner.os step split | None on scope: each serves REQ-06 as written. .github/ is outside the sdist include list, so the script does not ship | None (recorded for the re-review) |
+| 2026-09-16T13:19:43Z | PLAN-00007-STEP-06 | BLOCKER: the step's verification and completion need the branch pushed so the 16 new jobs run in CI. Pushing is an outward action with no authorization recorded | STEP-06 cannot be completed; STEP-07 (needs STEP-06 green in CI) and every later step in the required sequence wait | User: authorize 'git push origin release/v2' (or a named branch) for STEP-06 |
 
 ### Verification results
 
@@ -800,13 +805,14 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T13:11:58Z | PLAN-00007-STEP-04 | just quality with _rs.so moved aside (Rust-free) | Pass | 869 passed, 245 skipped (the agreement module skips without the extension) in 214.88s; 100% |
 | 2026-09-16T13:11:58Z | PLAN-00007-STEP-04 | grep -c 'static\\|OnceLock\\|unsafe' rust/fpr-ff1-rust/src/lib.rs | Pass | 1 match, same as baseline (the existing 'without unsafe' doc comment on the GIL-release binding) |
 | 2026-09-16T13:14:05Z | PLAN-00007-STEP-05 | uv run ruff format --check .; uv run ruff check . | Pass | 54 files already formatted; All checks passed |
+| 2026-09-16T13:19:43Z | PLAN-00007-STEP-06 | Runner labels re-verified against github.com/actions/runner-images (fetched 2026-09-16) | Pass | ubuntu-24.04 x64; ubuntu-24.04-arm arm64; macos-latest arm64; macos-15-intel x64; windows-latest = Windows Server 2025 x64 |
 
 ### Completion summary
 
-- **Implementation status:** `not-started`
-- **Completed requirements:** None
-- **Incomplete requirements:** All
-- **Outstanding blockers:** None
+- **Implementation status:** `blocked`
+- **Completed requirements:** PLAN-00007-REQ-01, REQ-02, REQ-03, REQ-04, REQ-05
+- **Incomplete requirements:** REQ-06 (implemented locally, awaiting CI), REQ-07 to REQ-13
+- **Outstanding blockers:** Push authorization for STEP-06 (see Deviations and blockers)
 - **Review request:** Not ready
 <!-- BUILDER_WORK_LOG_END -->
 

@@ -63,7 +63,8 @@ jobs:
   # Review 00006 MAJ-01: before this job the release gate never executed the
   # compiled backend's conformance suite. The matrix above runs 856 tests
   # with no extension present, and the only Rust execution anywhere in the
-  # pipeline was a single NIST vector (d = 12) in wheel-test-platform -- so a
+  # pipeline was a single NIST vector (d = 12) in the linux-only platform-wheel
+  # smoke test that wheel-test-native has since replaced -- so a
   # bug reachable only at d > 16 would have shipped green.
   #
   # Three things make this job hard to fake:
@@ -105,7 +106,7 @@ jobs:
       # they drift. PYO3_PYTHON must be absolute: cargo build scripts run
       # with the crate directory as cwd.
       - name: Build the compiled backend
-        run: PYO3_PYTHON="$PWD/.venv/bin/python" cargo build --release --manifest-path rust/Cargo.toml
+        run: PYO3_PYTHON="$PWD/.venv/bin/python" cargo build --release --locked --manifest-path rust/Cargo.toml
       - name: Install it as fpr_ff1._rs
         run: cp rust/target/release/lib_fpr_ff1_rs.so src/fpr_ff1/_rs.so
 
@@ -255,11 +256,21 @@ jobs:
       # fpr_ff1._rs, python-source src, pyo3/abi3-py312) and produces the
       # mixed wheel: the full Python package plus the compiled extension,
       # tagged cp312-abi3 per platform. Version-pinned via uvx.
+      # The channel is pinned, not the release, so record the exact compiler
+      # that produced each published wheel (review 00007 STABLE-10).
+      - name: Record the Rust toolchain
+        run: |
+          rustc --version
+          cargo --version
+
+      # --locked: a manifest/lock mismatch fails the build instead of being
+      # resolved silently, so the wheel is built from exactly the dependency
+      # set cargo-audit checked (review 00007 STABLE-10).
       - name: Build wheel
         run: >
           uvx maturin@1.15.0 build
           -m rust/fpr-ff1-rust/Cargo.toml
-          --release --target ${{ matrix.target }}
+          --release --locked --target ${{ matrix.target }}
           --out dist-wheels
 
       - name: Check wheel metadata
@@ -326,51 +337,134 @@ jobs:
           print("installed-wheel smoke test passed")
           EOF
 
-  wheel-test-platform:
-    name: Test installed platform wheel (both backends)
-    runs-on: ubuntu-latest
+  # Every published native wheel is installed and exercised on a runner that
+  # can load it, on every supported CPython (plan 00007 STEP-06; review 00007
+  # MED-02). Before this job only the linux x86_64 wheel was ever imported;
+  # the other four were built, uploaded and published untested.
+  #
+  # The environment is built from the wheel artifact alone: a fresh venv, the
+  # locked dev requirements exported WITHOUT the project, and the one wheel.
+  # Never `uv sync` or `uv run` here -- either installs the editable checkout
+  # over the wheel, and the job would test src/ while looking green. The
+  # import-origin step is what proves it did not. Pytest runs from the
+  # checkout only so the test files and vectors are present; src/ is not on
+  # sys.path (no pytest `pythonpath` setting).
+  wheel-test-native:
+    name: Installed wheel (${{ matrix.target }}, py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
     needs: wheel-build
+    env:
+      FPR_FF1_REQUIRE_RUST_BACKEND: "1"
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13", "3.14"]
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - aarch64-apple-darwin
+          - x86_64-apple-darwin
+          - x86_64-pc-windows-msvc
+        # Native runners only: each wheel is loaded by an interpreter of its
+        # own architecture. macos-15-intel is the Intel macOS label (the
+        # x86_64 wheel is cross-built on arm64 in wheel-build and was never
+        # executed before this job).
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-24.04
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+          - target: aarch64-apple-darwin
+            os: macos-latest
+          - target: x86_64-apple-darwin
+            os: macos-15-intel
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
 
-      # The compiled platform wheel must be independently installable and
-      # must reproduce the NIST vectors on BOTH backends (plan 00003
-      # STEP-14, REQ-20): the pure-Python code and the extension ship in
-      # one wheel, and the reference path must not depend on the extension.
-      # Each wheel-build leg uploads under a unique name (wheels-<target>);
-      # download the linux x86_64 leg specifically. A name-based download
-      # always returns a single artifact, so the glob below matches exactly
-      # one wheel.
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: wheels-${{ matrix.target }}
+          path: dist-wheels/
+
+      # `+gil`: an abi3 wheel cannot load into a free-threaded interpreter,
+      # and a bare "3.14" may resolve to one.
+      - name: Install the wheel into a clean environment
+        run: |
+          uv venv wheel-venv --python "${{ matrix.python-version }}+gil"
+          uv export --frozen --no-emit-project --no-hashes -o requirements-ci.txt
+          uv pip install --python wheel-venv -r requirements-ci.txt dist-wheels/*.whl
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            echo "VENV_PY=wheel-venv/Scripts/python.exe" >> "$GITHUB_ENV"
+          else
+            echo "VENV_PY=wheel-venv/bin/python" >> "$GITHUB_ENV"
+          fi
+
+      - name: Assert imports resolve to the installed wheel
+        run: '"$VENV_PY" .github/scripts/assert_installed_wheel.py'
+
+      # NIST vectors both directions, per-round intermediates, the AES KAT and
+      # PRF equality, frozen KATs (including d > 16), typed errors and backend
+      # dispatch, pickling and the distribution version, smoke. Both backends
+      # run in each module; FPR_FF1_REQUIRE_ORACLE comes from the workflow env.
+      - name: Installed-package conformance subset (both backends)
+        run: >
+          "$VENV_PY" -m pytest -p no:cacheprovider -q
+          tests/test_nist_vectors.py
+          tests/test_intermediates.py
+          tests/test_rust_aes_validation.py
+          tests/test_frozen_kat.py
+          tests/test_backend_dispatch.py
+          tests/test_pickle.py
+          tests/test_smoke.py
+
+  # The FULL suite against an abi3 distribution build (plan 00007 STEP-06;
+  # review 00007 MED-02). rust-conformance runs the suite on a plain `cargo
+  # build` of the source tree, which is not the pyo3/abi3-py312 configuration
+  # that ships. This leg installs the published linux x86_64 wheel exactly as
+  # wheel-test-native does and holds it to rust-conformance's bar: required
+  # backend and oracle, the -k rust floor, and 100% coverage -- measured on
+  # the installed package. Python 3.14 is the newest interpreter the abi3
+  # wheel serves and one the source-tree job never uses.
+  wheel-conformance-abi3:
+    name: Full conformance on the installed abi3 wheel (linux x86_64, py3.14)
+    runs-on: ubuntu-24.04
+    needs: wheel-build
+    env:
+      FPR_FF1_REQUIRE_RUST_BACKEND: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: wheels-x86_64-unknown-linux-gnu
           path: dist-wheels/
 
-      - name: Install the linux x86_64 wheel into a clean environment
+      - name: Install the wheel into a clean environment
         run: |
-          uv venv wheel-check-rs
-          uv pip install --python wheel-check-rs dist-wheels/*linux*x86_64*.whl
+          uv venv wheel-venv --python "3.14+gil"
+          uv export --frozen --no-emit-project --no-hashes -o requirements-ci.txt
+          uv pip install --python wheel-venv -r requirements-ci.txt dist-wheels/*.whl
 
-      - name: Exercise both backends from the installed wheel
+      - name: Assert imports resolve to the installed wheel
+        run: wheel-venv/bin/python .github/scripts/assert_installed_wheel.py
+
+      - name: Assert the rust parameterisation is collected
         run: |
-          wheel-check-rs/bin/python - <<'EOF'
-          import fpr_ff1._rs  # noqa: F401 -- the extension must be present
-          from fpr_ff1 import FF1
+          n=$(wheel-venv/bin/python -m pytest -p no:cacheprovider --collect-only -q -k rust | tail -1 | grep -oE '^[0-9]+')
+          echo "rust-parameterised tests collected: ${n:-0}"
+          test "${n:-0}" -ge 500 || { echo "only ${n:-0} rust-parameterised tests collected" >&2; exit 1; }
 
-          key = bytes.fromhex("2b7e151628aed2a6abf7158809cf4f3c")
-          tweak = bytes.fromhex("39383736353433323130")
-          py = FF1(key=key, radix=10, alphabet="0123456789", tweak=tweak)
-          rs = FF1(key=key, radix=10, alphabet="0123456789", tweak=tweak, backend="rust")
-
-          # NIST sample 2 (AES-128, radix 10, tweaked): both backends must
-          # reproduce the published ciphertext exactly.
-          expected = "6124200773"
-          assert py.encrypt("0123456789") == expected, "python backend diverged"
-          assert rs.encrypt("0123456789") == expected, "rust backend diverged"
-          assert rs.decrypt(expected) == "0123456789"
-          print("platform-wheel smoke test passed (both backends)")
-          EOF
+      - name: Full suite on both backends with the 100% coverage gate
+        run: >
+          wheel-venv/bin/python -m pytest -p no:cacheprovider
+          --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100
 
   sdist-test:
     name: Test sdist installs pure-Python (REQ-19)
