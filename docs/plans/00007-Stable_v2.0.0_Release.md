@@ -42,7 +42,7 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5"
 execution_branch: "release/v2"
 execution_started_at: "2026-09-16T12:32:08Z"
-execution_updated_at: "2026-09-16T22:58:21Z"
+execution_updated_at: "2026-09-16T23:31:39Z"
 execution_completed_at: null
 current_step: "PLAN-00007-STEP-11"
 ---
@@ -747,7 +747,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 | PLAN-00007-STEP-08 | completed | 2026-09-16T21:32:04Z | 2026-09-16T21:32:04Z | Commit (this one) | No NIST status change; Option A transcribed verbatim |
 | PLAN-00007-STEP-09 | completed | 2026-09-16T21:33:18Z | 2026-09-16T21:33:18Z | Commit (this one) | Contract test red then green; lock drift limited to the version lines |
 | PLAN-00007-STEP-10 | completed | 2026-09-16T21:33:18Z | 2026-09-16T22:58:21Z | Local gate + audits + packages recorded; CI run 35158807685 green 36/36 at b10d3b0 | Two git-dependent contract skips in the unpacked-sdist run accepted by the user |
-| PLAN-00007-STEP-11 | blocked | 2026-09-16T22:58:21Z | — | Hand-off recorded: tag v2.0.0rc2 at b10d3b0 | Waiting on owner release actions (tag, push, GitHub pre-release) |
+| PLAN-00007-STEP-11 | blocked | 2026-09-16T22:58:21Z | — | Tag v2.0.0rc2 at b10d3b0 (pushed by owner); PR #9 merged into main with a merge commit | Waiting on owner: publish the GitHub pre-release from the existing tag |
 | PLAN-00007-STEP-12 | not-started | — | — | — | — |
 | PLAN-00007-STEP-13 | not-started | — | — | — | — |
 | PLAN-00007-STEP-14 | not-started | — | — | — | — |
@@ -791,6 +791,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T21:33:18Z | PLAN-00007-STEP-09 | uv lock (fpr-ff1 v2.0.0rc1 -> v2.0.0rc2); cargo build updated rust/Cargo.lock; CHANGELOG [2.0.0rc2] dated 2026-09-16 with Fixed (1.x pickle, tweak encoding), Changed (SemVer note on newly rejected tweak lengths/bounds, Rust conversion with STEP-05 numbers, native wheel gate, --locked, support policy, coverage wording, platform docs), Added, Unchanged; links [Unreleased] -> v2.0.0rc2...HEAD and [2.0.0rc2] -> v2.0.0rc1...v2.0.0rc2; backlog: conversion item moved to Completed, review 00007 fixes recorded, stable v2.0.0 tracked as Ongoing | Lock diffs are exactly the local project version line in each file; installed fpr_ff1.__version__, distribution metadata and _rs.__version__ report 2.0.0rc2 / 2.0.0rc2 / 2.0.0-rc2 | Commit |
 | 2026-09-16T22:40:50Z | PLAN-00007-STEP-10 | User decisions: 'I accept two git-only test skips in the unpacked-sdist run.' and pushed release/v2 ('release/v2 pushed.'); origin/release/v2 = b10d3b0 (3050615 candidate + a work-log-only commit). Builder dispatched ci.yml | Run https://github.com/joelee/fpr-ff1/actions/runs/35158807685 (workflow_dispatch, head b10d3b0e88a425e424b040a925de43364f5ae08d, created 2026-09-16T22:40:24Z) | Record the run; hand the frozen commit to the owner for STEP-11 |
 | 2026-09-16T22:58:21Z | PLAN-00007-STEP-11 | Hand-off to owner. Frozen rc2 commit: b10d3b0e88a425e424b040a925de43364f5ae08d on release/v2 (content = 3050615; the extra commit changes only docs/plans/00007, which ships in no artifact). Gate evidence: CI run 35158807685 green 36/36 at that exact commit; local gate recorded under STEP-10. Tag must be exactly v2.0.0rc2 (publish.yml compares it with pyproject 2.0.0rc2) | git rev-parse origin/release/v2 at hand-off = b10d3b0; CHANGELOG [2.0.0rc2] dated 2026-09-16 | Owner: tag v2.0.0rc2 at b10d3b0, push the tag, publish a GitHub pre-release; then Builder verifies PyPI |
+| 2026-09-16T23:14:25Z | PLAN-00007-STEP-11 | User pushed tag v2.0.0rc2 (annotated, tagger date 2026-09-17T00:02:25+01:00 = 2026-09-16T23:02:25Z) at b10d3b0. Builder opened PR #9 release/v2 -> main with the filled PR template, head b10d3b0 (local work-log commits not pushed) | https://github.com/joelee/fpr-ff1/pull/9 (mergeable, checks pending) | Merge with a merge commit once checks pass; owner then publishes the GitHub pre-release |
 
 ### Deviations and blockers
 
@@ -808,6 +809,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T21:33:18Z | PLAN-00007-STEP-09 | The [2.0.0rc2] section is dated 2026-09-16 (the day it was cut). The plan dates candidate sections by tag date, which the owner sets in STEP-11 | If v2.0.0rc2 is tagged on another day, the section date needs a one-line edit before tagging | User: confirm the date at tagging |
 | 2026-09-16T21:37:24Z | PLAN-00007-STEP-10 | STOP CONDITION (literal): the unpacked-sdist run skipped two tests that are neither oracle nor rust: test_required_files_are_tracked_by_git ('not a git checkout') and test_project_urls_match_the_git_remote ('no origin remote configured'). Both skips are explicit guards in tests/test_contract.py for running outside a git checkout, which an unpacked sdist always is | No product defect: the skipped checks are about the repository, not the package, and both pass on every CI leg and locally in the checkout. The plan's skip allow-list did not anticipate them | User: accept these two skips as expected for an unpacked sdist |
 | 2026-09-16T21:42:24Z | PLAN-00007-STEP-10 | BLOCKER: task 5 needs a green CI run at the candidate commit, and origin/release/v2 (f12ed42) lacks 3050615 and the STEP-08/09 commits. Pushing is an outward action with no authorization recorded for these commits | STEP-10 cannot complete; STEP-11 (owner tags v2.0.0rc2) waits | User: authorize 'git push origin release/v2' (Builder then dispatches ci.yml and records the run), and accept the two git-dependent contract skips |
+| 2026-09-16T23:14:25Z | PLAN-00007-STEP-11 | Plan omission found by the user after tagging: the plan never merges release/v2 into main, but every earlier release tag (v1.0.0, v1.1.0, v2.0.0rc1) sits on main after a PR merge. v2.0.0rc2 was tagged at b10d3b0 on release/v2, 20 commits ahead of main. No GitHub release or publish.yml run existed yet | Convention gap only; no artifact published. The final v2.0.0 (STEP-13/14) needs the same merge step, which the approved plan lacks | User chose option 1 ('open the PR and merge with a merge commit'): merge release/v2 into main with a merge commit so the existing tag stays reachable from main, with no retag. Apply the same step before the final tag |
 
 ### Verification results
 
@@ -851,6 +853,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T21:42:24Z | PLAN-00007-STEP-10 | just format-check lint typecheck; just rust-test; just rust-lint; FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR_FF1_REQUIRE_ORACLE=1 uv run pytest --cov=fpr_ff1 --cov-fail-under=100; just quality with _rs.so moved aside | Pass | Candidate 3050615. Static clean; cargo test 16 passed; lint exit 0; -k rust 573/1682; dual gate 1682 passed in 285.60s, TOTAL 342 stmts 120 branches 100%; Rust-free quality 869 passed, 245 skipped in 217.20s, 100%. Logs checkpoint-213331 |
 | 2026-09-16T21:42:24Z | PLAN-00007-STEP-10 | uv lock --check; cargo build --locked (STEP-09, same commit) | Pass | Consistent; Cargo.lock unchanged by the locked build |
 | 2026-09-16T22:58:21Z | PLAN-00007-STEP-10 | CI run 35158807685 at b10d3b0 (rc2 candidate 3050615 + work-log commit) https://github.com/joelee/fpr-ff1/actions/runs/35158807685 | Pass | completed/success, 36/36 jobs. Artifacts: fpr_ff1-2.0.0rc2 cp312-abi3 macosx_10_12_x86_64, macosx_11_0_arm64, manylinux_2_34_aarch64, manylinux_2_34_x86_64, win_amd64 wheels + py3-none-any wheel + sdist. Import-origin 'installed wheel, fpr-ff1 2.0.0rc2' in 16/16 wheel jobs; wheel-test-native 15/15 '149 passed'; wheel-conformance-abi3 573 rust collected, 1682 passed in 176.04s, 100.00%; rust-conformance 1682 passed in 541.95s |
+| 2026-09-16T23:31:39Z | PLAN-00007-STEP-11 | PR #9 checks, then merge with a merge commit (gh pr merge --merge --match-head-commit b10d3b0) | Pass | PR checks 36/36 pass, merge state CLEAN. Merged 2026-09-16T23:31:16Z as 895c63350e33a17ffa8719b55a2c861baaf24942 'Release/v2.0.0rc2 (#9)', parents 89c74b7 (old main) and b10d3b0 (tagged). v2.0.0rc2 is an ancestor of origin/main; origin/main tree == v2.0.0rc2 tree |
 
 ### Completion summary
 
