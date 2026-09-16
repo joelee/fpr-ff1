@@ -27,6 +27,8 @@
 //!   instances are thread-safe by construction, mirroring the Python
 //!   contract (`_ff1.py` `_Aes` docstring).
 
+use std::collections::HashMap;
+
 use aes::cipher::{BlockEncrypt, KeyInit};
 use aes::{Aes128, Aes192, Aes256, Block};
 use num_bigint::BigUint;
@@ -163,9 +165,21 @@ pub fn encode_len_u32(len: usize) -> Result<[u8; 4], String> {
         .map_err(|_| format!("length {len} does not fit the four-byte field of Algorithm 7 step 5"))
 }
 
+/// Inputs at or below this many numerals use the naive spec-reference loops
+/// directly; above it the conversion takes the power-of-two packing path or
+/// the divide-and-conquer split. Mirrors `_ff1.py::_D_C_THRESHOLD` by name
+/// and value so both cores dispatch at the same length (plan 00007 D9).
+pub const D_C_THRESHOLD: usize = 64;
+
 /// Decode a numeral sequence as a big-endian base-radix integer
 /// (SP 800-38G NUM_radix). Exact integer arithmetic only.
-pub fn num_radix(radix: u32, numerals: &[u16]) -> BigUint {
+///
+/// The naive digit-at-a-time loop exactly as the spec writes NUM_radix, and
+/// the Rust counterpart of `_ff1.py::_num_radix_reference`. Quadratic in the
+/// number of numerals and retained deliberately as the line-by-line
+/// reference: `num_radix` is verified equal to it across every supported
+/// radix by the equivalence tests in `tests.rs`.
+pub fn num_radix_reference(radix: u32, numerals: &[u16]) -> BigUint {
     let mut value = BigUint::zero();
     let base = BigUint::from(radix);
     for &x in numerals {
@@ -177,7 +191,10 @@ pub fn num_radix(radix: u32, numerals: &[u16]) -> BigUint {
 /// Encode a non-negative integer as `length` big-endian base-radix numerals
 /// (SP 800-38G STR_radix). Values `>= radix**length` silently drop their
 /// high digits, matching the Python reference's truncation contract.
-pub fn str_radix(value: &BigUint, radix: u32, length: usize) -> Vec<u16> {
+///
+/// The Rust counterpart of `_ff1.py::_str_radix_reference`; retained as the
+/// reference for the same reason as `num_radix_reference`.
+pub fn str_radix_reference(value: &BigUint, radix: u32, length: usize) -> Vec<u16> {
     let mut out = vec![0u16; length];
     let mut v = value.clone();
     let base = BigUint::from(radix);
@@ -191,6 +208,165 @@ pub fn str_radix(value: &BigUint, radix: u32, length: usize) -> Vec<u16> {
         v = q;
     }
     out
+}
+
+/// Return `radix ** exponent` through a call-local memo
+/// (`_ff1.py::_radix_power`).
+///
+/// The cache is created per `num_radix`/`str_radix` invocation and passed
+/// down the recursion by `&mut`. It MUST stay call-local: a process-wide or
+/// instance-held cache would be shared mutable state and break the
+/// thread-safety contract (the GIL is released while this code runs).
+fn radix_power(radix: u32, exponent: usize, cache: &mut HashMap<usize, BigUint>) -> &BigUint {
+    cache.entry(exponent).or_insert_with(|| {
+        BigUint::from(radix).pow(u32::try_from(exponent).expect("exponent < 2**32 (length bound)"))
+    })
+}
+
+/// Divide-and-conquer NUM_radix above `D_C_THRESHOLD`
+/// (`_ff1.py::_num_radix_split`): decode both halves recursively and
+/// combine them as `high * radix**len(low) + low` -- one big multiply per
+/// level instead of one per digit.
+fn num_radix_split(radix: u32, numerals: &[u16], cache: &mut HashMap<usize, BigUint>) -> BigUint {
+    let length = numerals.len();
+    if length <= D_C_THRESHOLD {
+        return num_radix_reference(radix, numerals);
+    }
+    let high_len = length / 2;
+    let high = num_radix_split(radix, &numerals[..high_len], cache);
+    let low = num_radix_split(radix, &numerals[high_len..], cache);
+    high * radix_power(radix, length - high_len, cache) + low
+}
+
+/// Return `k` when `radix` is `2**k`, else `None` (`_ff1.py::_pow2_exponent`).
+///
+/// Exact integer arithmetic: `2**k - 1` has bit length `k` -- never a
+/// logarithm.
+fn pow2_exponent(radix: u32) -> Option<u32> {
+    if radix & (radix - 1) == 0 {
+        Some(u32::BITS - (radix - 1).leading_zeros())
+    } else {
+        None
+    }
+}
+
+/// Smallest numeral count per byte-aligned group for radix `2**k`
+/// (`_ff1.py::_pow2_chunk_size`). `k` is at most 15, so 8 always works.
+fn pow2_chunk_size(k: u32) -> usize {
+    for candidate in [1usize, 2, 4] {
+        if (k as usize * candidate).is_multiple_of(8) {
+            return candidate;
+        }
+    }
+    8
+}
+
+/// O(n) NUM_radix for power-of-two radices (`_ff1.py::_num_radix_pow2`):
+/// pack byte-aligned groups of numerals and decode the whole sequence with
+/// one `from_bytes_be`. Leading zero padding never changes the value.
+fn num_radix_pow2(k: u32, numerals: &[u16]) -> BigUint {
+    let chunk_size = pow2_chunk_size(k);
+    // At most 15 * 8 = 120 bits per group, so a u128 accumulator suffices.
+    let bytes_per_chunk = k as usize * chunk_size / 8;
+    let pad = (chunk_size - numerals.len() % chunk_size) % chunk_size;
+    let padded: Vec<u16> = std::iter::repeat_n(0u16, pad)
+        .chain(numerals.iter().copied())
+        .collect();
+    let mut packed = Vec::with_capacity(padded.len() / chunk_size * bytes_per_chunk);
+    for group in padded.chunks(chunk_size) {
+        let mut acc: u128 = 0;
+        for &numeral in group {
+            acc = (acc << k) | u128::from(numeral);
+        }
+        packed.extend_from_slice(&acc.to_be_bytes()[16 - bytes_per_chunk..]);
+    }
+    BigUint::from_bytes_be(&packed)
+}
+
+/// O(n) STR_radix for power-of-two radices (`_ff1.py::_str_radix_pow2`).
+///
+/// Values `>= radix**length` drop their high digits exactly as the
+/// reference loop does: `radix**length` is `2**(k*length)` here, so one
+/// mask reproduces the truncation contract bit for bit.
+fn str_radix_pow2(value: &BigUint, k: u32, length: usize) -> Vec<u16> {
+    let chunk_size = pow2_chunk_size(k);
+    let bytes_per_chunk = k as usize * chunk_size / 8;
+    let n_chunks = length.div_ceil(chunk_size);
+    let total_bytes = n_chunks * bytes_per_chunk;
+    let mask = (BigUint::one() << (k as usize * length)) - BigUint::one();
+    let masked = (value & mask).to_bytes_be();
+    // `to_bytes_be` is minimal (and `[0]` for zero); left-pad to the full
+    // width. The mask guarantees the value fits `total_bytes`.
+    let mut data = vec![0u8; total_bytes];
+    if masked != [0] {
+        data[total_bytes - masked.len()..].copy_from_slice(&masked);
+    }
+    let digit_mask: u128 = (1u128 << k) - 1;
+    let mut out: Vec<u16> = Vec::with_capacity(n_chunks * chunk_size);
+    for group in data.chunks(bytes_per_chunk) {
+        let mut buf = [0u8; 16];
+        buf[16 - bytes_per_chunk..].copy_from_slice(group);
+        let chunk_int = u128::from_be_bytes(buf);
+        for index in (0..chunk_size).rev() {
+            // Each digit is at most k <= 15 bits, so it fits u16.
+            out.push(((chunk_int >> (index * k as usize)) & digit_mask) as u16);
+        }
+    }
+    // Drop the leading zero padding introduced by the final partial group.
+    out.drain(..n_chunks * chunk_size - length);
+    out
+}
+
+/// Decode a numeral sequence as a big-endian base-radix integer
+/// (SP 800-38G NUM_radix), equal to `num_radix_reference`.
+///
+/// Same dispatch, in the same order, as `_ff1.py::_num_radix`: at or below
+/// `D_C_THRESHOLD` the reference loop; above it, power-of-two radices take
+/// the O(n) packing path and every other radix the divide-and-conquer split.
+pub fn num_radix(radix: u32, numerals: &[u16]) -> BigUint {
+    if numerals.len() <= D_C_THRESHOLD {
+        return num_radix_reference(radix, numerals);
+    }
+    if let Some(k) = pow2_exponent(radix) {
+        return num_radix_pow2(k, numerals);
+    }
+    // Call-local cache; see `radix_power` for why it must not be shared.
+    num_radix_split(radix, numerals, &mut HashMap::new())
+}
+
+/// Divide-and-conquer STR_radix above `D_C_THRESHOLD`
+/// (`_ff1.py::_str_radix_split`): split `value` against
+/// `radix**len(low_half)` and encode both halves recursively. A value
+/// `>= radix**length` drops its high digits through the recursion exactly
+/// as the reference loop does.
+fn str_radix_split(
+    value: &BigUint,
+    radix: u32,
+    length: usize,
+    cache: &mut HashMap<usize, BigUint>,
+) -> Vec<u16> {
+    if length <= D_C_THRESHOLD {
+        return str_radix_reference(value, radix, length);
+    }
+    let high_len = length / 2;
+    let (high, low) = value.div_rem(radix_power(radix, length - high_len, cache));
+    let mut out = str_radix_split(&high, radix, high_len, cache);
+    out.extend(str_radix_split(&low, radix, length - high_len, cache));
+    out
+}
+
+/// Encode a non-negative integer as `length` big-endian base-radix numerals
+/// (SP 800-38G STR_radix), equal to `str_radix_reference` including its
+/// truncation contract. Dispatch mirrors `num_radix` and `_ff1.py::_str_radix`.
+pub fn str_radix(value: &BigUint, radix: u32, length: usize) -> Vec<u16> {
+    if length <= D_C_THRESHOLD {
+        return str_radix_reference(value, radix, length);
+    }
+    if let Some(k) = pow2_exponent(radix) {
+        return str_radix_pow2(value, k, length);
+    }
+    // Call-local cache; see `radix_power` for why it must not be shared.
+    str_radix_split(value, radix, length, &mut HashMap::new())
 }
 
 /// One round's intermediate values, mirroring the Python reference's

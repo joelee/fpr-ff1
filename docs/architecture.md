@@ -28,6 +28,25 @@ flowchart LR
 - `fpr_ff1.__init__`: public exports and `py.typed` marker.
 - `fpr_ff1._rs`: the optional compiled backend (a PyO3 extension built from `rust/fpr-ff1-rust`), present only in the platform wheels. The pure-Python path never imports it; `backend="rust"` without it raises `BackendError`.
 
+## Numeral conversion
+
+`NUM_radix` and `STR_radix` dominate long inputs, and both cores convert the same way, with the
+same names and the same threshold, so a reviewer can compare them side by side:
+
+| Input | Path | Python (`_ff1.py`) | Rust (`lib.rs`) |
+|---|---|---|---|
+| at most 64 numerals | the spec's digit-at-a-time loop | `_num_radix_reference` / `_str_radix_reference` | `num_radix_reference` / `str_radix_reference` |
+| above 64, radix a power of two | O(n) byte packing | `_num_radix_pow2` / `_str_radix_pow2` | `num_radix_pow2` / `str_radix_pow2` |
+| above 64, any other radix | divide and conquer with a call-local power cache | `_num_radix_split` / `_str_radix_split` | `num_radix_split` / `str_radix_split` |
+
+The threshold is `_D_C_THRESHOLD` in Python and `D_C_THRESHOLD` in Rust, both 64, and the dispatch
+order is identical: threshold first, then power of two, then the split. The reference loops stay in
+both modules as the spec-comparable text. `tests/test_conversion_equivalence.py` and the Rust unit
+tests prove each fast path equal to its reference across every supported radix, including the
+truncation contract for values at or above `radix ** length`. The power cache is created per call
+and passed down the recursion, never stored on an instance or at module level, which keeps
+instances thread-safe.
+
 ## Public API
 
 ```python
