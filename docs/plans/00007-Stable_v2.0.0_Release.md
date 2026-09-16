@@ -42,7 +42,7 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5"
 execution_branch: "release/v2"
 execution_started_at: "2026-09-16T12:32:08Z"
-execution_updated_at: "2026-09-16T13:19:43Z"
+execution_updated_at: "2026-09-16T13:42:27Z"
 execution_completed_at: null
 current_step: "PLAN-00007-STEP-06"
 ---
@@ -742,7 +742,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 | PLAN-00007-STEP-03 | completed | 2026-09-16T12:51:56Z | 2026-09-16T13:00:49Z | Commit (this one); checkpoint logs checkpoint-125233 | No assertion weakened; pyright ignore comments on direct FF1 calls removed because ff1_factory returns Any |
 | PLAN-00007-STEP-04 | completed | 2026-09-16T13:00:49Z | 2026-09-16T13:11:58Z | Commit (this one); checkpoint logs checkpoint-130330 | docs/architecture.md gained a Numeral conversion section with the side-by-side function map |
 | PLAN-00007-STEP-05 | completed | 2026-09-16T13:11:58Z | 2026-09-16T13:14:05Z | Commit (this one); park rule PASS; bench output recorded in Execution log | Single run on one machine, as the plan specifies |
-| PLAN-00007-STEP-06 | blocked | 2026-09-16T13:19:43Z | — | Workflow commit (this one); local dry run and actionlint green; CI run not yet possible | Awaiting push authorization; tasks 1-5 done, task 6 (push and iterate to green) pending |
+| PLAN-00007-STEP-06 | blocked | 2026-09-16T13:19:43Z | — | Run 35101666336 failed 5/36 on interpreter provisioning; fix in the next commit; awaiting push | Awaiting push of the provisioning fix |
 | PLAN-00007-STEP-07 | not-started | — | — | — | — |
 | PLAN-00007-STEP-08 | not-started | — | — | — | — |
 | PLAN-00007-STEP-09 | not-started | — | — | — | — |
@@ -775,6 +775,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T13:19:43Z | PLAN-00007-STEP-06 | Local dry run of the install recipe: uvx maturin@1.15.0 build --release --locked -> fpr_ff1-2.0.0rc1-cp312-abi3-manylinux_2_34_x86_64.whl; uv export --frozen --no-emit-project --no-hashes (58 lines, project not emitted); fresh venv; uv pip install -r requirements + wheel | First attempt with --python 3.14 picked the local free-threaded 3.14t and uv refused the abi3 wheel; --python 3.14+gil resolved GIL-enabled 3.14.7 and installed | Import-origin and subset |
 | 2026-09-16T13:19:43Z | PLAN-00007-STEP-06 | Import-origin script .github/scripts/assert_installed_wheel.py: fpr_ff1 and _rs under the venv purelib, not checkout src/; abi3 extension; py.typed present; __version__ matches metadata | Venv: exit 0 (site-packages/fpr_ff1/_rs.abi3.so). With PYTHONPATH=src: exit 1 'imported from the checkout'. Subset (7 modules) 149 passed. Full abi3 leg locally: -k rust 573; 1682 passed in 88.98s, 100%; coverage data files are the site-packages copies | Write workflow |
 | 2026-09-16T13:19:43Z | PLAN-00007-STEP-06 | ci.yml: wheel-build records rustc/cargo --version and builds --locked; rust-conformance cargo build --locked; wheel-test-platform replaced by wheel-test-native (5 targets x py3.12/3.13/3.14 = 15 legs) and wheel-conformance-abi3 (ubuntu-24.04, py3.14, full suite, -k rust >= 500, 100% coverage). wheel-test and sdist-test unchanged | actionlint 1.7.12 exit 0 on ci.yml and publish.yml (shellcheck not installed locally, so run: blocks were not shell-linted); job set parsed: audit, build, quality, rust-conformance, sdist-test, secrets, wheel-build, wheel-conformance-abi3, wheel-test, wheel-test-native | Verify runner labels |
+| 2026-09-16T13:24:27Z | PLAN-00007-STEP-06 | User pushed release/v2 ('branch pushed.'); origin/release/v2 = 4de5fd6. ci.yml triggers only on push to main, pull_request and workflow_dispatch, so the push started no run; Builder dispatched ci.yml on release/v2 (gh workflow run) to execute the gate the push was authorized for. Nothing is published by ci.yml | git rev-parse origin/release/v2 = 4de5fd6e10685e8409e950a3c5ce80f98c275e57; run https://github.com/joelee/fpr-ff1/actions/runs/35101666336 (workflow_dispatch, created 2026-09-16T13:24:03Z) | Watch the run to completion |
+| 2026-09-16T13:42:27Z | PLAN-00007-STEP-06 | Diagnosis: uv venv does not download an interpreter for a '+gil' request. Linux 3.12 passed only because ubuntu-24.04 ships it; macOS and Windows images carry 3.13/3.14. Reproduced locally with UV_PYTHON_PREFERENCE=only-managed and an empty install dir; 'uv python install 3.13' first fixed it (cpython-3.13.14, GIL enabled). Fix: 'uv python install <version>' before 'uv venv' in both new jobs, matching the quality matrix | Local repro output; actionlint clean | Commit fix; user pushes; re-dispatch |
 
 ### Deviations and blockers
 
@@ -784,6 +786,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T13:14:05Z | PLAN-00007-STEP-05 | The value-dependent table's radix 10 length 10 row measured -28.2% in this run (SECURITY.md publishes +0.8%). SECURITY.md is not in STEP-05's scope and was not changed | Likely noise from a shared, loaded machine (load 2.46) at the shortest case; the published table is from a different machine. No claim in this plan depends on it | None; flagged for the owner and the re-review |
 | 2026-09-16T13:19:43Z | PLAN-00007-STEP-06 | Four refinements beyond the plan text: (1) venvs request '<version>+gil' because a bare version can resolve to a free-threaded build that cannot load abi3 (seen locally); (2) the import-origin check is a shared script .github/scripts/assert_installed_wheel.py rather than inline YAML, and also asserts py.typed and __version__, because no test module checks py.typed; (3) the subset adds tests/test_pickle.py, which holds the distribution-version test; (4) the workflow uses shell: bash on every OS with a VENV_PY variable instead of a runner.os step split | None on scope: each serves REQ-06 as written. .github/ is outside the sdist include list, so the script does not ship | None (recorded for the re-review) |
 | 2026-09-16T13:19:43Z | PLAN-00007-STEP-06 | BLOCKER: the step's verification and completion need the branch pushed so the 16 new jobs run in CI. Pushing is an outward action with no authorization recorded | STEP-06 cannot be completed; STEP-07 (needs STEP-06 green in CI) and every later step in the required sequence wait | User: authorize 'git push origin release/v2' (or a named branch) for STEP-06 |
+| 2026-09-16T13:42:27Z | PLAN-00007-STEP-06 | First CI run failed on interpreter provisioning in the new jobs (not on any wheel or test). Fix committed; needs another push | One extra push round-trip for STEP-06 | User: push release/v2 again |
 
 ### Verification results
 
@@ -806,6 +809,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T13:11:58Z | PLAN-00007-STEP-04 | grep -c 'static\\|OnceLock\\|unsafe' rust/fpr-ff1-rust/src/lib.rs | Pass | 1 match, same as baseline (the existing 'without unsafe' doc comment on the GIL-release binding) |
 | 2026-09-16T13:14:05Z | PLAN-00007-STEP-05 | uv run ruff format --check .; uv run ruff check . | Pass | 54 files already formatted; All checks passed |
 | 2026-09-16T13:19:43Z | PLAN-00007-STEP-06 | Runner labels re-verified against github.com/actions/runner-images (fetched 2026-09-16) | Pass | ubuntu-24.04 x64; ubuntu-24.04-arm arm64; macos-latest arm64; macos-15-intel x64; windows-latest = Windows Server 2025 x64 |
+| 2026-09-16T13:42:27Z | PLAN-00007-STEP-06 | CI run 35101666336 on 4de5fd6 (workflow_dispatch) | Fail | 31 of 36 jobs green, including all 15 pre-existing jobs, all macOS and Windows native legs, and linux py3.12 on both arches. 5 failed at 'Install the wheel into a clean environment': linux x86_64 and aarch64 on py3.13 and py3.14, and wheel-conformance-abi3 (py3.14). Error: 'No interpreter found for Python 3.13+gil in managed installations or search path' |
 
 ### Completion summary
 

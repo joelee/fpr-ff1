@@ -392,10 +392,14 @@ jobs:
           name: wheels-${{ matrix.target }}
           path: dist-wheels/
 
-      # `+gil`: an abi3 wheel cannot load into a free-threaded interpreter,
-      # and a bare "3.14" may resolve to one.
+      # `uv venv` does not download an interpreter for a `+gil` request, so
+      # install it first (as the quality matrix does). `uv python install`
+      # installs the default GIL-enabled build; `+gil` then keeps the venv
+      # off any free-threaded interpreter on the runner, which cannot load
+      # an abi3 wheel.
       - name: Install the wheel into a clean environment
         run: |
+          uv python install "${{ matrix.python-version }}"
           uv venv wheel-venv --python "${{ matrix.python-version }}+gil"
           uv export --frozen --no-emit-project --no-hashes -o requirements-ci.txt
           uv pip install --python wheel-venv -r requirements-ci.txt dist-wheels/*.whl
@@ -448,6 +452,7 @@ jobs:
 
       - name: Install the wheel into a clean environment
         run: |
+          uv python install 3.14
           uv venv wheel-venv --python "3.14+gil"
           uv export --frozen --no-emit-project --no-hashes -o requirements-ci.txt
           uv pip install --python wheel-venv -r requirements-ci.txt dist-wheels/*.whl
