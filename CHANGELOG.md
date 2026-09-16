@@ -9,6 +9,17 @@ expanding the accepted domain without changing existing behaviour is a minor ver
 
 ## [Unreleased]
 
+### Changed
+
+- **The compiled backend's numeral conversion is now subquadratic** (plan 00007 STEP-04). The Rust
+  core uses the same dispatch as the pure-Python reference: the spec's digit loop up to 64 numerals,
+  then O(n) byte packing for power-of-two radices and divide and conquer for every other radix. The
+  digit loops stay as the reference and are proven equal to the fast paths. Ciphertext is
+  unchanged. The compiled backend is no longer overtaken at long inputs. Measured on one Linux
+  x86_64 machine (README Backends): ~2.8× faster than the pure-Python path at n=20,000 radix 10,
+  and ~11× at radix 256, where `2.0.0rc1` was 0.21× and 0.17×. The "crossover between n=1,000 and
+  n=5,000" guidance is withdrawn.
+
 ## [2.0.0rc1] — 2026-09-09
 
 Release candidate for the optional accelerated backend. **The pure-Python path is unchanged and

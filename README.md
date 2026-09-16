@@ -64,8 +64,8 @@ FF1 is a deterministic permutation for a fixed key and tweak. That has operation
 ## Features
 
 - Pure Python with a single runtime dependency: `cryptography`.
-- An optional compiled backend (`backend="rust"`) for high-throughput callers on short inputs,
-  with the pure-Python implementation retained as the reference and the default.
+- An optional compiled backend (`backend="rust"`) for high-throughput callers, with the
+  pure-Python implementation retained as the reference and the default.
 - Conformance-tested against the NIST SP 800-38G sample vectors.
 - No floating-point arithmetic in the FF1 core.
 - Tightened domain limits from the SP 800-38G Rev. 1 second public draft:
@@ -206,15 +206,15 @@ than the ceiling punishing users of new Pythons.
 |---|---|
 | **1.0** | **Pure Python.** Conformance, a stable API, and a single runtime dependency (`cryptography`). No compiled extension, no optional backends — one code path, and it is the one the vectors test. |
 | **1.1** | **Pure-Python performance.** Subquadratic base conversion and an O(n) power-of-two fast path; ciphertext bit-identical to 1.0.0. Still one code path, still one dependency. |
-| **2.0** | **Optional accelerated backend.** An opt-in faster path for high-throughput callers on short inputs, with the pure-Python implementation retained as the reference and the default. Shipped as `2.0.0rc1`. |
+| **2.0** | **Optional accelerated backend.** An opt-in faster path for high-throughput callers, with the pure-Python implementation retained as the reference and the default. Shipped as `2.0.0rc1`. |
 
 The 2.0 backend is opt-in and additive: the pure-Python path is unchanged and remains the default,
 so existing callers are unaffected. The accelerated path is only worth having once the reference
 implementation is settled and there is a conformance suite strong enough to prove the two agree
 bit for bit — which is the point of the differential and interoperability tests, and which the
-2.0 suite runs against *both* backends. With 1.1 removing the long-input conversion cost, the
-accelerated backend targets the small-input regime (per-call overhead); see
-[Backends](#backends) for the measured numbers and when to use it.
+2.0 suite runs against *both* backends. The compiled backend removes the per-call overhead that
+dominates short inputs and shares 1.1's subquadratic conversion for long ones; see
+[Backends](#backends) for the measured numbers.
 
 Nothing in the roadmap changes the scope boundary above. FF3 and FF3-1 remain permanently out of
 scope, and no release will add key management.
@@ -250,31 +250,32 @@ messages are the same. The compiled backend ships as `fpr_ff1._rs` inside the pl
 pure-Python wheel and the sdist omit it, and requesting `backend="rust"` there raises a clear
 `BackendError` rather than an opaque `ImportError`.
 
-Measured on one core, CPython 3.12.13, Linux x86_64 — reproduce with `just bench`:
+Measured on one core, CPython 3.12.13, Linux x86_64 (AMD Ryzen AI Max+ PRO 395), extension built
+in release mode with rustc 1.98.1 — reproduce with `just bench`:
 
 | Input | `backend="python"` | `backend="rust"` | Speedup |
 |---|---:|---:|---:|
-| 6 numerals, radix 10 | 27.3 µs/op | 3.6 µs/op | ~7.5× |
-| n = 100, radix 10 | 106.8 µs/op | 31.9 µs/op | ~3.4× |
-| n = 1,000, radix 10 | 912.6 µs/op | 523.2 µs/op | ~1.7× |
-| n = 5,000, radix 10 | 5.1 ms/op | 8.5 ms/op | 0.60× (slower) |
-| n = 20,000, radix 10 | 26.5 ms/op | 124.5 ms/op | 0.21× (slower) |
-| n = 100, radix 256 | 139.0 µs/op | 43.6 µs/op | ~3.2× |
-| n = 1,000, radix 256 | 2.1 ms/op | 0.9 ms/op | ~2.3× |
-| n = 5,000, radix 256 | 10.7 ms/op | 17.2 ms/op | 0.62× (slower) |
-| n = 20,000, radix 256 | 43.2 ms/op | 253.8 ms/op | 0.17× (slower) |
+| 6 numerals, radix 10 | 29.5 µs/op | 4.1 µs/op | ~7.3× |
+| n = 100, radix 10 | 110.6 µs/op | 38.8 µs/op | ~2.9× |
+| n = 1,000, radix 10 | 966.0 µs/op | 399.5 µs/op | ~2.4× |
+| n = 5,000, radix 10 | 5.3 ms/op | 2.2 ms/op | ~2.5× |
+| n = 20,000, radix 10 | 27.9 ms/op | 9.9 ms/op | ~2.8× |
+| n = 100, radix 256 | 145.6 µs/op | 50.2 µs/op | ~2.9× |
+| n = 1,000, radix 256 | 2.2 ms/op | 0.2 ms/op | ~11× |
+| n = 5,000, radix 256 | 11.2 ms/op | 1.0 ms/op | ~11× |
+| n = 20,000, radix 256 | 45.7 ms/op | 4.1 ms/op | ~11× |
 
-**Use the rust backend for short inputs, the default for long inputs.** The compiled core
-eliminates the per-call cipher-context construction that dominates short inputs (about 55% of an
-n=6 call), which is why it is ~7.5× faster there. It deliberately uses the naive spec-reference
-conversion, so at long inputs the pure-Python path's subquadratic conversion wins.
+**On every shape measured here, the compiled backend is faster.** At short inputs it eliminates the
+per-call cipher-context construction that dominates the pure-Python path (about 55% of an n=6
+call). At long inputs both cores use the same subquadratic numeral conversion — divide and conquer,
+plus an O(n) byte-packing path for power-of-two radices, which is why radix 256 gains most — so the
+compiled core keeps its lead instead of being overtaken, as it was in `2.0.0rc1`.
 
-**The crossover falls between n = 1,000 and n = 5,000** on both radices measured — the compiled
-backend is still ahead at n = 1,000 (1.7× at radix 10, 2.3× at radix 256) and behind at n = 5,000.
-Treat that as a band on this hardware, not a constant: measure your own shapes with `just bench`.
+These are one machine's numbers, not a guarantee: the ratio depends on the interpreter, the CPU
+and the shape of your data, so measure your own inputs with `just bench` before choosing.
 
-The two backends are complementary, not a replacement: the pure-Python path remains the reference,
-the default, and the better choice for long inputs.
+The two backends are complementary, not a replacement: the pure-Python path remains the reference
+and the default, needs no compiled extension, and produces bit-identical ciphertext.
 
 ## API
 
@@ -371,7 +372,7 @@ one `FF1` across request threads.
 Thread-safe is not the same as parallel. The pure-Python backend holds the GIL throughout, so
 concurrent calls interleave rather than overlap. The compiled backend releases the GIL for the
 duration of the FF1 computation, so concurrent calls on one instance genuinely run in parallel —
-measured 3.8× on four threads (n = 5,000, radix 10) against 0.85× for the pure-Python control.
+measured 2.9× on four threads (n = 5,000, radix 10) against 0.96× for the pure-Python control.
 Releasing the GIL also means a long call no longer stalls unrelated threads in the process.
 Reproduce both rows with `just bench`.
 

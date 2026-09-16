@@ -42,9 +42,9 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5"
 execution_branch: "release/v2"
 execution_started_at: "2026-09-16T12:32:08Z"
-execution_updated_at: "2026-09-16T13:11:58Z"
+execution_updated_at: "2026-09-16T13:14:05Z"
 execution_completed_at: null
-current_step: "PLAN-00007-STEP-05"
+current_step: "PLAN-00007-STEP-06"
 ---
 
 # Delivery Plan 00007: Stable v2.0.0 Release
@@ -741,7 +741,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 | PLAN-00007-STEP-02 | completed | 2026-09-16T12:42:01Z | 2026-09-16T12:51:56Z | Commit (this one); checkpoint logs checkpoint-124333 | Ceiling message: 'tweak length N above encodable maximum 4294967295'. Changelog wording (SemVer note) deferred to STEP-09 as planned |
 | PLAN-00007-STEP-03 | completed | 2026-09-16T12:51:56Z | 2026-09-16T13:00:49Z | Commit (this one); checkpoint logs checkpoint-125233 | No assertion weakened; pyright ignore comments on direct FF1 calls removed because ff1_factory returns Any |
 | PLAN-00007-STEP-04 | completed | 2026-09-16T13:00:49Z | 2026-09-16T13:11:58Z | Commit (this one); checkpoint logs checkpoint-130330 | docs/architecture.md gained a Numeral conversion section with the side-by-side function map |
-| PLAN-00007-STEP-05 | not-started | — | — | — | — |
+| PLAN-00007-STEP-05 | completed | 2026-09-16T13:11:58Z | 2026-09-16T13:14:05Z | Commit (this one); park rule PASS; bench output recorded in Execution log | Single run on one machine, as the plan specifies |
 | PLAN-00007-STEP-06 | not-started | — | — | — | — |
 | PLAN-00007-STEP-07 | not-started | — | — | — | — |
 | PLAN-00007-STEP-08 | not-started | — | — | — | — |
@@ -769,13 +769,16 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T13:11:58Z | PLAN-00007-STEP-04 | Tests first: 6 Rust equivalence tests (representative radices x 12 lengths incl. 0/1/63/64/65/128/129/131/257/1000/2049; every radix 2..65535 at length 65; every power-of-two radix at lengths 65..81; truncation contract; D_C_THRESHOLD == 64) and tests/test_backend_agreement.py (3 key sizes x tweaks 0/1/16/255 x radices 10/36/256/65535 x lengths 6/64/65/1000/5000, encrypt and decrypt on identical inputs) | Agreement module 240 passed before the port (both cores correct; regression net). Rust tests failed to compile (unresolved num_radix_reference, str_radix_reference, D_C_THRESHOLD) | Port |
 | 2026-09-16T13:11:58Z | PLAN-00007-STEP-04 | Port: renamed naive loops to num_radix_reference/str_radix_reference; added D_C_THRESHOLD, radix_power (call-local HashMap by &mut), num/str_radix_split, pow2_exponent, pow2_chunk_size, num/str_radix_pow2, dispatching num_radix/str_radix. ff1_impl call sites unchanged by name | cargo test 16 passed | Mutation check |
 | 2026-09-16T13:11:58Z | PLAN-00007-STEP-04 | Mutation check of the equivalence tests: four deliberate breaks, one per new path, each restored after | NUM split exponent -> 3 failed; STR split divisor -> 4 failed; NUM pow2 pad -> 4 failed; STR pow2 mask -> 1 failed; restored source byte-identical (cmp) and 16 passed | Checkpoint |
+| 2026-09-16T13:14:05Z | PLAN-00007-STEP-05 | just bench with the release extension (just backend-dev), started 2026-09-16T13:12:09Z. Machine: Linux 7.2.5 x86_64, AMD RYZEN AI MAX+ PRO 395, 32 CPUs, load average 2.46 at start; CPython 3.12.13; rustc 1.98.1 (48a229cea 2026-09-01), cargo 1.98.1; fpr_ff1 2.0.0rc1, _rs 2.0.0-rc1 (source at 85b0b6f) | Backend table python/rust µs/op: r10 n6 29.5/4.1 (7.25x); r10 n100 110.6/38.8 (2.85x); r10 n1000 966.0/399.5 (2.42x); r10 n5000 5307.4/2159.8 (2.46x); r10 n20000 27863.1/9895.4 (2.82x); r256 n100 145.6/50.2 (2.90x); r256 n1000 2243.8/201.7 (11.12x); r256 n5000 11220.8/999.1 (11.23x); r256 n20000 45669.0/4104.3 (11.13x). GIL probe n5000 r10: python 5.53 serial / 5.78 threaded ms (0.96x); rust 2.16 / 0.74 ms (2.93x). Throughput: n6 r10 ~34,856 ops/s 28.7 µs; construction ~704,310/s. Value-dependent deltas r10n10 -28.2%, r10n60 -0.7%, r10n200 +2.0%, r256n32 +2.9%, r65535n12 +2.4% | Apply park rule |
+| 2026-09-16T13:14:05Z | PLAN-00007-STEP-05 | Park rule (rust <= python per call at n=20,000, radix 10 and 256): PASS | radix 10: 9895.4 µs <= 27863.1 µs; radix 256: 4104.3 µs <= 45669.0 µs | Update README and changelog from this run |
+| 2026-09-16T13:14:05Z | PLAN-00007-STEP-05 | README Backends table and guidance rewritten from the run (crossover guidance withdrawn; hardware and rustc named); Features bullet, roadmap row and prose no longer say 'short inputs'; thread-safety GIL figure updated to this run (2.9x vs 0.96x); CHANGELOG [Unreleased] gains the performance note for STEP-09 | Every README table value is a rounding of the run above; the 55% per-call overhead share is pre-existing text sourced from review 00005, not from this run | Commit |
 
 ### Deviations and blockers
 
 | Timestamp (UTC) | Step | Deviation or blocker | Impact | Decision required from |
 |---|---|---|---|---|
 | 2026-09-16T13:11:58Z | PLAN-00007-STEP-04 | Plan text STEP-04 task 4 lists the dispatch order as 'power of two, then threshold, then split'; _ff1.py::_num_radix/_str_radix actually check the threshold first, then power of two, then split. Implemented Python's actual order, per REQ-04 ('mirror _ff1.py') | None on output: all three paths are proven equal to the reference. Keeps small power-of-two inputs on the reference loop in both cores | None (recorded for the re-review) |
-
+| 2026-09-16T13:14:05Z | PLAN-00007-STEP-05 | The value-dependent table's radix 10 length 10 row measured -28.2% in this run (SECURITY.md publishes +0.8%). SECURITY.md is not in STEP-05's scope and was not changed | Likely noise from a shared, loaded machine (load 2.46) at the shortest case; the published table is from a different machine. No claim in this plan depends on it | None; flagged for the owner and the re-review |
 
 ### Verification results
 
@@ -796,6 +799,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T13:11:58Z | PLAN-00007-STEP-04 | FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR_FF1_REQUIRE_ORACLE=1 uv run pytest --cov=fpr_ff1 --cov-fail-under=100 | Pass | 1682 passed in 261.74s (includes per-round intermediates and 240 agreement cases); 100%; -k rust 573/1682 |
 | 2026-09-16T13:11:58Z | PLAN-00007-STEP-04 | just quality with _rs.so moved aside (Rust-free) | Pass | 869 passed, 245 skipped (the agreement module skips without the extension) in 214.88s; 100% |
 | 2026-09-16T13:11:58Z | PLAN-00007-STEP-04 | grep -c 'static\\|OnceLock\\|unsafe' rust/fpr-ff1-rust/src/lib.rs | Pass | 1 match, same as baseline (the existing 'without unsafe' doc comment on the GIL-release binding) |
+| 2026-09-16T13:14:05Z | PLAN-00007-STEP-05 | uv run ruff format --check .; uv run ruff check . | Pass | 54 files already formatted; All checks passed |
 
 ### Completion summary
 
