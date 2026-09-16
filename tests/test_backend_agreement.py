@@ -27,6 +27,34 @@ pytestmark = pytest.mark.skipif(
 )
 
 _KEY_SIZES = [16, 24, 32]
+
+
+def _assert_same_numerals(rust: list[int], python: list[int], operation: str) -> None:
+    """Fail with the first diverging position, never with a whole-list diff.
+
+    A bare ``assert rust == python`` makes pytest render a full sequence diff
+    whenever it is verbose *or* detects CI (``_pytest.assertion._compare_
+    sequence``). On CPython 3.12 that diff is pathologically slow for lists of
+    thousands of numerals: under a deliberate core defect (plan 00007
+    STEP-07) one failing case took minutes and the release gate stalled for
+    hours instead of failing. The index and length locate a divergence just
+    as well and cost nothing.
+    """
+    if rust == python:
+        return
+    if len(rust) != len(python):
+        pytest.fail(
+            f"{operation}: rust returned {len(rust)} numerals, python {len(python)}",
+            pytrace=False,
+        )
+    first = next(i for i, (r, p) in enumerate(zip(rust, python, strict=True)) if r != p)
+    pytest.fail(
+        f"{operation}: backends diverge at numeral {first} of {len(python)} "
+        f"(rust {rust[first]}, python {python[first]})",
+        pytrace=False,
+    )
+
+
 _TWEAK_LENGTHS = [0, 1, 16, 255]
 _RADICES = [10, 36, 256, 65535]
 _LENGTHS = [6, 64, 65, 1000, 5000]
@@ -52,7 +80,11 @@ def test_backends_agree_on_identical_inputs(
     rs = FF1(key=key, radix=radix, backend="rust")
 
     plaintext = _numerals(radix, length, salt=1)
-    assert rs.encrypt_numerals(plaintext, tweak) == py.encrypt_numerals(plaintext, tweak)
+    _assert_same_numerals(
+        rs.encrypt_numerals(plaintext, tweak), py.encrypt_numerals(plaintext, tweak), "encrypt"
+    )
 
     arbitrary = _numerals(radix, length, salt=2)
-    assert rs.decrypt_numerals(arbitrary, tweak) == py.decrypt_numerals(arbitrary, tweak)
+    _assert_same_numerals(
+        rs.decrypt_numerals(arbitrary, tweak), py.decrypt_numerals(arbitrary, tweak), "decrypt"
+    )
