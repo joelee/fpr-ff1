@@ -42,9 +42,9 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5"
 execution_branch: "release/v2"
 execution_started_at: "2026-09-16T12:32:08Z"
-execution_updated_at: "2026-09-16T12:51:56Z"
+execution_updated_at: "2026-09-16T13:00:49Z"
 execution_completed_at: null
-current_step: "PLAN-00007-STEP-03"
+current_step: "PLAN-00007-STEP-04"
 ---
 
 # Delivery Plan 00007: Stable v2.0.0 Release
@@ -739,7 +739,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 |---|---|---|---|---|---|
 | PLAN-00007-STEP-01 | completed | 2026-09-16T12:32:08Z | 2026-09-16T12:42:01Z | Commit (this one); red-then-green recorded; checkpoint green | The plan-named parity test passes before the fix by design (a current-format payload already carries _backend); the red evidence is the same vars() parity assertion inside the legacy round-trip test |
 | PLAN-00007-STEP-02 | completed | 2026-09-16T12:42:01Z | 2026-09-16T12:51:56Z | Commit (this one); checkpoint logs checkpoint-124333 | Ceiling message: 'tweak length N above encodable maximum 4294967295'. Changelog wording (SemVer note) deferred to STEP-09 as planned |
-| PLAN-00007-STEP-03 | not-started | — | — | — | — |
+| PLAN-00007-STEP-03 | completed | 2026-09-16T12:51:56Z | 2026-09-16T13:00:49Z | Commit (this one); checkpoint logs checkpoint-125233 | No assertion weakened; pyright ignore comments on direct FF1 calls removed because ff1_factory returns Any |
 | PLAN-00007-STEP-04 | not-started | — | — | — | — |
 | PLAN-00007-STEP-05 | not-started | — | — | — | — |
 | PLAN-00007-STEP-06 | not-started | — | — | — | — |
@@ -764,6 +764,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T12:42:01Z | PLAN-00007-STEP-01 | Fix: __setstate__ assigns self._backend = backend after validation | src/fpr_ff1/_ff1.py; 44 passed in the two modules | Checkpoint |
 | 2026-09-16T12:51:56Z | PLAN-00007-STEP-02 | Tests written first: ceiling tests via a len() double (no allocation) on both backends; three constructor bound cases in test_validation.py and _malformed_calls; Rust encode_len_u32 tests | Before fix: 14 Python tests failed; Rust tests did not compile (unresolved encode_len_u32); _encode_uint(2**32, 4) raised OverflowError. Contract case bounds-min-unencodable already raised pre-fix, via the empty default tweak failing the minimum | Implement |
 | 2026-09-16T12:51:56Z | PLAN-00007-STEP-02 | Implemented FF1._MAX_TWEAK_LEN, FF1._validate_tweak_length (called first in _validate_tweak), bound-ceiling checks in _validate_tweak_bounds, lib.rs encode_len_u32 for both n and t; documented in docs/configuration.md and README parameter table | 201 passed in test_validation.py + test_contract.py; cargo test 10 passed | Checkpoint |
+| 2026-09-16T13:00:48Z | PLAN-00007-STEP-03 | Evidence first: -k rust over the seven named tests collected 0 cases | uv run pytest --collect-only -k 'rust and (...)' -> no tests collected (1428 deselected) | Parameterize |
+| 2026-09-16T13:00:48Z | PLAN-00007-STEP-03 | Routed six test_validation.py tests and test_tweak_bounds_map_across_apis through ff1_factory; assertions unchanged; conversion-internals and backend-selection tests untouched | 14 rust cases now collected across the seven tests; 191 passed in the two modules with both flags set | Checkpoint |
 
 ### Deviations and blockers
 
@@ -784,6 +786,9 @@ None
 | 2026-09-16T12:51:56Z | PLAN-00007-STEP-02 | static checks; just rust-test; just rust-lint | Pass | ruff + pyright clean; cargo test 10 passed; fmt + clippy -D warnings exit 0 |
 | 2026-09-16T12:51:56Z | PLAN-00007-STEP-02 | FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR_FF1_REQUIRE_ORACLE=1 uv run pytest --cov=fpr_ff1 --cov-fail-under=100 | Pass | 1428 passed in 266.98s; TOTAL 342 stmts 120 branches 100%; -k rust 559/1428; NIST, intermediates and frozen KAT unchanged |
 | 2026-09-16T12:51:56Z | PLAN-00007-STEP-02 | just quality with _rs.so moved aside (Rust-free) | Pass | 869 passed, 5 skipped in 215.34s; coverage 100% |
+| 2026-09-16T13:00:48Z | PLAN-00007-STEP-03 | static checks; just rust-test; just rust-lint | Pass | ruff + pyright clean; cargo test 10 passed; lint exit 0 |
+| 2026-09-16T13:00:49Z | PLAN-00007-STEP-03 | FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR_FF1_REQUIRE_ORACLE=1 uv run pytest --cov=fpr_ff1 --cov-fail-under=100 | Pass | 1442 passed in 260.89s; 100%; -k rust 573/1442 (was 559) |
+| 2026-09-16T13:00:49Z | PLAN-00007-STEP-03 | just quality with _rs.so moved aside (Rust-free) | Pass | 869 passed, 5 skipped in 217.61s; 100% |
 
 ### Completion summary
 

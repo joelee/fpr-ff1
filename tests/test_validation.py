@@ -328,18 +328,18 @@ def test_one_below_min_length_raises(radix: int) -> None:
         ff1.encrypt_numerals([0] * (ff1.min_length - 1))
 
 
-def test_empty_tweak_equals_absent_tweak() -> None:
+def test_empty_tweak_equals_absent_tweak(ff1_factory: Any) -> None:
     """An explicit empty tweak and an omitted tweak must be identical."""
-    ff1 = FF1(key=_VALID_KEY, radix=10)
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10)
     plaintext = [1, 2, 3, 4, 5, 6]
     assert ff1.encrypt_numerals(plaintext, b"") == ff1.encrypt_numerals(plaintext)
     assert ff1.encrypt_numerals(plaintext, None) == ff1.encrypt_numerals(plaintext, b"")
 
 
 @pytest.mark.parametrize("tweak_len", [0, 1, 16, 255, 1024, 4096])
-def test_long_tweaks_are_accepted(tweak_len: int) -> None:
+def test_long_tweaks_are_accepted(ff1_factory: Any, tweak_len: int) -> None:
     """With no configured bounds, a tweak of any length is valid."""
-    ff1 = FF1(key=_VALID_KEY, radix=10)
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10)
     plaintext = [1, 2, 3, 4, 5, 6]
     tweak = bytes(i % 256 for i in range(tweak_len))
     ciphertext = ff1.encrypt_numerals(plaintext, tweak)
@@ -408,7 +408,7 @@ def test_non_integer_numerals_raise_typed_error(value: object) -> None:
     assert issubclass(excinfo.type, FF1Error)
 
 
-def test_integer_like_numerals_are_accepted() -> None:
+def test_integer_like_numerals_are_accepted(ff1_factory: Any) -> None:
     """The type gate must not over-reject genuine integers.
 
     ``IntEnum`` and any object implementing ``__index__`` are losslessly
@@ -423,13 +423,13 @@ def test_integer_like_numerals_are_accepted() -> None:
         def __index__(self) -> int:
             return 2
 
-    ff1 = FF1(key=_VALID_KEY, radix=10)
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10)
     expected = ff1.encrypt_numerals([0, 1, 2, 0, 1, 2])
     mixed = [Digit.ZERO, Digit.ONE, Indexable(), Digit.ZERO, Digit.ONE, Indexable()]
     assert ff1.encrypt_numerals(mixed) == expected  # pyright: ignore[reportArgumentType]
 
 
-def test_integer_like_numerals_are_normalised_to_int() -> None:
+def test_integer_like_numerals_are_normalised_to_int(ff1_factory: Any) -> None:
     """Values are converted, not just checked.
 
     Fixed-width integers from other numeric libraries must not reach the
@@ -440,7 +440,7 @@ def test_integer_like_numerals_are_normalised_to_int() -> None:
         def __index__(self) -> int:
             return 3
 
-    ff1 = FF1(key=_VALID_KEY, radix=10)
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10)
     numerals = ff1.encrypt_numerals([Indexable()] * 6)  # pyright: ignore[reportArgumentType]
     assert all(type(value) is int for value in numerals)
 
@@ -478,10 +478,10 @@ def test_constructor_type_errors(kwargs: dict[str, Any], expected: type[FF1Error
 
 
 @pytest.mark.parametrize("key", [b"\x00" * 16, bytearray(16), memoryview(b"\x00" * 16)])
-def test_bytes_like_keys_and_tweaks_accepted(key: object) -> None:
+def test_bytes_like_keys_and_tweaks_accepted(ff1_factory: Any, key: object) -> None:
     """bytes, bytearray and memoryview are all valid byte sources."""
-    ff1 = FF1(key=key, radix=10, tweak=bytearray(b"abc"))  # pyright: ignore[reportArgumentType]
-    assert ff1.encrypt_numerals([1, 2, 3, 4, 5, 6]) == FF1(
+    ff1 = ff1_factory(key=key, radix=10, tweak=bytearray(b"abc"))
+    assert ff1.encrypt_numerals([1, 2, 3, 4, 5, 6]) == ff1_factory(
         key=b"\x00" * 16, radix=10, tweak=b"abc"
     ).encrypt_numerals([1, 2, 3, 4, 5, 6])
 
@@ -511,7 +511,7 @@ def test_string_interface_rejects_non_str(value: object) -> None:
             method(value)  # pyright: ignore[reportArgumentType]
 
 
-def test_mutable_key_and_tweak_are_copied_at_construction() -> None:
+def test_mutable_key_and_tweak_are_copied_at_construction(ff1_factory: Any) -> None:
     """A caller mutating its bytearray afterwards must not change behaviour.
 
     ``_require_bytes`` normalises to immutable ``bytes``; without that, an
@@ -519,7 +519,7 @@ def test_mutable_key_and_tweak_are_copied_at_construction() -> None:
     """
     key = bytearray(b"\x00" * 16)
     tweak = bytearray(b"abc")
-    ff1 = FF1(key=key, radix=10, tweak=tweak)  # pyright: ignore[reportArgumentType]
+    ff1 = ff1_factory(key=key, radix=10, tweak=tweak)
     before = ff1.encrypt_numerals([1, 2, 3, 4, 5, 6])
 
     key[0] = 0xFF
