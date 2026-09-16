@@ -37,12 +37,12 @@ confidence: high
 
 # Builder-maintained front matter. Builder may update only these keys after
 # explicit user approval; Delivery Planner initializes them.
-implementation_status: in-progress
+implementation_status: blocked
 builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5"
 execution_branch: "release/v2"
 execution_started_at: "2026-09-16T12:32:08Z"
-execution_updated_at: "2026-09-16T14:29:09Z"
+execution_updated_at: "2026-09-16T14:29:40Z"
 execution_completed_at: null
 current_step: "PLAN-00007-STEP-07"
 ---
@@ -743,7 +743,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 | PLAN-00007-STEP-04 | completed | 2026-09-16T13:00:49Z | 2026-09-16T13:11:58Z | Commit (this one); checkpoint logs checkpoint-130330 | docs/architecture.md gained a Numeral conversion section with the side-by-side function map |
 | PLAN-00007-STEP-05 | completed | 2026-09-16T13:11:58Z | 2026-09-16T13:14:05Z | Commit (this one); park rule PASS; bench output recorded in Execution log | Single run on one machine, as the plan specifies |
 | PLAN-00007-STEP-06 | completed | 2026-09-16T13:19:43Z | 2026-09-16T14:29:09Z | 4de5fd6 + 58b8ed3 (provisioning fix); CI run 35106877945 green 36/36 | Two commits kept, not squashed: the fix-up documents a real CI finding (uv venv does not download for +gil requests). Squash is the user's call |
-| PLAN-00007-STEP-07 | not-started | — | — | — | — |
+| PLAN-00007-STEP-07 | blocked | 2026-09-16T14:29:40Z | — | Local branch negative-control/plan-00007 at add926b, not pushed | Awaiting push authorization; deletion afterwards needs its own authorization |
 | PLAN-00007-STEP-08 | not-started | — | — | — | — |
 | PLAN-00007-STEP-09 | not-started | — | — | — | — |
 | PLAN-00007-STEP-10 | not-started | — | — | — | — |
@@ -778,6 +778,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T13:24:27Z | PLAN-00007-STEP-06 | User pushed release/v2 ('branch pushed.'); origin/release/v2 = 4de5fd6. ci.yml triggers only on push to main, pull_request and workflow_dispatch, so the push started no run; Builder dispatched ci.yml on release/v2 (gh workflow run) to execute the gate the push was authorized for. Nothing is published by ci.yml | git rev-parse origin/release/v2 = 4de5fd6e10685e8409e950a3c5ce80f98c275e57; run https://github.com/joelee/fpr-ff1/actions/runs/35101666336 (workflow_dispatch, created 2026-09-16T13:24:03Z) | Watch the run to completion |
 | 2026-09-16T13:42:27Z | PLAN-00007-STEP-06 | Diagnosis: uv venv does not download an interpreter for a '+gil' request. Linux 3.12 passed only because ubuntu-24.04 ships it; macOS and Windows images carry 3.13/3.14. Reproduced locally with UV_PYTHON_PREFERENCE=only-managed and an empty install dir; 'uv python install 3.13' first fixed it (cpython-3.13.14, GIL enabled). Fix: 'uv python install <version>' before 'uv venv' in both new jobs, matching the quality matrix | Local repro output; actionlint clean | Commit fix; user pushes; re-dispatch |
 | 2026-09-16T14:12:17Z | PLAN-00007-STEP-06 | User pushed release/v2 ('release/v2 pushed.'); origin/release/v2 = 58b8ed3. Builder dispatched ci.yml on release/v2 | Run https://github.com/joelee/fpr-ff1/actions/runs/35106877945 (workflow_dispatch, created 2026-09-16T14:11:56Z, head 58b8ed3dc893ba3f689e8b354715745ad97f6671) | Watch the run to completion |
+| 2026-09-16T14:29:40Z | PLAN-00007-STEP-07 | Prepared LOCAL branch negative-control/plan-00007 from 58b8ed3 (already on origin, CI-green in run 35106877945) with one commit add926b: lib.rs S-expansion counter 'let mut j: u128 = 1;' changed to '= 0'. Commit message says DO NOT MERGE, TAG OR PUBLISH. Not pushed | Local probe with the mutated extension: tests/test_frozen_kat.py + test_nist_vectors.py + test_backend_agreement.py -> 193 failed, 106 passed (NIST samples never reach d > 16, as expected). Back on release/v2 with the extension rebuilt: 59 passed | User authorization to push the branch |
 
 ### Deviations and blockers
 
@@ -788,6 +789,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T13:19:43Z | PLAN-00007-STEP-06 | Four refinements beyond the plan text: (1) venvs request '<version>+gil' because a bare version can resolve to a free-threaded build that cannot load abi3 (seen locally); (2) the import-origin check is a shared script .github/scripts/assert_installed_wheel.py rather than inline YAML, and also asserts py.typed and __version__, because no test module checks py.typed; (3) the subset adds tests/test_pickle.py, which holds the distribution-version test; (4) the workflow uses shell: bash on every OS with a VENV_PY variable instead of a runner.os step split | None on scope: each serves REQ-06 as written. .github/ is outside the sdist include list, so the script does not ship | None (recorded for the re-review) |
 | 2026-09-16T13:19:43Z | PLAN-00007-STEP-06 | BLOCKER: the step's verification and completion need the branch pushed so the 16 new jobs run in CI. Pushing is an outward action with no authorization recorded | STEP-06 cannot be completed; STEP-07 (needs STEP-06 green in CI) and every later step in the required sequence wait | User: authorize 'git push origin release/v2' (or a named branch) for STEP-06 |
 | 2026-09-16T13:42:27Z | PLAN-00007-STEP-06 | First CI run failed on interpreter provisioning in the new jobs (not on any wheel or test). Fix committed; needs another push | One extra push round-trip for STEP-06 | User: push release/v2 again |
+| 2026-09-16T14:29:40Z | PLAN-00007-STEP-07 | BLOCKER: pushing negative-control/plan-00007 and later deleting it on origin are outward actions with no authorization recorded | STEP-07 and every later step wait | User: authorize 'git push -u origin negative-control/plan-00007' (Builder then dispatches CI on it), and separately its deletion after the run is recorded |
 
 ### Verification results
 
@@ -817,10 +819,10 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 
 ### Completion summary
 
-- **Implementation status:** `in-progress`
+- **Implementation status:** `blocked`
 - **Completed requirements:** PLAN-00007-REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06
 - **Incomplete requirements:** REQ-07 to REQ-13
-- **Outstanding blockers:** STEP-07 needs user authorization to push, and later delete, the disposable negative-control branch
+- **Outstanding blockers:** Push authorization for the STEP-07 negative-control branch
 - **Review request:** Not ready
 <!-- BUILDER_WORK_LOG_END -->
 
