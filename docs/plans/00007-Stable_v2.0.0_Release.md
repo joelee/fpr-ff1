@@ -10,10 +10,10 @@ tags:
   - rust-backend
 type: delivery-plan
 plan_id: "PLAN-00007"
-plan_status: draft
+plan_status: approved
 plan_kind: superseding
 created_at: "2026-09-16T11:38:45Z"
-approved_at: null
+approved_at: "2026-09-16T12:24:43Z"
 planner_agent: claude-code
 planner_model: "anthropic/claude-fable-5-1"
 triggered_by: user
@@ -31,7 +31,7 @@ requirements_count: 13
 steps_count: 14
 acceptance_criteria_count: 14
 blocking_decisions: 0
-build_ready: false
+build_ready: true
 web_research_used: false
 confidence: high
 
@@ -49,8 +49,8 @@ current_step: null
 
 # Delivery Plan 00007: Stable v2.0.0 Release
 
-> [!abstract] Plan status: `draft`
-> Close the four code findings of review 00007, ship the Rust divide-and-conquer conversion, make the release gate execute every published native wheel, publish and soak `v2.0.0rc2`, then promote a re-reviewed candidate to a stable `v2.0.0`. This plan rewrites draft plan 00006 to resolve all seven findings of reviews 00008 and 00009. All decisions are resolved (D4 chosen by the user on 2026-09-16: Option A, a bounded 1.1.x security-fix window); the plan awaits explicit user approval before it is Builder-ready.
+> [!abstract] Plan status: `approved`
+> Close the four code findings of review 00007, ship the Rust divide-and-conquer conversion, make the release gate execute every published native wheel, publish and soak `v2.0.0rc2`, then promote a re-reviewed candidate to a stable `v2.0.0`. This plan rewrites draft plan 00006 to resolve all seven findings of reviews 00008 and 00009. All decisions are resolved (D4 chosen by the user on 2026-09-16: Option A, a bounded 1.1.x security-fix window); approved by the user on 2026-09-16; Builder-ready.
 
 ## 1. Objective and outcome
 
@@ -787,6 +787,7 @@ None
 |---|---|---|---|---|
 | 2026-09-16T11:38:45Z | draft | Initial draft written at `docs/plans/00007-Stable_v2.0.0_Release.md`, superseding draft plan 00006 (never approved). Resolves all seven findings of reviews 00008 and 00009: D4 reopened as blocking with three candidate texts; rc2 owner hand-off added (STEP-11); STEP-06 specified (labels, venv recipe, import-origin task, flags, fan-out); REQ-02 extended (bounds, `n` cast, contract sweep, SemVer note); park rule and threshold naming; attribute-parity test; sdist packaged-test run, compiler version and coverage wording restored. Baseline refreshed to `5eb518c`. | User request on 2026-09-16 to rewrite the plan from review 00009 and plan 00006 | User |
 | 2026-09-16T12:20:57Z | draft | D4 resolved: user selected Option A (1.1.x security fixes until `2.1.0` or six months after `v2.0.0`; `1.0.x` dropped). `blocking_decisions` 1 → 0; REQ-08, STEP-08, STEP-13, §1, §10, §15, §16 and §20 updated to reference the chosen text; Options B and C retained in §7.1 as the record of what was offered. No requirement, step or acceptance-criterion count changed. | User decision on D4 ("D4, as recommended (A)") | User |
+| 2026-09-16T12:24:43Z | approved | Plan approved: `plan_status: approved`, `build_ready: true`, `approved_at` set. Planning content frozen; only the Builder-maintained front matter and §17 may change from here. | Explicit user approval ("approve") after the D4 amendment was committed in `b641e91` | User |
 
 ## 19. External references
 
