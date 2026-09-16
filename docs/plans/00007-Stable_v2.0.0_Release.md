@@ -37,12 +37,12 @@ confidence: high
 
 # Builder-maintained front matter. Builder may update only these keys after
 # explicit user approval; Delivery Planner initializes them.
-implementation_status: in-progress
+implementation_status: blocked
 builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5"
 execution_branch: "release/v2"
 execution_started_at: "2026-09-16T12:32:08Z"
-execution_updated_at: "2026-09-16T21:33:18Z"
+execution_updated_at: "2026-09-16T21:42:24Z"
 execution_completed_at: null
 current_step: "PLAN-00007-STEP-10"
 ---
@@ -746,7 +746,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 | PLAN-00007-STEP-07 | completed | 2026-09-16T14:29:40Z | 2026-09-16T21:30:06Z | Run 35150890829 (every Rust-executing job red, pure-Python green); release/v2 run 35150893760 green 36/36; branch deleted; plus the f12ed42 test fix | First attempt (run 35111445198) exposed a CI-only stall in the STEP-04 agreement test; fixed in f12ed42 and re-run |
 | PLAN-00007-STEP-08 | completed | 2026-09-16T21:32:04Z | 2026-09-16T21:32:04Z | Commit (this one) | No NIST status change; Option A transcribed verbatim |
 | PLAN-00007-STEP-09 | completed | 2026-09-16T21:33:18Z | 2026-09-16T21:33:18Z | Commit (this one) | Contract test red then green; lock drift limited to the version lines |
-| PLAN-00007-STEP-10 | not-started | — | — | — | — |
+| PLAN-00007-STEP-10 | blocked | 2026-09-16T21:33:18Z | — | Local gate, audits, builds, contents, sdist fallback and unpacked-sdist tests all recorded; CI run at the candidate commit pending | Awaiting push authorization and the skip decision |
 | PLAN-00007-STEP-11 | not-started | — | — | — | — |
 | PLAN-00007-STEP-12 | not-started | — | — | — | — |
 | PLAN-00007-STEP-13 | not-started | — | — | — | — |
@@ -804,6 +804,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T21:30:06Z | PLAN-00007-STEP-07 | Observation for the re-review: each wheel-test-native leg detects the S-expansion mutation through only 2 of its 149 tests (the frozen KAT d > 16 case and the dispatch test's n = 60 case); the full-suite jobs detect it through 338. Enough to turn every leg red, but the per-platform subset's d > 16 coverage is thin | None on STEP-07 acceptance (every Rust-executing job red). A wider per-platform subset (e.g. adding test_backend_agreement or test_differential) would be a scope change to STEP-06 | Owner / re-review: decide whether to widen the subset |
 | 2026-09-16T21:32:03Z | PLAN-00007-STEP-08 | docs/configuration.md Thread safety still quoted the rc1 GIL figure (3.8x); STEP-05 updated the README but missed this copy. Corrected here to the STEP-05 run (2.9x, 0.96x control) | Documentation consistency only | None |
 | 2026-09-16T21:33:18Z | PLAN-00007-STEP-09 | The [2.0.0rc2] section is dated 2026-09-16 (the day it was cut). The plan dates candidate sections by tag date, which the owner sets in STEP-11 | If v2.0.0rc2 is tagged on another day, the section date needs a one-line edit before tagging | User: confirm the date at tagging |
+| 2026-09-16T21:37:24Z | PLAN-00007-STEP-10 | STOP CONDITION (literal): the unpacked-sdist run skipped two tests that are neither oracle nor rust: test_required_files_are_tracked_by_git ('not a git checkout') and test_project_urls_match_the_git_remote ('no origin remote configured'). Both skips are explicit guards in tests/test_contract.py for running outside a git checkout, which an unpacked sdist always is | No product defect: the skipped checks are about the repository, not the package, and both pass on every CI leg and locally in the checkout. The plan's skip allow-list did not anticipate them | User: accept these two skips as expected for an unpacked sdist |
+| 2026-09-16T21:42:24Z | PLAN-00007-STEP-10 | BLOCKER: task 5 needs a green CI run at the candidate commit, and origin/release/v2 (f12ed42) lacks 3050615 and the STEP-08/09 commits. Pushing is an outward action with no authorization recorded for these commits | STEP-10 cannot complete; STEP-11 (owner tags v2.0.0rc2) waits | User: authorize 'git push origin release/v2' (Builder then dispatches ci.yml and records the run), and accept the two git-dependent contract skips |
 
 ### Verification results
 
@@ -838,13 +840,21 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T21:32:03Z | PLAN-00007-STEP-08 | NIST SP 800-38G Rev. 1 status check (task 4): csrc.nist.gov/pubs/sp/800/38/g/r1/2pd and /r1/final, fetched 2026-09-16 | Pass (no change) | Rev. 1 is still the Second Public Draft published 2025-02-03 (comment deadline 2025-04-04), listed as the most recent version; the /r1/final URL returns HTTP 404. Documented baseline, radix subset, no-float and forward-AES rules retained; no document change |
 | 2026-09-16T21:32:03Z | PLAN-00007-STEP-08 | uv run ruff format --check .; uv run ruff check .; uv run pytest tests/test_contract.py | Pass | 55 files already formatted; All checks passed; 61 passed |
 | 2026-09-16T21:33:18Z | PLAN-00007-STEP-09 | uv lock --check; cargo build --locked twice (lock unchanged, cmp); pytest tests/test_contract.py; ruff format --check; ruff check | Pass | uv lock --check: Resolved 28 packages; Cargo.lock byte-identical after the --locked build; 61 passed; 55 files already formatted; All checks passed |
+| 2026-09-16T21:37:24Z | PLAN-00007-STEP-10 | Toolchain for the local native build | Recorded | rustc 1.98.1 (48a229cea 2026-09-01); cargo 1.98.1 (797e8a9bc 2026-08-05); uv 0.12.1; candidate commit 3050615 |
+| 2026-09-16T21:37:24Z | PLAN-00007-STEP-10 | pip-audit on the locked export; pip-audit in a cryptography==50.0.0 minimum venv; cargo-audit 0.22.2 (CI pin, installed to scratch) on rust/Cargo.lock; just secrets (gitleaks) | Pass | No known vulnerabilities found (both pip-audit runs); cargo audit exit 0, 28 crates, 1246 advisories loaded, no findings; gitleaks: no leaks found |
+| 2026-09-16T21:37:24Z | PLAN-00007-STEP-10 | uv build; uvx maturin@1.15.0 build --release --locked (separate target dir); uvx twine check on all three | Pass | fpr_ff1-2.0.0rc2.tar.gz, fpr_ff1-2.0.0rc2-py3-none-any.whl, fpr_ff1-2.0.0rc2-cp312-abi3-manylinux_2_34_x86_64.whl; twine PASSED 3 of 3; worktree unchanged (builds written to scratch) |
+| 2026-09-16T21:37:24Z | PLAN-00007-STEP-10 | Package contents: required and forbidden lists (caches, AGENTS.md, CLAUDE.md, docs/plans\|reviews\|ideas, .agents, .opencode, .codegraph, .python-version, .github, target/, dev _rs.so/.pyd) | Pass | sdist 49 entries, pure wheel 8, native wheel 10; forbidden 0 in each; required present (py.typed, LICENSE, metadata, vectors, uv.lock in sdist); pure wheel has no extension; native wheel has fpr_ff1/_rs.abi3.so and a CycloneDX SBOM |
+| 2026-09-16T21:37:24Z | PLAN-00007-STEP-10 | sdist fallback: fresh py3.12 venv, uv pip install the sdist | Pass | Imports from site-packages, version 2.0.0rc2; NIST sample 2 encrypt/decrypt ok; FF1(backend='rust') raises BackendError ('the compiled rust backend is not available in this installation...') |
+| 2026-09-16T21:37:24Z | PLAN-00007-STEP-10 | Packaged tests from the unpacked sdist: fresh py3.12 venv with the sdist + pytest, hypothesis, packaging; bare python -m pytest inside fpr_ff1-2.0.0rc2/ | Pass with a flagged skip | exit 0; 403 passed, 711 skipped in 69.31s. Skips: rust not built (agreement 1 group, dispatch 4, AES validation 1), oracle not installed (differential 8, interoperability 4), and test_contract 2: 'not a git checkout' and 'no origin remote configured' |
+| 2026-09-16T21:42:24Z | PLAN-00007-STEP-10 | just format-check lint typecheck; just rust-test; just rust-lint; FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR_FF1_REQUIRE_ORACLE=1 uv run pytest --cov=fpr_ff1 --cov-fail-under=100; just quality with _rs.so moved aside | Pass | Candidate 3050615. Static clean; cargo test 16 passed; lint exit 0; -k rust 573/1682; dual gate 1682 passed in 285.60s, TOTAL 342 stmts 120 branches 100%; Rust-free quality 869 passed, 245 skipped in 217.20s, 100%. Logs checkpoint-213331 |
+| 2026-09-16T21:42:24Z | PLAN-00007-STEP-10 | uv lock --check; cargo build --locked (STEP-09, same commit) | Pass | Consistent; Cargo.lock unchanged by the locked build |
 
 ### Completion summary
 
-- **Implementation status:** `in-progress`
-- **Completed requirements:** PLAN-00007-REQ-01 to REQ-08
-- **Incomplete requirements:** REQ-09 to REQ-13
-- **Outstanding blockers:** None
+- **Implementation status:** `blocked`
+- **Completed requirements:** PLAN-00007-REQ-01 to REQ-08; REQ-09 locally (CI run at the candidate commit pending); REQ-10 version and documentation portion
+- **Incomplete requirements:** REQ-09 CI evidence; REQ-10 publication; REQ-11 to REQ-13
+- **Outstanding blockers:** Push authorization for release/v2; decision on the two git-dependent skips in the unpacked-sdist run
 - **Review request:** Not ready
 <!-- BUILDER_WORK_LOG_END -->
 
