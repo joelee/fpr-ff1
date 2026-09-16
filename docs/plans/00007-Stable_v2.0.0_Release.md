@@ -42,9 +42,9 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5"
 execution_branch: "release/v2"
 execution_started_at: "2026-09-16T12:32:08Z"
-execution_updated_at: "2026-09-16T21:42:24Z"
+execution_updated_at: "2026-09-16T22:58:21Z"
 execution_completed_at: null
-current_step: "PLAN-00007-STEP-10"
+current_step: "PLAN-00007-STEP-11"
 ---
 
 # Delivery Plan 00007: Stable v2.0.0 Release
@@ -746,8 +746,8 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 | PLAN-00007-STEP-07 | completed | 2026-09-16T14:29:40Z | 2026-09-16T21:30:06Z | Run 35150890829 (every Rust-executing job red, pure-Python green); release/v2 run 35150893760 green 36/36; branch deleted; plus the f12ed42 test fix | First attempt (run 35111445198) exposed a CI-only stall in the STEP-04 agreement test; fixed in f12ed42 and re-run |
 | PLAN-00007-STEP-08 | completed | 2026-09-16T21:32:04Z | 2026-09-16T21:32:04Z | Commit (this one) | No NIST status change; Option A transcribed verbatim |
 | PLAN-00007-STEP-09 | completed | 2026-09-16T21:33:18Z | 2026-09-16T21:33:18Z | Commit (this one) | Contract test red then green; lock drift limited to the version lines |
-| PLAN-00007-STEP-10 | blocked | 2026-09-16T21:33:18Z | — | Local gate, audits, builds, contents, sdist fallback and unpacked-sdist tests all recorded; CI run at the candidate commit pending | Awaiting push authorization and the skip decision |
-| PLAN-00007-STEP-11 | not-started | — | — | — | — |
+| PLAN-00007-STEP-10 | completed | 2026-09-16T21:33:18Z | 2026-09-16T22:58:21Z | Local gate + audits + packages recorded; CI run 35158807685 green 36/36 at b10d3b0 | Two git-dependent contract skips in the unpacked-sdist run accepted by the user |
+| PLAN-00007-STEP-11 | blocked | 2026-09-16T22:58:21Z | — | Hand-off recorded: tag v2.0.0rc2 at b10d3b0 | Waiting on owner release actions (tag, push, GitHub pre-release) |
 | PLAN-00007-STEP-12 | not-started | — | — | — | — |
 | PLAN-00007-STEP-13 | not-started | — | — | — | — |
 | PLAN-00007-STEP-14 | not-started | — | — | — | — |
@@ -789,6 +789,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T21:32:03Z | PLAN-00007-STEP-08 | SECURITY.md Supported versions replaced with the §7.1 Option A text (placeholder <v2.0.0 date + six months> left for STEP-13); README Backends gains the platform/tag/requirement table and the fallback statement; README conformance paragraph, developer-guide Standards and CHANGELOG [Unreleased] state that 100% coverage measures the Python package only; docs/configuration.md gains a Distribution and backend availability section; developer-guide CI/CD describes wheel-test-native, wheel-conformance-abi3, the venv recipe, the import-origin script, --locked, the negative-control result and the long-list assertion pitfall | SECURITY.md section byte-identical to §7.1 Option A (diff empty); git diff --stat touches exactly README.md, SECURITY.md, CHANGELOG.md, docs/configuration.md, docs/developer-guide.md | Commit |
 | 2026-09-16T21:33:18Z | PLAN-00007-STEP-09 | Evidence first: pyproject.toml bumped to 2.0.0rc2 alone -> test_crate_version_matches_project_version red (Version('2.0.0rc1') != Version('2.0.0rc2')); Cargo.toml bumped to 2.0.0-rc2 -> green | tests/test_contract.py -k crate_version: 1 failed, then 1 passed | Locks |
 | 2026-09-16T21:33:18Z | PLAN-00007-STEP-09 | uv lock (fpr-ff1 v2.0.0rc1 -> v2.0.0rc2); cargo build updated rust/Cargo.lock; CHANGELOG [2.0.0rc2] dated 2026-09-16 with Fixed (1.x pickle, tweak encoding), Changed (SemVer note on newly rejected tweak lengths/bounds, Rust conversion with STEP-05 numbers, native wheel gate, --locked, support policy, coverage wording, platform docs), Added, Unchanged; links [Unreleased] -> v2.0.0rc2...HEAD and [2.0.0rc2] -> v2.0.0rc1...v2.0.0rc2; backlog: conversion item moved to Completed, review 00007 fixes recorded, stable v2.0.0 tracked as Ongoing | Lock diffs are exactly the local project version line in each file; installed fpr_ff1.__version__, distribution metadata and _rs.__version__ report 2.0.0rc2 / 2.0.0rc2 / 2.0.0-rc2 | Commit |
+| 2026-09-16T22:40:50Z | PLAN-00007-STEP-10 | User decisions: 'I accept two git-only test skips in the unpacked-sdist run.' and pushed release/v2 ('release/v2 pushed.'); origin/release/v2 = b10d3b0 (3050615 candidate + a work-log-only commit). Builder dispatched ci.yml | Run https://github.com/joelee/fpr-ff1/actions/runs/35158807685 (workflow_dispatch, head b10d3b0e88a425e424b040a925de43364f5ae08d, created 2026-09-16T22:40:24Z) | Record the run; hand the frozen commit to the owner for STEP-11 |
+| 2026-09-16T22:58:21Z | PLAN-00007-STEP-11 | Hand-off to owner. Frozen rc2 commit: b10d3b0e88a425e424b040a925de43364f5ae08d on release/v2 (content = 3050615; the extra commit changes only docs/plans/00007, which ships in no artifact). Gate evidence: CI run 35158807685 green 36/36 at that exact commit; local gate recorded under STEP-10. Tag must be exactly v2.0.0rc2 (publish.yml compares it with pyproject 2.0.0rc2) | git rev-parse origin/release/v2 at hand-off = b10d3b0; CHANGELOG [2.0.0rc2] dated 2026-09-16 | Owner: tag v2.0.0rc2 at b10d3b0, push the tag, publish a GitHub pre-release; then Builder verifies PyPI |
 
 ### Deviations and blockers
 
@@ -848,13 +850,14 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T21:37:24Z | PLAN-00007-STEP-10 | Packaged tests from the unpacked sdist: fresh py3.12 venv with the sdist + pytest, hypothesis, packaging; bare python -m pytest inside fpr_ff1-2.0.0rc2/ | Pass with a flagged skip | exit 0; 403 passed, 711 skipped in 69.31s. Skips: rust not built (agreement 1 group, dispatch 4, AES validation 1), oracle not installed (differential 8, interoperability 4), and test_contract 2: 'not a git checkout' and 'no origin remote configured' |
 | 2026-09-16T21:42:24Z | PLAN-00007-STEP-10 | just format-check lint typecheck; just rust-test; just rust-lint; FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR_FF1_REQUIRE_ORACLE=1 uv run pytest --cov=fpr_ff1 --cov-fail-under=100; just quality with _rs.so moved aside | Pass | Candidate 3050615. Static clean; cargo test 16 passed; lint exit 0; -k rust 573/1682; dual gate 1682 passed in 285.60s, TOTAL 342 stmts 120 branches 100%; Rust-free quality 869 passed, 245 skipped in 217.20s, 100%. Logs checkpoint-213331 |
 | 2026-09-16T21:42:24Z | PLAN-00007-STEP-10 | uv lock --check; cargo build --locked (STEP-09, same commit) | Pass | Consistent; Cargo.lock unchanged by the locked build |
+| 2026-09-16T22:58:21Z | PLAN-00007-STEP-10 | CI run 35158807685 at b10d3b0 (rc2 candidate 3050615 + work-log commit) https://github.com/joelee/fpr-ff1/actions/runs/35158807685 | Pass | completed/success, 36/36 jobs. Artifacts: fpr_ff1-2.0.0rc2 cp312-abi3 macosx_10_12_x86_64, macosx_11_0_arm64, manylinux_2_34_aarch64, manylinux_2_34_x86_64, win_amd64 wheels + py3-none-any wheel + sdist. Import-origin 'installed wheel, fpr-ff1 2.0.0rc2' in 16/16 wheel jobs; wheel-test-native 15/15 '149 passed'; wheel-conformance-abi3 573 rust collected, 1682 passed in 176.04s, 100.00%; rust-conformance 1682 passed in 541.95s |
 
 ### Completion summary
 
 - **Implementation status:** `blocked`
-- **Completed requirements:** PLAN-00007-REQ-01 to REQ-08; REQ-09 locally (CI run at the candidate commit pending); REQ-10 version and documentation portion
-- **Incomplete requirements:** REQ-09 CI evidence; REQ-10 publication; REQ-11 to REQ-13
-- **Outstanding blockers:** Push authorization for release/v2; decision on the two git-dependent skips in the unpacked-sdist run
+- **Completed requirements:** PLAN-00007-REQ-01 to REQ-09; REQ-10 version and documentation portion
+- **Incomplete requirements:** REQ-10 publication, verification and soak; REQ-11 to REQ-13
+- **Outstanding blockers:** Owner release actions for v2.0.0rc2 (STEP-11)
 - **Review request:** Not ready
 <!-- BUILDER_WORK_LOG_END -->
 
