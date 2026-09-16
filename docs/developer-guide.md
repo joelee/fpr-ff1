@@ -61,7 +61,9 @@ just quality     # before pushing
   quality`, and CI's explicit pytest flags — not by `pyproject.toml` `addopts`, so a bare `pytest`
   from an unpacked sdist stays runnable for downstream packagers who have not installed
   `pytest-cov`. Every raise path must be exercised. If a branch cannot be reached, delete it
-  rather than excluding it.
+  rather than excluding it. The figure measures the Python package only: the Rust core has no
+  line-coverage number, and is covered instead by the full dual-backend conformance suite and
+  `cargo test`. Do not describe the 100% as covering both backends.
 - Conformance fixtures belong in `tests/vectors/` as JSON. **Never inline self-generated expected
   values**, and never regenerate the NIST fixtures from this implementation — that turns a record
   of the standard into a record of whatever the code currently does.
@@ -179,9 +181,35 @@ CI additionally runs a dependency-audit job (`pip-audit` against `uv.lock` and a
 minimum dependency set, plus `cargo-audit` against `rust/Cargo.lock`), installs gitleaks only after
 verifying the release tarball against the published checksums, asserts the sdist contents against a
 forbidden-path list, installs the built wheel into a clean environment to exercise the public
-surface from it, builds the platform wheels (maturin, abi3-py312, the five-platform matrix) and
-installs the linux wheel to exercise both backends, and installs the sdist to prove the pure-Python
-fallback and the `BackendError` contract. Every action is pinned to a full commit SHA with the
+surface from it, builds the platform wheels (maturin, abi3-py312, the five-platform matrix, with
+`--locked` and the `rustc`/`cargo` versions printed in each build log), and installs the sdist to
+prove the pure-Python fallback and the `BackendError` contract.
+
+Two jobs test the platform wheels as shipped artifacts rather than as source-tree builds:
+
+- **`wheel-test-native`** installs each of the five wheels on a runner of its own platform
+  (`ubuntu-24.04`, `ubuntu-24.04-arm`, `macos-latest`, `macos-15-intel`, `windows-latest`) on
+  CPython 3.12, 3.13 and 3.14, and runs the NIST, per-round intermediate, AES KAT, frozen KAT,
+  dispatch, pickle and smoke modules on both backends. That is 15 legs.
+- **`wheel-conformance-abi3`** installs the linux x86_64 wheel on Python 3.14 and runs the full
+  suite held to the `rust-conformance` bar: required backend and oracle, the `-k rust` floor and
+  100% coverage, measured on the installed package.
+
+Both build their environment the same way: a fresh venv, `uv python install` then
+`uv venv --python <version>+gil` (an abi3 wheel cannot load into a free-threaded interpreter), the
+locked dev requirements from `uv export --frozen --no-emit-project --no-hashes`, and the one wheel.
+They never run `uv sync` or `uv run`, which would install the editable checkout over the wheel.
+`.github/scripts/assert_installed_wheel.py` then fails the job unless `fpr_ff1` and `fpr_ff1._rs`
+import from the venv's `site-packages`. It also checks the abi3 build, `py.typed` and
+`__version__`. Keep that check strict: without it these jobs can test `src/` and still look green.
+A deliberate S-expansion defect on a disposable branch turned `rust-conformance`, the abi3 leg and
+all 15 native legs red while the pure-Python matrix stayed green (plan 00007 STEP-07,
+run 35150890829).
+
+When comparing long numeral lists in tests, do not use a bare `assert a == b`. pytest renders a
+full sequence diff for a failing comparison whenever it is verbose or detects CI, and on CPython
+3.12 that diff can take hours for thousands of elements, so a failing gate stalls instead of
+failing. Report the first diverging index instead, as `tests/test_backend_agreement.py` does. Every action is pinned to a full commit SHA with the
 version in a trailing comment; Dependabot (`.github/dependabot.yml`) covers three ecosystems —
 `github-actions`, `uv`, and `cargo` for `/rust` — and raises PRs when a pinned action or a
 dependency in either lock file moves. The publish workflow downloads the distributions and wheels artifacts built

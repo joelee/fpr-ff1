@@ -95,6 +95,93 @@ def test_call_tweak_too_long_raises() -> None:
         ff1.encrypt_numerals([0] * 6, tweak=b"abc")
 
 
+#: SP 800-38G Algorithm 7 step 5 encodes the tweak length ``t`` as four
+#: big-endian bytes (``[t]^4``), so ``2**32 - 1`` is the largest encodable
+#: length (review 00007 MED-01).
+_TWEAK_LEN_CEILING = 2**32 - 1
+
+
+class _LengthDouble:
+    """A stand-in whose ``len()`` is chosen by the test.
+
+    Lets the ceiling be tested at ``2**32`` without allocating a 4 GiB tweak.
+    ``_validate_tweak`` reads only the length, so this exercises the real
+    instance-level check rather than a copy of its arithmetic.
+    """
+
+    def __init__(self, length: int) -> None:
+        self._length = length
+
+    def __len__(self) -> int:
+        return self._length
+
+
+def test_tweak_length_ceiling_accepts_the_largest_encodable_length(ff1_factory: Any) -> None:
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10)
+    ff1._validate_tweak(_LengthDouble(_TWEAK_LEN_CEILING))  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+
+
+@pytest.mark.parametrize("length", [_TWEAK_LEN_CEILING + 1, 2**40])
+def test_tweak_length_above_ceiling_raises_identically(ff1_factory: Any, length: int) -> None:
+    """An unencodable tweak is a typed rejection on both backends, never a wrap.
+
+    Before the ceiling the reference raised ``OverflowError`` from outside
+    the ``FF1Error`` hierarchy while the compiled core silently narrowed the
+    length with ``t as u32``.
+    """
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10)
+    with pytest.raises(TweakLengthError) as excinfo:
+        ff1._validate_tweak(_LengthDouble(length))  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+    assert str(excinfo.value) == (
+        f"tweak length {length} above encodable maximum {_TWEAK_LEN_CEILING}"
+    )
+
+
+def test_tweak_ceiling_applies_before_configured_bounds(ff1_factory: Any) -> None:
+    """The absolute ceiling is checked first, so the message names it."""
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10, max_tweak_len=_TWEAK_LEN_CEILING)
+    with pytest.raises(TweakLengthError, match="encodable maximum"):
+        ff1._validate_tweak(_LengthDouble(_TWEAK_LEN_CEILING + 1))  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+
+
+def test_max_tweak_len_at_ceiling_is_accepted(ff1_factory: Any) -> None:
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10, max_tweak_len=_TWEAK_LEN_CEILING)
+    assert ff1.encrypt_numerals([1, 2, 3, 4, 5, 6]) == ff1_factory(
+        key=_VALID_KEY, radix=10
+    ).encrypt_numerals([1, 2, 3, 4, 5, 6])
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        (
+            {"min_tweak_len": _TWEAK_LEN_CEILING + 1},
+            f"min_tweak_len {_TWEAK_LEN_CEILING + 1} above encodable maximum tweak length "
+            f"{_TWEAK_LEN_CEILING}; no tweak could satisfy it",
+        ),
+        (
+            {"max_tweak_len": _TWEAK_LEN_CEILING + 1},
+            f"max_tweak_len {_TWEAK_LEN_CEILING + 1} above encodable maximum tweak length "
+            f"{_TWEAK_LEN_CEILING}; bounds are rejected, not clamped",
+        ),
+        (
+            {"max_tweak_len": 2**40},
+            f"max_tweak_len {2**40} above encodable maximum tweak length "
+            f"{_TWEAK_LEN_CEILING}; bounds are rejected, not clamped",
+        ),
+    ],
+    ids=["min-unencodable", "max-unencodable", "max-huge"],
+)
+def test_tweak_bound_above_ceiling_raises_at_construction(
+    ff1_factory: Any, kwargs: dict[str, int], message: str
+) -> None:
+    """A bound no tweak can meet, or one that would silently mean ``2**32 - 1``,
+    is a configuration fault caught at construction (review 00008 MED-03)."""
+    with pytest.raises(TweakLengthError) as excinfo:
+        ff1_factory(key=_VALID_KEY, radix=10, **kwargs)
+    assert str(excinfo.value) == message
+
+
 def test_plaintext_too_short_raises() -> None:
     ff1 = FF1(key=_VALID_KEY, radix=10)
     with pytest.raises(LengthError):
@@ -241,18 +328,18 @@ def test_one_below_min_length_raises(radix: int) -> None:
         ff1.encrypt_numerals([0] * (ff1.min_length - 1))
 
 
-def test_empty_tweak_equals_absent_tweak() -> None:
+def test_empty_tweak_equals_absent_tweak(ff1_factory: Any) -> None:
     """An explicit empty tweak and an omitted tweak must be identical."""
-    ff1 = FF1(key=_VALID_KEY, radix=10)
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10)
     plaintext = [1, 2, 3, 4, 5, 6]
     assert ff1.encrypt_numerals(plaintext, b"") == ff1.encrypt_numerals(plaintext)
     assert ff1.encrypt_numerals(plaintext, None) == ff1.encrypt_numerals(plaintext, b"")
 
 
 @pytest.mark.parametrize("tweak_len", [0, 1, 16, 255, 1024, 4096])
-def test_long_tweaks_are_accepted(tweak_len: int) -> None:
+def test_long_tweaks_are_accepted(ff1_factory: Any, tweak_len: int) -> None:
     """With no configured bounds, a tweak of any length is valid."""
-    ff1 = FF1(key=_VALID_KEY, radix=10)
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10)
     plaintext = [1, 2, 3, 4, 5, 6]
     tweak = bytes(i % 256 for i in range(tweak_len))
     ciphertext = ff1.encrypt_numerals(plaintext, tweak)
@@ -321,7 +408,7 @@ def test_non_integer_numerals_raise_typed_error(value: object) -> None:
     assert issubclass(excinfo.type, FF1Error)
 
 
-def test_integer_like_numerals_are_accepted() -> None:
+def test_integer_like_numerals_are_accepted(ff1_factory: Any) -> None:
     """The type gate must not over-reject genuine integers.
 
     ``IntEnum`` and any object implementing ``__index__`` are losslessly
@@ -336,13 +423,13 @@ def test_integer_like_numerals_are_accepted() -> None:
         def __index__(self) -> int:
             return 2
 
-    ff1 = FF1(key=_VALID_KEY, radix=10)
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10)
     expected = ff1.encrypt_numerals([0, 1, 2, 0, 1, 2])
     mixed = [Digit.ZERO, Digit.ONE, Indexable(), Digit.ZERO, Digit.ONE, Indexable()]
     assert ff1.encrypt_numerals(mixed) == expected  # pyright: ignore[reportArgumentType]
 
 
-def test_integer_like_numerals_are_normalised_to_int() -> None:
+def test_integer_like_numerals_are_normalised_to_int(ff1_factory: Any) -> None:
     """Values are converted, not just checked.
 
     Fixed-width integers from other numeric libraries must not reach the
@@ -353,7 +440,7 @@ def test_integer_like_numerals_are_normalised_to_int() -> None:
         def __index__(self) -> int:
             return 3
 
-    ff1 = FF1(key=_VALID_KEY, radix=10)
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10)
     numerals = ff1.encrypt_numerals([Indexable()] * 6)  # pyright: ignore[reportArgumentType]
     assert all(type(value) is int for value in numerals)
 
@@ -391,10 +478,10 @@ def test_constructor_type_errors(kwargs: dict[str, Any], expected: type[FF1Error
 
 
 @pytest.mark.parametrize("key", [b"\x00" * 16, bytearray(16), memoryview(b"\x00" * 16)])
-def test_bytes_like_keys_and_tweaks_accepted(key: object) -> None:
+def test_bytes_like_keys_and_tweaks_accepted(ff1_factory: Any, key: object) -> None:
     """bytes, bytearray and memoryview are all valid byte sources."""
-    ff1 = FF1(key=key, radix=10, tweak=bytearray(b"abc"))  # pyright: ignore[reportArgumentType]
-    assert ff1.encrypt_numerals([1, 2, 3, 4, 5, 6]) == FF1(
+    ff1 = ff1_factory(key=key, radix=10, tweak=bytearray(b"abc"))
+    assert ff1.encrypt_numerals([1, 2, 3, 4, 5, 6]) == ff1_factory(
         key=b"\x00" * 16, radix=10, tweak=b"abc"
     ).encrypt_numerals([1, 2, 3, 4, 5, 6])
 
@@ -424,7 +511,7 @@ def test_string_interface_rejects_non_str(value: object) -> None:
             method(value)  # pyright: ignore[reportArgumentType]
 
 
-def test_mutable_key_and_tweak_are_copied_at_construction() -> None:
+def test_mutable_key_and_tweak_are_copied_at_construction(ff1_factory: Any) -> None:
     """A caller mutating its bytearray afterwards must not change behaviour.
 
     ``_require_bytes`` normalises to immutable ``bytes``; without that, an
@@ -432,7 +519,7 @@ def test_mutable_key_and_tweak_are_copied_at_construction() -> None:
     """
     key = bytearray(b"\x00" * 16)
     tweak = bytearray(b"abc")
-    ff1 = FF1(key=key, radix=10, tweak=tweak)  # pyright: ignore[reportArgumentType]
+    ff1 = ff1_factory(key=key, radix=10, tweak=tweak)
     before = ff1.encrypt_numerals([1, 2, 3, 4, 5, 6])
 
     key[0] = 0xFF

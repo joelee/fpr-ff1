@@ -75,6 +75,9 @@ def _malformed_calls() -> list[tuple[str, Any]]:
         ),
         ("bounds-min-negative", lambda: FF1(key=_VALID_KEY, radix=10, min_tweak_len=-1)),
         ("bounds-max-negative", lambda: FF1(key=_VALID_KEY, radix=10, max_tweak_len=-1)),
+        ("bounds-min-unencodable", lambda: FF1(key=_VALID_KEY, radix=10, min_tweak_len=2**32)),
+        ("bounds-max-unencodable", lambda: FF1(key=_VALID_KEY, radix=10, max_tweak_len=2**32)),
+        ("bounds-max-huge", lambda: FF1(key=_VALID_KEY, radix=10, max_tweak_len=2**40)),
         # Numeral interface: element types
         ("numeral-float", lambda: ff1.encrypt_numerals([1.0] * 6)),
         ("numeral-bool", lambda: ff1.encrypt_numerals([True] * 6)),

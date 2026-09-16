@@ -106,15 +106,15 @@ def test_ciphertexts_are_identical(ff1_factory: Any, key_len: int, tweak: bytes)
     )
 
 
-def test_tweak_bounds_map_across_apis() -> None:
+def test_tweak_bounds_map_across_apis(ff1_factory: Any) -> None:
     """The legacy twk_min_len/twk_max_len arguments map onto the new keywords."""
     key = bytes(range(16))
     tweak = bytes.fromhex("3938373635")
 
     legacy = _oracle.Context(key, tweak, 4, 8, _RADIX, _ALPHABET)  # pyright: ignore[reportOptionalMemberAccess]
-    migrated = FF1(
-        key,
-        _RADIX,
+    migrated = ff1_factory(
+        key=key,
+        radix=_RADIX,
         alphabet=_ALPHABET,
         tweak=tweak,
         min_tweak_len=4,

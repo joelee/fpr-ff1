@@ -17,7 +17,10 @@
 use num_bigint::BigUint;
 use num_traits::One;
 
-use crate::{ff1, num_radix, prf_with_key, str_radix};
+use crate::{
+    encode_len_u32, ff1, num_radix, num_radix_reference, prf_with_key, str_radix,
+    str_radix_reference, D_C_THRESHOLD,
+};
 
 #[test]
 fn num_radix_decodes_big_endian() {
@@ -141,6 +144,163 @@ fn ff1_round_trip_self_consistency() {
             let pt = ff1(&key, radix, &ct, b"kat", false)
                 .unwrap_or_else(|e| panic!("decrypt failed: {e}"));
             assert_eq!(pt, x, "round trip, radix {radix} n {n} key_len {key_len}");
+        }
+    }
+}
+
+/// `[n]^4` and `[t]^4` (Algorithm 7 step 5) are checked, never narrowed
+/// (review 00007 MED-01). Python validation rejects both lengths first;
+/// this is the defence-in-depth layer, so it must fail closed on its own.
+#[test]
+fn encode_len_u32_is_big_endian_at_the_boundary() {
+    assert_eq!(encode_len_u32(0), Ok([0, 0, 0, 0]));
+    assert_eq!(encode_len_u32(10), Ok([0, 0, 0, 10]));
+    assert_eq!(
+        encode_len_u32(u32::MAX as usize),
+        Ok([0xff, 0xff, 0xff, 0xff])
+    );
+}
+
+#[cfg(target_pointer_width = "64")]
+#[test]
+fn encode_len_u32_rejects_rather_than_wraps() {
+    // `2**32 as u32` is 0: the old cast would have encoded this as a
+    // zero-length field and produced non-conformant ciphertext.
+    assert!(encode_len_u32(u32::MAX as usize + 1).is_err());
+    assert!(encode_len_u32(1usize << 40).is_err());
+}
+
+// ---------------------------------------------------------------------------
+// Plan 00007 STEP-04: the subquadratic conversion must equal the retained
+// SP 800-38G reference loops exactly -- the Rust counterpart of
+// `tests/test_conversion_equivalence.py`. Every production conversion goes
+// through `num_radix`/`str_radix`; the `_reference` functions are the spec
+// text, and these tests are what licenses the dispatch.
+// ---------------------------------------------------------------------------
+
+/// Radices spanning the supported range: minimum, NIST sample, common
+/// alphabet, power of two, and the supported maximum (mirrors the Python
+/// module's `_REPRESENTATIVE_RADICES`).
+const REPRESENTATIVE_RADICES: [u32; 5] = [2, 10, 36, 256, 65_535];
+
+/// Degenerate lengths, both sides of `D_C_THRESHOLD`, odd and even splits,
+/// and lengths deep enough for several recursion levels.
+const EQUIVALENCE_LENGTHS: [usize; 12] = [0, 1, 2, 63, 64, 65, 128, 129, 131, 257, 1000, 2049];
+
+/// Deterministic numerals: a leading run of zeros (leading zeros must not
+/// change a value), then a pseudo-random body, then a trailing run of the
+/// maximum numeral.
+fn sample_numerals(radix: u32, length: usize, seed: u64) -> Vec<u16> {
+    let mut state = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+    (0..length)
+        .map(|i| {
+            if i < length / 8 {
+                0
+            } else if i >= length - length / 8 {
+                (radix - 1) as u16
+            } else {
+                state = state
+                    .wrapping_mul(6_364_136_223_846_793_005)
+                    .wrapping_add(1_442_695_040_888_963_407);
+                ((state >> 33) % radix as u64) as u16
+            }
+        })
+        .collect()
+}
+
+#[test]
+fn d_c_threshold_mirrors_the_python_reference() {
+    // `_ff1.py::_D_C_THRESHOLD`; both cores must dispatch at the same length.
+    assert_eq!(D_C_THRESHOLD, 64);
+}
+
+#[test]
+fn num_radix_equals_reference_at_representative_radices() {
+    for &radix in &REPRESENTATIVE_RADICES {
+        for &length in &EQUIVALENCE_LENGTHS {
+            let numerals = sample_numerals(radix, length, (radix as u64) << 16 | length as u64);
+            assert_eq!(
+                num_radix(radix, &numerals),
+                num_radix_reference(radix, &numerals),
+                "radix {radix} length {length}"
+            );
+        }
+    }
+}
+
+#[test]
+fn str_radix_equals_reference_at_representative_radices() {
+    for &radix in &REPRESENTATIVE_RADICES {
+        for &length in &EQUIVALENCE_LENGTHS {
+            let numerals = sample_numerals(radix, length, (length as u64) << 16 | radix as u64);
+            let value = num_radix_reference(radix, &numerals);
+            let expected = str_radix_reference(&value, radix, length);
+            assert_eq!(expected, numerals, "reference self-check, radix {radix}");
+            assert_eq!(
+                str_radix(&value, radix, length),
+                expected,
+                "radix {radix} length {length}"
+            );
+        }
+    }
+}
+
+#[test]
+fn every_supported_radix_is_equivalent_above_the_threshold() {
+    // One length that takes the fast path (power-of-two packing or the
+    // divide-and-conquer split) for every radix the package accepts.
+    let length = D_C_THRESHOLD + 1;
+    for radix in 2u32..65_536 {
+        let numerals = sample_numerals(radix, length, radix as u64);
+        let value = num_radix_reference(radix, &numerals);
+        assert_eq!(num_radix(radix, &numerals), value, "NUM radix {radix}");
+        assert_eq!(
+            str_radix(&value, radix, length),
+            str_radix_reference(&value, radix, length),
+            "STR radix {radix}"
+        );
+    }
+}
+
+#[test]
+fn every_power_of_two_radix_is_equivalent_at_every_chunk_alignment() {
+    // The packing path groups numerals into byte-aligned chunks; lengths
+    // 65..=81 cover every remainder modulo the largest chunk size (8).
+    for k in 1u32..16 {
+        let radix = 1u32 << k;
+        for length in 65usize..=81 {
+            let numerals = sample_numerals(radix, length, (k as u64) << 8 | length as u64);
+            let value = num_radix_reference(radix, &numerals);
+            assert_eq!(
+                num_radix(radix, &numerals),
+                value,
+                "NUM k {k} length {length}"
+            );
+            assert_eq!(
+                str_radix(&value, radix, length),
+                str_radix_reference(&value, radix, length),
+                "STR k {k} length {length}"
+            );
+        }
+    }
+}
+
+#[test]
+fn str_radix_truncation_contract_matches_reference() {
+    // Values >= radix**length silently drop their high digits in the
+    // reference; the fast paths must drop exactly the same digits.
+    for &radix in &REPRESENTATIVE_RADICES {
+        for length in [65usize, 129, 257] {
+            let base = BigUint::from(radix);
+            let over = base.pow(length as u32) * BigUint::from(12_345u32) + BigUint::from(678u32);
+            let far = base.pow((2 * length) as u32) - BigUint::one();
+            for value in [over, far] {
+                assert_eq!(
+                    str_radix(&value, radix, length),
+                    str_radix_reference(&value, radix, length),
+                    "radix {radix} length {length}"
+                );
+            }
         }
     }
 }

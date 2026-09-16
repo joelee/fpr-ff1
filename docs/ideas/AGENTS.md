@@ -40,31 +40,29 @@ The five-digit number is the stable **idea ID**. The two-digit `rNN` suffix is t
 
 Allocate the number safely, in this order:
 
-1. Ensure the directory exists (`mkdir -p docs/ideas`).
-2. Acquire the numbering lock with `mkdir docs/ideas/.idea-number-lock`.
-   Directory creation is atomic: if it fails because the lock already exists, do
-   **not** remove or bypass it, and do not publish. Report that another run may
-   be allocating a number or that a stale lock needs human inspection.
-3. While holding the lock, list valid reports matching
-   `docs/ideas/[0-9][0-9][0-9][0-9][0-9]-*-r[0-9][0-9].md`.
-4. For a **new idea**, parse only the leading five decimal digits from valid
-   files, choose the maximum plus one, and start at `00001` when none exist.
-   **Never fill a gap or reuse an earlier ID.**
-5. For a **revision**, preserve the five-digit idea ID and canonical description
-   from the latest report. Select the highest valid revision for that idea plus
-   one. Start at `r01` only for a new idea.
-6. Derive `Idea_Description` from the concise idea title. Use
-   `Title_Case_With_Underscores`, no more than six words.
-7. Convert the description to ASCII words separated by underscores. Remove path
-   separators, `..`, shell metacharacters, control characters, and repeated
-   underscores. Limit it to 80 characters.
-8. Immediately before writing, list the directory again; if the candidate path
-   exists despite the lock, recalculate the next available ID or revision.
-9. Write exactly one new Markdown report. Never overwrite, edit, rename, or
-   delete another report.
-10. Release the lock with `rmdir docs/ideas/.idea-number-lock` after a successful
-    write (and after a failure when safe). Never remove a lock you did not
-    acquire in the current run.
+1. Derive `Idea_Description` from the concise idea title. Use
+   `Title_Case_With_Underscores`, no more than six words. Convert the description
+   to ASCII words separated by underscores. Remove path separators, `..`, shell
+   metacharacters, control characters, and repeated underscores. Limit it to 80
+   characters.
+2. For a **new idea**, allocate the number and create the empty report file with
+   the `allocating-report-numbers` skill:
+
+   ```bash
+   .agents/skills/allocating-report-numbers/allocate-report.sh docs/ideas <Idea_Description>-r01.md
+   ```
+
+   The script atomically allocates the next unused five-digit idea ID (highest
+   existing plus one, starting at `00001`, never filling a gap or reusing an ID),
+   creates the empty file, and prints the number and full path. If it fails
+   because the lock is held, do not bypass it and do not publish; report that
+   another run may be allocating a number or that a stale lock needs inspection.
+3. For a **revision**, do not use the skill. Preserve the five-digit idea ID and
+   canonical description from the latest report, select the highest valid revision
+   for that idea plus one, and create the file directly. Start at `r01` only for
+   a new idea.
+4. Write exactly one new Markdown report into the file the script created. Never
+   overwrite, edit, rename, or delete another report.
 
 Use Obsidian wikilinks for report relationships:
 
@@ -466,8 +464,8 @@ For `r02` and later:
 
 - Write only new Markdown reports below `docs/ideas/`; never modify anything else.
 - Never overwrite or revise a prior report; every change is a new revision file.
-- Never fill a numbering gap or reuse an idea ID; always hold the lock while
-  allocating.
+- Never fill a numbering gap or reuse an idea ID; always allocate through the
+  `allocating-report-numbers` skill for a new idea.
 - Never turn the idea into a detailed build plan; hand planning inputs to the
   user or planning agent after acceptance.
 - Never reproduce secrets; record only the secret type and safe location, redact

@@ -19,14 +19,15 @@ warranted, disclosure will be coordinated with you.
 
 ## Supported versions
 
-The latest `2.x` release receives fixes. A minor release is supported until the next minor ships;
-security fixes are backported to the most recent minor where practical.
+The latest `2.x` release receives bug and security fixes. The `1.1.x` line receives security
+fixes only, until `2.1.0` ships or until <v2.0.0 date + six months>, whichever is later. `1.0.x`
+is no longer supported: upgrade to `1.1.x` or `2.0.x` (both produce identical ciphertext).
 
 | Version | Supported |
 |---|---|
-| 2.0.0rc1 | ✅ (release candidate) |
-| 1.1.x | ✅ |
-| 1.0.x | ✅ |
+| 2.0.x | ✅ bug and security fixes |
+| 1.1.x | ✅ security fixes only, until `2.1.0` or <v2.0.0 date + six months> |
+| 1.0.x | ❌ |
 
 ## Scope
 

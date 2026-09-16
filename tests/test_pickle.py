@@ -109,6 +109,19 @@ def test_pickle_does_not_serialise_cipher_objects(ff1_factory: Any) -> None:
     assert state["_radix"] == 10
 
 
+def test_unpickled_instance_has_every_constructor_attribute(ff1_factory: Any) -> None:
+    """``__setstate__`` restores exactly the attributes ``__init__`` sets.
+
+    Guards the drift class behind review 00007 MAJ-01: an attribute added to
+    the constructor but not to restoration makes every unpickled instance
+    fail on first use, and no output test notices because a freshly built
+    instance works.  Runs on both backends via ``ff1_factory``.
+    """
+    fresh: FF1 = ff1_factory(key=_VALID_KEY, radix=10, alphabet="0123456789", tweak=b"tweak")
+    restored: FF1 = pickle.loads(pickle.dumps(fresh))  # noqa: S301
+    assert set(vars(restored)) == set(vars(fresh))
+
+
 def test_setstate_rejects_non_bytes_key() -> None:
     """A corrupted payload must raise from the documented hierarchy.
 

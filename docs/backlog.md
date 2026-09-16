@@ -11,13 +11,21 @@ This file tracks high-level feature ideas and technical debt for `fpr-ff1`.
 - Raise the `requires-python` floor as new Python versions enter the CI matrix and pass. The
   upper-bound cap policy was retired at 1.0.0 (review 00003 B4): a cap becomes a hard resolution
   failure on future interpreters, so classifiers state the tested versions instead.
-- **Port the divide-and-conquer conversion to the Rust core** (review 00006 open question 1) —
-  target `2.0.0rc2`. The compiled core uses the naive spec-reference `NUM_radix`/`STR_radix`,
-  which is why the pure-Python path overtakes it between n=1,000 and n=5,000. Deferred from plan
-  00005 by user decision D3 so the rc1 hardening stayed output-neutral.
+- **Stable `v2.0.0` (plan 00007).** Candidate `2.0.0rc2` is cut; still to come are its
+  publication and soak, an independent re-review, then the final bump and release.
 
 ## Completed Items
 
+- **Divide-and-conquer conversion ported to the Rust core for `2.0.0rc2`** (plan 00007 STEP-04,
+  from review 00006 open question 1). The same dispatch as the Python reference, proven equal to
+  the retained reference loops across every supported radix, with ciphertext unchanged. Measured
+  ~2.8× faster than the pure-Python path at n=20,000 radix 10 and ~11× at radix 256, so the rc1
+  crossover no longer exists.
+- Review 00007 fixes for `2.0.0rc2` (plan 00007 STEPs 01-03, 06-08): restored 1.x pickles keep
+  their backend; unencodable tweak lengths fail closed on both backends; seven more public-contract
+  tests run on both backends; every published native wheel is installed and tested on its own
+  platform, with full conformance on the installed abi3 wheel; CI negative-control evidence
+  (closing plan 00005 AC-02); a decided 1.x security-support window.
 - Review 00006 hardening for `2.0.0rc1` (plan 00005): a `rust-conformance` CI job that runs the
   compiled backend's full conformance suite in the release gate, GIL release in the PyO3 bindings,
   a once-per-call AES key schedule, `cargo` Dependabot coverage, a typed pickle key-length
