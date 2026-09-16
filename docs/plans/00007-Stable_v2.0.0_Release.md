@@ -30,7 +30,7 @@ previous_plan: "docs/plans/00006-Review_00007_to_v2.0.0.md"
 requirements_count: 13
 steps_count: 14
 acceptance_criteria_count: 14
-blocking_decisions: 1
+blocking_decisions: 0
 build_ready: false
 web_research_used: false
 confidence: high
@@ -50,7 +50,7 @@ current_step: null
 # Delivery Plan 00007: Stable v2.0.0 Release
 
 > [!abstract] Plan status: `draft`
-> Close the four code findings of review 00007, ship the Rust divide-and-conquer conversion, make the release gate execute every published native wheel, publish and soak `v2.0.0rc2`, then promote a re-reviewed candidate to a stable `v2.0.0`. This plan rewrites draft plan 00006 to resolve all seven findings of reviews 00008 and 00009. **One blocking decision remains (D4, the post-final 1.x support window); the plan is not Builder-ready until the user resolves it.**
+> Close the four code findings of review 00007, ship the Rust divide-and-conquer conversion, make the release gate execute every published native wheel, publish and soak `v2.0.0rc2`, then promote a re-reviewed candidate to a stable `v2.0.0`. This plan rewrites draft plan 00006 to resolve all seven findings of reviews 00008 and 00009. All decisions are resolved (D4 chosen by the user on 2026-09-16: Option A, a bounded 1.1.x security-fix window); the plan awaits explicit user approval before it is Builder-ready.
 
 ## 1. Objective and outcome
 
@@ -60,7 +60,7 @@ What changed from plan 00006, by finding:
 
 | Review finding | Change in this plan |
 |---|---|
-| `REV-00008-MAJ-01` / `REV-00009-MAJ-01` — D4 recorded as resolved without a decided window | D4 is **open** in §7 with three concrete `SECURITY.md` texts for the user to choose from; `blocking_decisions: 1`; REQ-08 transcribes the chosen text rather than inventing one |
+| `REV-00008-MAJ-01` / `REV-00009-MAJ-01` — D4 recorded as resolved without a decided window | D4 was put to the user with three concrete `SECURITY.md` texts and resolved by the user (Option A, 2026-09-16); REQ-08 transcribes that text verbatim rather than inventing one |
 | `REV-00008-MED-01` — no rc2 owner hand-off | New STEP-11: owner tags `v2.0.0rc2` as a pre-release, `publish.yml` runs, Builder verifies PyPI, owner states or waives the soak window (D6); STEP-12's precondition now names that step; §16 lists both tags |
 | `REV-00008-MED-02` — STEP-06 under-specified | STEP-06 names runner labels per target, the fresh-venv install recipe, the two `__file__` import-origin checks as a numbered task, the four gate flags on the abi3 leg, the Python fan-out (D7), and an import-origin stop condition |
 | `REV-00008-MED-03` — bounds/ceiling interaction and the `n` cast | REQ-02 rejects `min_tweak_len`/`max_tweak_len` above the ceiling at construction, converts both `n` and `t` with `u32::try_from`, adds the constructor cases to the contract sweep, and marks the changelog entry SemVer-relevant |
@@ -151,18 +151,18 @@ None. Unresolved matters are recorded as decisions and block approval when mater
 | D1 | Review 00007 open question 1: ship the Rust divide-and-conquer conversion in v2.0.0 or defer | User selected "Ship in v2.0.0" on 2026-09-09 (carried from plan 00006) | User | Resolved |
 | D2 | Review 00007 STABLE-13: cut an intermediate rc2 or go straight to final | User selected "Cut `v2.0.0rc2` first" on 2026-09-09 (carried from plan 00006) | User | Resolved |
 | D3 | Review 00007 open question 3: keep `manylinux_2_34` or lower the floor | User selected "Keep `manylinux_2_34`, document it" on 2026-09-09 (carried from plan 00006) | User | Resolved |
-| D4 | **Post-final 1.x security-support window** (review 00007 open question 4; `REV-00008-MAJ-01`; `REV-00009-MAJ-01`). `SECURITY.md` currently says "the latest `2.x` release receives fixes ... backported to the most recent minor" above a table marking `2.0.0rc1`, `1.1.x` and `1.0.x` all supported, which is self-contradictory. A support window is a maintainer commitment and cannot be set by the planner or the Builder. | **Open.** The user chooses one of the texts in §7.1 (or supplies another). On resolution the chosen text is written into REQ-08 verbatim, this row records the choice and date, and `blocking_decisions` drops to 0. | User | **Open (blocking)** |
+| D4 | **Post-final 1.x security-support window** (review 00007 open question 4; `REV-00008-MAJ-01`; `REV-00009-MAJ-01`). `SECURITY.md` currently says "the latest `2.x` release receives fixes ... backported to the most recent minor" above a table marking `2.0.0rc1`, `1.1.x` and `1.0.x` all supported, which is self-contradictory. A support window is a maintainer commitment and cannot be set by the planner or the Builder. | **User selected Option A on 2026-09-16**: the latest `2.x` release receives bug and security fixes; `1.1.x` receives security fixes only until `2.1.0` ships or six months after the `v2.0.0` publication date, whichever is later; `1.0.x` is no longer supported. The exact `SECURITY.md` text is the Option A block in §7.1, quoted verbatim in REQ-08. | User | Resolved |
 | D5 | Review 00007 open question 2: how the plan 00005 AC-02 negative-control evidence is produced | Produced in STEP-07 on a disposable branch; the push and the branch deletion are outward actions the user authorizes per action (carried from plan 00006) | User (authorization) | Resolved |
 | D6 | rc2 soak window (review 00007 STABLE-13 leaves duration to the owner; review 00008 open question 1) | The plan fixes no duration. At STEP-11 the owner writes one of "soak until <UTC date>" or "soak waived; proceed on verified publication" into the work log, and STEP-12 may not start before that entry exists and, if dated, the date has passed. This is a process decision, not a scope decision, so it does not block approval. | User (at STEP-11) | Resolved |
 | D7 | Wheel-job fan-out (review 00008 MED-02 asked the plan to decide) | Subset jobs: a matrix of the five targets times Python 3.12/3.13/3.14 (15 short jobs; each installs one wheel and runs the installed-package subset). Full-conformance leg: one job, Linux x86_64 wheel, Python 3.14 (the newest interpreter the abi3-py312 wheel promises to serve and the one the rc1 gate never exercised natively). | Planner | Resolved |
 | D8 | Amend draft 00006 in place or write a new plan (review 00009 open question 2) | User instructed a rewrite on 2026-09-16. This plan is a new numbered file with `plan_kind: superseding` and `previous_plan` pointing at 00006; 00006 is left unedited as a draft record and must not be approved or executed. | User | Resolved |
 | D9 | Rust divide-and-conquer threshold and naming (review 00008 LOW-01) | The Rust constant is `D_C_THRESHOLD: usize = 64`, documented as mirroring `_ff1.py::_D_C_THRESHOLD`; the naive functions are renamed `num_radix_reference`/`str_radix_reference` and the dispatching `num_radix`/`str_radix` keep the public names, mirroring the Python module's `_num_radix_reference`/`_num_radix` split. | Planner | Resolved |
 
-### 7.1 D4 options (for the user; the plan recommends none as decided)
+### 7.1 D4 options (Option A selected; B and C retained as the record of what was offered)
 
 Each option replaces `SECURITY.md` §Supported versions in full. The `2.0.0rc1` row is removed in every option (STEP-13 replaces `2.0.x` with the published version). `<v2.0.0 date>` is filled by the Builder at STEP-13 from the tag date.
 
-**Option A: overlap window.**
+**Option A: overlap window (selected).**
 
 ```markdown
 ## Supported versions
@@ -304,7 +304,7 @@ flowchart LR
 
 - **Requirement:**
   1. State the native-wheel coverage (Linux x86_64 and aarch64 at `manylinux_2_34`, glibc 2.34 or newer; macOS x86_64 and arm64; Windows x64; CPython 3.12 to 3.14 via abi3) and the pure-Python fallback for older glibc, musl and every other platform, in `README.md` (Backends) and `docs/configuration.md`.
-  2. Replace `SECURITY.md` §Supported versions with the text recorded in D4's resolution, verbatim. **This item is transcription; if D4 is not resolved in §7, the Builder stops.**
+  2. Replace `SECURITY.md` §Supported versions with the D4 Option A text from §7.1, verbatim, leaving `<v2.0.0 date + six months>` as the literal placeholder for STEP-13 to fill from the tag date. **This item is transcription, not policy-making; the Builder stops if the text it writes differs from §7.1 Option A in anything but the placeholder.**
   3. Add one sentence wherever "100% line and branch coverage" appears next to "both backends" (`README.md`, `CHANGELOG.md`, `docs/developer-guide.md`): the coverage figure measures the Python package; the Rust core is covered by the dual-backend conformance suite and `cargo test`, not by a line-coverage figure.
   4. Recheck NIST SP 800-38G Rev. 1 status (still a second public draft as of review 00007) and retain the chosen radix subset and the no-float/forward-AES rules; record the check date in the work log.
   5. Update the `docs/developer-guide.md` CI/CD description for the new wheel jobs, the abi3 leg and `--locked`.
@@ -355,7 +355,7 @@ The order is unchanged in spirit from plan 00006 (00008 found the sequencing sou
 2. **Rust core change** (STEP-04): the riskiest edit, proven bit-exact by the full dual-backend suite and the new direct comparisons before anything measures or documents it.
 3. **Performance evidence under the park rule** (STEP-05): measured after the core is final; the README changes only on a pass.
 4. **CI and evidence** (STEP-06 wheel matrix and abi3 leg, STEP-07 negative control): the gate is expanded once the code it guards is final, then proven to have teeth.
-5. **Documentation** (STEP-08): written once the artifacts and decisions it describes exist; D4 must be resolved before this step.
+5. **Documentation** (STEP-08): written once the artifacts and decisions it describes exist; D4 is resolved (Option A).
 6. **Candidate** (STEP-09 version, STEP-10 full gate and packages, STEP-11 owner publishes and soaks rc2).
 7. **Promotion** (STEP-12 re-review, STEP-13 final bump, STEP-14 owner publishes and verifies final).
 
@@ -512,7 +512,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 - **Requirements:** `PLAN-00007-REQ-08`
 - **Depends on:** PLAN-00007-STEP-06; decision D4 resolved in §7
 - **Affected components:** `README.md`, `SECURITY.md`, `CHANGELOG.md`, `docs/configuration.md`, `docs/developer-guide.md`
-- **Preconditions:** STEP-06 committed; §7 row D4 shows a user resolution and REQ-08 item 2 quotes the chosen text.
+- **Preconditions:** STEP-06 committed.
 - **Test or evidence first:** Not applicable (documentation). Confirm `grep -n "Supported versions" -A 12 SECURITY.md` shows the pre-change text so the diff is reviewable.
 - **Implementation tasks:**
   1. README Backends and `docs/configuration.md`: native-wheel coverage and the `manylinux_2_34`/glibc 2.34 floor with the pure fallback statement.
@@ -524,7 +524,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 - **Verification:** `uv run ruff format --check .` and `ruff check .` clean; `git diff --stat` touches only the five documents; the `SECURITY.md` diff equals the D4 text.
 - **Completion criteria:** Statements present and sourced; one commit.
 - **Rollback or recovery:** Revert the commit.
-- **Builder stop conditions:** D4 unresolved; any statement that cannot be sourced from a shipped artifact or a resolved decision; a NIST status change.
+- **Builder stop conditions:** A `SECURITY.md` text that differs from §7.1 Option A beyond the placeholder; any statement that cannot be sourced from a shipped artifact or a resolved decision; a NIST status change.
 
 ### PLAN-00007-STEP-09 — Cut the rc2 candidate version
 
@@ -617,10 +617,10 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 - **Implementation tasks:**
   1. Bump both manifests to `2.0.0`; refresh both locks.
   2. Changelog `[2.0.0]` dated section summarising the 2.0 feature and the post-rc fixes; comparison links; `[Unreleased]` at `v2.0.0...HEAD`; rc sections intact.
-  3. README roadmap row: replace "Shipped as `2.0.0rc1`" with the final statement; `SECURITY.md`: replace any `<v2.0.0 date>` placeholder from D4 with the planned tag date and the version cell with `2.0.x`.
+  3. README roadmap row: replace "Shipped as `2.0.0rc1`" with the final statement; `SECURITY.md`: replace the `<v2.0.0 date + six months>` placeholder with the planned tag date plus six months (ISO date), recording both dates in the work log.
   4. Repeat the NIST status check; record the date.
 - **Documentation/configuration/operations:** Changelog, README, SECURITY.md.
-- **Verification:** `uv lock --check`; `uv run pytest tests/test_contract.py -q`; `uv run ruff format --check .` and `ruff check .`; `grep -rn "<v2.0.0 date>" .` empty.
+- **Verification:** `uv lock --check`; `uv run pytest tests/test_contract.py -q`; `uv run ruff format --check .` and `ruff check .`; `grep -rn "<v2.0.0 date" .` empty.
 - **Completion criteria:** Final version, locks and docs consistent; one commit.
 - **Rollback or recovery:** Revert the commit.
 - **Builder stop conditions:** Lock drift beyond the version edges; a NIST status change.
@@ -694,7 +694,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 - [ ] `PLAN-00007-AC-09` At the rc2 commit: versions `2.0.0rc2` / `2.0.0-rc2`, locks consistent, changelog and backlog updated; the full local gate, audits, secret scan, package-contents checks, sdist fallback and unpacked-sdist `pytest` run pass; compiler versions recorded; CI green at that commit.
 - [ ] `PLAN-00007-AC-10` `v2.0.0rc2` is tagged by the owner, published as a pre-release, and verified on PyPI (seven files, attestation digests matching CI artifacts, fresh-venv installs on both backends and the pure fallback); the D6 soak statement is in the work log.
 - [ ] `PLAN-00007-AC-11` A new numbered review of `v2.0.0rc1..v2.0.0rc2` exists with no Critical or Major finding and the four review 00007 findings classified resolved; any remaining finding is dispositioned in the work log.
-- [ ] `PLAN-00007-AC-12` Versions `2.0.0` / `2.0.0`, locks consistent, `[2.0.0]` changelog with links, README roadmap and `SECURITY.md` version cell updated, no `<v2.0.0 date>` placeholder remains; the contract test passes.
+- [ ] `PLAN-00007-AC-12` Versions `2.0.0` / `2.0.0`, locks consistent, `[2.0.0]` changelog with links, README roadmap and `SECURITY.md` version cell updated, no `<v2.0.0 date` placeholder remains; the contract test passes.
 - [ ] `PLAN-00007-AC-13` `v2.0.0` is tagged by the owner, published as a non-prerelease, resolves by default on PyPI, and passes the same verification as AC-10.
 - [ ] `PLAN-00007-AC-14` The handoff record (commit and tag, run URLs, artifact digests, compiler versions, support policy, verification outcome, recovery procedure) is in the work log and `docs/backlog.md` records plan 00007 as completed.
 
@@ -702,7 +702,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 
 | Risk | Likelihood | Impact | Mitigation or test | Owner/step |
 |---|---|---|---|---|
-| D4 stays unresolved and the plan stalls at approval | Medium | Medium | §7.1 offers three ready-to-paste texts; nothing before STEP-08 depends on D4, but approval does | User/§7 |
+| The D4 six-month date is computed wrongly at STEP-13 | Low | Low | STEP-13 verification greps for the placeholder and the work log records the tag date and the computed date side by side | Builder/STEP-13 |
 | Rust D&C port diverges bit-wise on some radix | Medium | High | Full-radix equivalence sweep, per-round intermediates, direct encrypt and decrypt comparisons | Builder/STEP-04 |
 | Port fails the park rule | Low | Medium | Rule recorded before measurement; escalation path leaves README guidance in place | Builder/STEP-05 |
 | Conversion introduces shared mutable state | Low | High | Call-local cache by `&mut`; grep for `static`/`OnceLock`/`unsafe`; thread-safety suite | Builder/STEP-04 |
@@ -717,12 +717,12 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 
 ## 16. Builder hand-off
 
-- **Start condition:** User approval (which requires D4 resolved and `blocking_decisions: 0`) and a clean repository on `release/v2`.
+- **Start condition:** User approval and a clean repository on `release/v2`.
 - **First step:** PLAN-00007-STEP-01.
 - **Required sequence:** STEP-01, STEP-02, STEP-03 (any order) → STEP-04 → STEP-05 → STEP-06 → STEP-07 → STEP-08 → STEP-09 → STEP-10 → STEP-11 → STEP-12 → STEP-13 → STEP-14.
 - **Parallel-safe work:** STEP-01, STEP-02 and STEP-03 only.
 - **Do not change:** approved scope, requirements, steps, acceptance criteria, or content outside Builder's permitted work-log area. Do not change the pure-Python path's ciphertext, public API or default backend. Do not add FF3/FF3-1, key management, a compatibility shim, a runtime dependency, `unsafe`, or shared state. Do not lower the native-wheel floor. Do not edit plan 00006 or any review. Do not tag, push, publish, or delete remote branches without a per-action authorization recorded in the work log.
-- **Escalate when:** any ciphertext or intermediate divergence; a park-rule fail; an import-origin check resolving to the checkout; a runner label unavailable; a target that cannot be made green; the negative-control mutation leaving a Rust-executing job green; a NIST status change; a re-review Critical or Major; a README number not in a recorded run; D4 unresolved at STEP-08.
+- **Escalate when:** any ciphertext or intermediate divergence; a park-rule fail; an import-origin check resolving to the checkout; a runner label unavailable; a target that cannot be made green; the negative-control mutation leaving a Rust-executing job green; a NIST status change; a re-review Critical or Major; a README number not in a recorded run; a `SECURITY.md` text that differs from §7.1 Option A.
 - **Completion hand-off:** `v2.0.0rc2` tagged, published as a pre-release, verified and soaked (owner statement); re-review clean; `v2.0.0` tagged (exactly), published, verified; handoff and recovery procedure recorded; backlog updated. Tags, pushes and GitHub releases remain the user's.
 
 <!-- BUILDER_WORK_LOG_START -->
@@ -786,6 +786,7 @@ None
 | Timestamp (UTC) | Plan status | Change | Reason | Requested/approved by |
 |---|---|---|---|---|
 | 2026-09-16T11:38:45Z | draft | Initial draft written at `docs/plans/00007-Stable_v2.0.0_Release.md`, superseding draft plan 00006 (never approved). Resolves all seven findings of reviews 00008 and 00009: D4 reopened as blocking with three candidate texts; rc2 owner hand-off added (STEP-11); STEP-06 specified (labels, venv recipe, import-origin task, flags, fan-out); REQ-02 extended (bounds, `n` cast, contract sweep, SemVer note); park rule and threshold naming; attribute-parity test; sdist packaged-test run, compiler version and coverage wording restored. Baseline refreshed to `5eb518c`. | User request on 2026-09-16 to rewrite the plan from review 00009 and plan 00006 | User |
+| 2026-09-16T12:20:57Z | draft | D4 resolved: user selected Option A (1.1.x security fixes until `2.1.0` or six months after `v2.0.0`; `1.0.x` dropped). `blocking_decisions` 1 → 0; REQ-08, STEP-08, STEP-13, §1, §10, §15, §16 and §20 updated to reference the chosen text; Options B and C retained in §7.1 as the record of what was offered. No requirement, step or acceptance-criterion count changed. | User decision on D4 ("D4, as recommended (A)") | User |
 
 ## 19. External references
 
@@ -793,4 +794,4 @@ None. All requirements derive from reviews 00007, 00008 and 00009, the user's de
 
 ## 20. Confidence
 
-**High.** Every requirement traces to a review finding, a user decision or a verified repository path at a clean baseline whose code is identical to the published `v2.0.0rc1`; the seven changes from plan 00006 each correspond to a specific review 00008 finding re-confirmed by 00009. The principal residual uncertainty is execution evidence the Builder and CI must produce: the Rust port's bit-exactness and long-input performance, the fifteen-plus-one wheel jobs on runners this repository has not yet used, and the negative-control run. The one blocking item, D4, is a maintainer commitment the plan deliberately does not make.
+**High.** Every requirement traces to a review finding, a user decision or a verified repository path at a clean baseline whose code is identical to the published `v2.0.0rc1`; the seven changes from plan 00006 each correspond to a specific review 00008 finding re-confirmed by 00009. The principal residual uncertainty is execution evidence the Builder and CI must produce: the Rust port's bit-exactness and long-input performance, the fifteen-plus-one wheel jobs on runners this repository has not yet used, and the negative-control run. D4 was a maintainer commitment the plan deliberately did not make; the user made it on 2026-09-16.
