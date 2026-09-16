@@ -37,14 +37,14 @@ confidence: high
 
 # Builder-maintained front matter. Builder may update only these keys after
 # explicit user approval; Delivery Planner initializes them.
-implementation_status: blocked
+implementation_status: in-progress
 builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5"
 execution_branch: "release/v2"
 execution_started_at: "2026-09-16T12:32:08Z"
-execution_updated_at: "2026-09-16T18:50:27Z"
+execution_updated_at: "2026-09-16T21:30:06Z"
 execution_completed_at: null
-current_step: "PLAN-00007-STEP-07"
+current_step: "PLAN-00007-STEP-08"
 ---
 
 # Delivery Plan 00007: Stable v2.0.0 Release
@@ -743,7 +743,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 | PLAN-00007-STEP-04 | completed | 2026-09-16T13:00:49Z | 2026-09-16T13:11:58Z | Commit (this one); checkpoint logs checkpoint-130330 | docs/architecture.md gained a Numeral conversion section with the side-by-side function map |
 | PLAN-00007-STEP-05 | completed | 2026-09-16T13:11:58Z | 2026-09-16T13:14:05Z | Commit (this one); park rule PASS; bench output recorded in Execution log | Single run on one machine, as the plan specifies |
 | PLAN-00007-STEP-06 | completed | 2026-09-16T13:19:43Z | 2026-09-16T14:29:09Z | 4de5fd6 + 58b8ed3 (provisioning fix); CI run 35106877945 green 36/36 | Two commits kept, not squashed: the fix-up documents a real CI finding (uv venv does not download for +gil requests). Squash is the user's call |
-| PLAN-00007-STEP-07 | blocked | 2026-09-16T14:29:40Z | — | Run 35111445198: 16 expected jobs red, rust-conformance hung; diagnosis and fix recorded | Escalated per stop condition |
+| PLAN-00007-STEP-07 | completed | 2026-09-16T14:29:40Z | 2026-09-16T21:30:06Z | Run 35150890829 (every Rust-executing job red, pure-Python green); release/v2 run 35150893760 green 36/36; branch deleted; plus the f12ed42 test fix | First attempt (run 35111445198) exposed a CI-only stall in the STEP-04 agreement test; fixed in f12ed42 and re-run |
 | PLAN-00007-STEP-08 | not-started | — | — | — | — |
 | PLAN-00007-STEP-09 | not-started | — | — | — | — |
 | PLAN-00007-STEP-10 | not-started | — | — | — | — |
@@ -782,6 +782,9 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T14:52:17Z | PLAN-00007-STEP-07 | User authorized the push ('Yes, I may push the branch negative-control/plan-00007'). Builder pushed it (origin had no such branch) and dispatched ci.yml on it | origin/negative-control/plan-00007 = add926b7ad5acb577ecbab4f79f37e0957467f5a; run https://github.com/joelee/fpr-ff1/actions/runs/35111445198 (workflow_dispatch, created 2026-09-16T14:51:59Z) | Watch the run; record the red and green job sets |
 | 2026-09-16T18:45:39Z | PLAN-00007-STEP-07 | Diagnosis of the rust-conformance hang, reproduced locally with the mutated extension on CPython 3.12.13 and pytest 9.1.1: test_backend_agreement's bare 'assert rust_list == python_list' makes pytest build a full sequence diff whenever verbose OR running_on_ci() (_pytest/assertion/_compare_sequence.py:19 'if verbose <= 0 and not running_on_ci()'); GitHub Actions sets CI. On 3.12 that diff is pathologically slow | Single failing case [16-0-10-1000]: plain 0.09s; --cov 0.17s; -v 136.94s; -v --cov killed at 150s; CI=true (no -v) killed at 60s. Same case on CPython 3.14.7 with CI=true: 0.31s, which is why the py3.14 abi3 leg finished | Fix the test |
 | 2026-09-16T18:45:39Z | PLAN-00007-STEP-07 | Fix (uncommitted): tests/test_backend_agreement.py compares through _assert_same_numerals, which fails with the first diverging index, length and values instead of a whole-list diff. Assertion strength unchanged: full equality is still required | After fix, [16-0-10-5000] on 3.12 with CI=true: fails in <1s with 'encrypt: backends diverge at numeral 0 of 5000 (rust 5, python 3)'. Full-suite 3.12 CI=true probe against the mutated extension running | Record probe result; escalate |
+| 2026-09-16T21:11:05Z | PLAN-00007-STEP-07 | User answered 'OK, yes' to: cancel the hung run, push release/v2 and negative-control/plan-00007, delete the negative-control branch after its run is recorded. Run 35111445198 had already ended: GitHub cancelled rust-conformance at the 6 h job limit (14:52:03Z -> 20:52:18Z, 'Full suite' step cancelled), run conclusion failure; nothing to cancel | gh run cancel: 'Cannot cancel a workflow run that is completed' | Push both branches; dispatch CI on each |
+| 2026-09-16T21:11:05Z | PLAN-00007-STEP-07 | Builder pushed release/v2 (58b8ed3..f12ed42) and negative-control/plan-00007 (add926b..6423298, fast-forward), then dispatched ci.yml on both | Negative control: https://github.com/joelee/fpr-ff1/actions/runs/35150890829 (head 6423298, created 21:10:39Z). release/v2 fix confirmation: https://github.com/joelee/fpr-ff1/actions/runs/35150893760 (head f12ed42, created 21:10:41Z) | Watch both runs |
+| 2026-09-16T21:30:06Z | PLAN-00007-STEP-07 | Branch cleanup (authorized): deleted negative-control/plan-00007 on origin and locally | git ls-remote shows no such branch; no tag contains add926b; add926b is not an ancestor of release/v2; mutated source never tagged, merged into release/v2, or published | STEP-08 |
 
 ### Deviations and blockers
 
@@ -794,6 +797,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T13:42:27Z | PLAN-00007-STEP-06 | First CI run failed on interpreter provisioning in the new jobs (not on any wheel or test). Fix committed; needs another push | One extra push round-trip for STEP-06 | User: push release/v2 again |
 | 2026-09-16T14:29:40Z | PLAN-00007-STEP-07 | BLOCKER: pushing negative-control/plan-00007 and later deleting it on origin are outward actions with no authorization recorded | STEP-07 and every later step wait | User: authorize 'git push -u origin negative-control/plan-00007' (Builder then dispatches CI on it), and separately its deletion after the run is recorded |
 | 2026-09-16T18:45:39Z | PLAN-00007-STEP-07 | Stop condition hit: under the negative control, rust-conformance did not turn red; it stalled for hours in failure reporting. Root cause is a defect in Builder's own STEP-04 test module (long-list asserts), not a hole in detection: the abi3 and native jobs did go red | STEP-07 evidence incomplete. A CI run where the gate only fails by job timeout (default 360 min) is not acceptable evidence. Fixing requires a commit to release/v2 (a STEP-04 test file), a push of release/v2, updating and re-pushing the negative-control branch, and a new run | User: (1) approve the test fix approach; (2) authorize pushing release/v2 and the updated negative-control branch; (3) decide whether to cancel run 35111445198 now or let it time out |
+| 2026-09-16T21:30:06Z | PLAN-00007-STEP-07 | Observation for the re-review: each wheel-test-native leg detects the S-expansion mutation through only 2 of its 149 tests (the frozen KAT d > 16 case and the dispatch test's n = 60 case); the full-suite jobs detect it through 338. Enough to turn every leg red, but the per-platform subset's d > 16 coverage is thin | None on STEP-07 acceptance (every Rust-executing job red). A wider per-platform subset (e.g. adding test_backend_agreement or test_differential) would be a scope change to STEP-06 | Owner / re-review: decide whether to widen the subset |
 
 ### Verification results
 
@@ -823,13 +827,15 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T18:45:39Z | PLAN-00007-STEP-07 | CI run 35111445198 on negative-control/plan-00007 (add926b), state at 2026-09-16T18:40Z | Partial: expected red set red, but rust-conformance hung | Red as expected: wheel-conformance-abi3 (full suite step; 338 failed, 1344 passed in 179.60s: test_backend_agreement 192, test_differential 144, test_backend_dispatch 1, test_frozen_kat 1) and all 15 wheel-test-native legs (subset step). Green as expected: 9 quality legs, audit, secrets, build, 5 wheel-build legs, wheel-test, sdist-test. rust-conformance (py3.12, source tree): still in 'Full suite' step ~3h48m after starting at 14:52:03Z; no conclusion |
 | 2026-09-16T18:50:27Z | PLAN-00007-STEP-07 | Local full suite on CPython 3.12.13, CI=true, mutated extension, fixed test: CI=true FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR_FF1_REQUIRE_ORACLE=1 uv run pytest --durations=8 --cov=fpr_ff1 --cov-fail-under=100 | Pass (fails fast, as a negative control should) | 338 failed, 1344 passed in 260.15s, exit 1: same modules and counts as the CI abi3 leg (agreement 192, differential 144, dispatch 1, frozen KAT 1). Slowest tests are the passing bijectivity sweeps (122.23s, 90.76s, 27.84s, 12.43s); no failure takes over 1s |
 | 2026-09-16T18:50:27Z | PLAN-00007-STEP-07 | Fixed test on correct code: static checks; CI=true tests/test_backend_agreement.py; just rust-test | Pass | ruff + pyright clean; 240 passed in 1.74s; cargo test 16 passed |
+| 2026-09-16T21:30:06Z | PLAN-00007-STEP-07 | Negative-control CI run 35150890829 on negative-control/plan-00007 (6423298: S-expansion counter starts at 0, fast-failing agreement test) https://github.com/joelee/fpr-ff1/actions/runs/35150890829 | Pass (gate has teeth) | Run conclusion failure. RED: rust-conformance at 'Full suite' (338 failed, 1344 passed in 549.70s: test_backend_agreement 192, test_differential 144, test_backend_dispatch 1, test_frozen_kat 1; job 21:10:43Z -> 21:20:20Z); wheel-conformance-abi3 at 'Full suite'; all 15 wheel-test-native legs at 'Installed-package conformance subset' (e.g. x86_64 Linux py3.12, Windows py3.14, Intel macOS py3.13: 2 failed, 147 passed). GREEN: 9 quality legs (pure Python), audit, secrets, build, 5 wheel-build legs, wheel-test, sdist-test |
+| 2026-09-16T21:30:06Z | PLAN-00007-STEP-07 | release/v2 CI run 35150893760 on f12ed42 https://github.com/joelee/fpr-ff1/actions/runs/35150893760 | Pass | 36/36 jobs success, including rust-conformance (21:10:45Z -> 21:16:05Z) and wheel-conformance-abi3: the fast-failing test changes nothing on correct code |
 
 ### Completion summary
 
-- **Implementation status:** `blocked`
-- **Completed requirements:** PLAN-00007-REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06
-- **Incomplete requirements:** REQ-07 to REQ-13
-- **Outstanding blockers:** Push authorization for the STEP-07 negative-control branch
+- **Implementation status:** `in-progress`
+- **Completed requirements:** PLAN-00007-REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06, REQ-07
+- **Incomplete requirements:** REQ-08 to REQ-13
+- **Outstanding blockers:** None
 - **Review request:** Not ready
 <!-- BUILDER_WORK_LOG_END -->
 
