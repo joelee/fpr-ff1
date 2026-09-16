@@ -10,8 +10,8 @@
 | `radix` | `int` | Yes | Numeral base, `2 <= radix < 2**16`. |
 | `alphabet` | `str \| None` | No | String of exactly `radix` unique characters; enables `encrypt`/`decrypt`. |
 | `tweak` | `bytes` | No | Default tweak used when not provided per call. |
-| `min_tweak_len` | `int \| None` | No | Inclusive minimum tweak length. |
-| `max_tweak_len` | `int \| None` | No | Inclusive maximum tweak length. |
+| `min_tweak_len` | `int \| None` | No | Inclusive minimum tweak length; at most `2 ** 32 - 1`. |
+| `max_tweak_len` | `int \| None` | No | Inclusive maximum tweak length; at most `2 ** 32 - 1`. |
 | `backend` | `str` | No | `"python"` (default, the reference) or `"rust"` (the opt-in compiled backend). Both produce identical ciphertext and exceptions; see the README Backends section for when to use each. |
 
 ## Runtime Constraints
@@ -19,6 +19,12 @@
 - Minimum domain: `radix ** minlen >= 1_000_000`
 - Maximum length: `2 ** 32 - 1` — SP 800-38G specifies `minlen <= n <= maxlen < 2 ** 32`, so
   `2 ** 32` itself is excluded.
+- Maximum tweak length: `2 ** 32 - 1` bytes — Algorithm 7 step 5 encodes the tweak length in the
+  four-byte `[t]^4` field of `P`, so a longer tweak cannot be expressed. A default or per-call tweak
+  above it raises `TweakLengthError` on both backends before any FF1 computation, and so does a
+  `min_tweak_len` or `max_tweak_len` above it at construction (rejected, never clamped). New in
+  `2.0.0rc2`; previously the reference raised `OverflowError` and the compiled backend wrapped the
+  length.
 - Key sizes: 128, 192, 256 bits only
 - Radix: `2 <= radix < 2**16` — a deliberate supported subset of the spec's inclusive
   `[2..2**16]` (NIST permits subsets); radix 65536 is excluded.

@@ -95,6 +95,93 @@ def test_call_tweak_too_long_raises() -> None:
         ff1.encrypt_numerals([0] * 6, tweak=b"abc")
 
 
+#: SP 800-38G Algorithm 7 step 5 encodes the tweak length ``t`` as four
+#: big-endian bytes (``[t]^4``), so ``2**32 - 1`` is the largest encodable
+#: length (review 00007 MED-01).
+_TWEAK_LEN_CEILING = 2**32 - 1
+
+
+class _LengthDouble:
+    """A stand-in whose ``len()`` is chosen by the test.
+
+    Lets the ceiling be tested at ``2**32`` without allocating a 4 GiB tweak.
+    ``_validate_tweak`` reads only the length, so this exercises the real
+    instance-level check rather than a copy of its arithmetic.
+    """
+
+    def __init__(self, length: int) -> None:
+        self._length = length
+
+    def __len__(self) -> int:
+        return self._length
+
+
+def test_tweak_length_ceiling_accepts_the_largest_encodable_length(ff1_factory: Any) -> None:
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10)
+    ff1._validate_tweak(_LengthDouble(_TWEAK_LEN_CEILING))  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+
+
+@pytest.mark.parametrize("length", [_TWEAK_LEN_CEILING + 1, 2**40])
+def test_tweak_length_above_ceiling_raises_identically(ff1_factory: Any, length: int) -> None:
+    """An unencodable tweak is a typed rejection on both backends, never a wrap.
+
+    Before the ceiling the reference raised ``OverflowError`` from outside
+    the ``FF1Error`` hierarchy while the compiled core silently narrowed the
+    length with ``t as u32``.
+    """
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10)
+    with pytest.raises(TweakLengthError) as excinfo:
+        ff1._validate_tweak(_LengthDouble(length))  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+    assert str(excinfo.value) == (
+        f"tweak length {length} above encodable maximum {_TWEAK_LEN_CEILING}"
+    )
+
+
+def test_tweak_ceiling_applies_before_configured_bounds(ff1_factory: Any) -> None:
+    """The absolute ceiling is checked first, so the message names it."""
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10, max_tweak_len=_TWEAK_LEN_CEILING)
+    with pytest.raises(TweakLengthError, match="encodable maximum"):
+        ff1._validate_tweak(_LengthDouble(_TWEAK_LEN_CEILING + 1))  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+
+
+def test_max_tweak_len_at_ceiling_is_accepted(ff1_factory: Any) -> None:
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10, max_tweak_len=_TWEAK_LEN_CEILING)
+    assert ff1.encrypt_numerals([1, 2, 3, 4, 5, 6]) == ff1_factory(
+        key=_VALID_KEY, radix=10
+    ).encrypt_numerals([1, 2, 3, 4, 5, 6])
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        (
+            {"min_tweak_len": _TWEAK_LEN_CEILING + 1},
+            f"min_tweak_len {_TWEAK_LEN_CEILING + 1} above encodable maximum tweak length "
+            f"{_TWEAK_LEN_CEILING}; no tweak could satisfy it",
+        ),
+        (
+            {"max_tweak_len": _TWEAK_LEN_CEILING + 1},
+            f"max_tweak_len {_TWEAK_LEN_CEILING + 1} above encodable maximum tweak length "
+            f"{_TWEAK_LEN_CEILING}; bounds are rejected, not clamped",
+        ),
+        (
+            {"max_tweak_len": 2**40},
+            f"max_tweak_len {2**40} above encodable maximum tweak length "
+            f"{_TWEAK_LEN_CEILING}; bounds are rejected, not clamped",
+        ),
+    ],
+    ids=["min-unencodable", "max-unencodable", "max-huge"],
+)
+def test_tweak_bound_above_ceiling_raises_at_construction(
+    ff1_factory: Any, kwargs: dict[str, int], message: str
+) -> None:
+    """A bound no tweak can meet, or one that would silently mean ``2**32 - 1``,
+    is a configuration fault caught at construction (review 00008 MED-03)."""
+    with pytest.raises(TweakLengthError) as excinfo:
+        ff1_factory(key=_VALID_KEY, radix=10, **kwargs)
+    assert str(excinfo.value) == message
+
+
 def test_plaintext_too_short_raises() -> None:
     ff1 = FF1(key=_VALID_KEY, radix=10)
     with pytest.raises(LengthError):

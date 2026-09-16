@@ -88,6 +88,22 @@ def _validate_tweak_bounds(
             # means "no constraint" -- which is not what the caller asked for.
             raise TweakLengthError(f"{name} must be non-negative, got {bound}")
 
+    # The tweak length is encoded in four bytes (SP 800-38G Algorithm 7 step
+    # 5), so no tweak can exceed FF1._MAX_TWEAK_LEN.  A minimum above it is
+    # unsatisfiable; a maximum above it would silently mean the ceiling --
+    # a clamp by omission.  Both are rejected (review 00008 MED-03).
+    ceiling = FF1._MAX_TWEAK_LEN  # pyright: ignore[reportPrivateUsage]
+    if low is not None and low > ceiling:
+        raise TweakLengthError(
+            f"min_tweak_len {low} above encodable maximum tweak length {ceiling}; "
+            "no tweak could satisfy it"
+        )
+    if high is not None and high > ceiling:
+        raise TweakLengthError(
+            f"max_tweak_len {high} above encodable maximum tweak length {ceiling}; "
+            "bounds are rejected, not clamped"
+        )
+
     if low is not None and high is not None and low > high:
         raise TweakLengthError(
             f"min_tweak_len {low} exceeds max_tweak_len {high}; "
@@ -178,6 +194,12 @@ class FF1:
     # boundary matches the project's stance elsewhere; the excluded value is
     # unconstructable in practice (a 2**32-element list needs tens of GB).
     _MAX_LEN: ClassVar[int] = 2**32 - 1
+    # SP 800-38G Algorithm 7 step 5 encodes the tweak length as [t]^4, four
+    # big-endian bytes, so 2**32 - 1 is the largest tweak FF1 can express.
+    # The spec leaves tweak length otherwise open; this is the encoding's
+    # limit, enforced for both backends before any FF1 computation (review
+    # 00007 MED-01).
+    _MAX_TWEAK_LEN: ClassVar[int] = 2**32 - 1
     _RADIX_MIN: ClassVar[int] = 2
     _RADIX_MAX_EXCLUSIVE: ClassVar[int] = 2**16
     # AES-128/192/256 only.  Named because two entry points validate it --
@@ -370,7 +392,23 @@ class FF1:
         """
         return self._MAX_LEN
 
+    @classmethod
+    def _validate_tweak_length(cls, length: int) -> None:
+        """Reject a tweak length the four-byte ``[t]^4`` field cannot encode.
+
+        Checked in Python for both backends: without it the reference raised
+        ``OverflowError`` (outside ``FF1Error``) from ``_encode_uint`` while
+        the compiled core wrapped the length -- a fail-open parity gap.
+        """
+        if length > cls._MAX_TWEAK_LEN:
+            raise TweakLengthError(
+                f"tweak length {length} above encodable maximum {cls._MAX_TWEAK_LEN}"
+            )
+
     def _validate_tweak(self, tweak: bytes) -> None:
+        # The absolute ceiling first, so an unencodable tweak is reported as
+        # such rather than as a configured-bound violation.
+        self._validate_tweak_length(len(tweak))
         if self._min_tweak_len is not None and len(tweak) < self._min_tweak_len:
             raise TweakLengthError(f"tweak length {len(tweak)} below minimum {self._min_tweak_len}")
         if self._max_tweak_len is not None and len(tweak) > self._max_tweak_len:

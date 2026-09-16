@@ -153,6 +153,16 @@ pub fn cipher_block_with_key(key: &[u8], block: &[u8; 16]) -> Result<[u8; 16], S
     cipher_block(&Aes::new(key)?, block)
 }
 
+/// Encode a length as the four big-endian bytes SP 800-38G Algorithm 7 step 5
+/// uses for `[n]^4` and `[t]^4`. Mirrors `_ff1.py::_encode_uint(value, 4)`,
+/// which raises rather than truncating; here a length above `u32::MAX` is an
+/// error rather than a wrapped value.
+pub fn encode_len_u32(len: usize) -> Result<[u8; 4], String> {
+    u32::try_from(len)
+        .map(u32::to_be_bytes)
+        .map_err(|_| format!("length {len} does not fit the four-byte field of Algorithm 7 step 5"))
+}
+
 /// Decode a numeral sequence as a big-endian base-radix integer
 /// (SP 800-38G NUM_radix). Exact integer arithmetic only.
 pub fn num_radix(radix: u32, numerals: &[u16]) -> BigUint {
@@ -297,8 +307,11 @@ fn ff1_impl(
     p_block.push(radix as u8);
     p_block.push(10);
     p_block.push((u % 256) as u8);
-    p_block.extend_from_slice(&(n as u32).to_be_bytes());
-    p_block.extend_from_slice(&(t as u32).to_be_bytes());
+    // Checked, never `as u32`: a cast would silently wrap a length of 2**32
+    // to 0 (review 00007 MED-01). Python validation rejects both lengths
+    // first; this keeps the core fail-closed on its own.
+    p_block.extend_from_slice(&encode_len_u32(n)?);
+    p_block.extend_from_slice(&encode_len_u32(t)?);
 
     // Loop-invariant moduli, hoisted out of the ten rounds (review 00003
     // M10): step 6.vi reduces modulo radix**m, and m only takes u and v.

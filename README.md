@@ -285,8 +285,8 @@ the default, and the better choice for long inputs.
 | `key` | 16, 24, or 32 bytes. |
 | `radix` | Integer base of the numeral system. |
 | `alphabet` | Optional string of exactly `radix` unique characters; enables `encrypt`/`decrypt`. |
-| `tweak` | Default tweak used when not supplied per call. |
-| `min_tweak_len` / `max_tweak_len` | Optional per-instance tweak length bounds. |
+| `tweak` | Default tweak used when not supplied per call. At most `2**32 - 1` bytes, the limit of FF1's four-byte tweak-length field. |
+| `min_tweak_len` / `max_tweak_len` | Optional per-instance tweak length bounds, each at most `2**32 - 1`; a larger bound raises `TweakLengthError` rather than being clamped. |
 | `backend` | `"python"` (default, the reference) or `"rust"` (the opt-in compiled backend). See [Backends](#backends). |
 
 The package exports `fpr_ff1.__version__` — the version of the installed distribution. Callers

@@ -17,7 +17,7 @@
 use num_bigint::BigUint;
 use num_traits::One;
 
-use crate::{ff1, num_radix, prf_with_key, str_radix};
+use crate::{encode_len_u32, ff1, num_radix, prf_with_key, str_radix};
 
 #[test]
 fn num_radix_decodes_big_endian() {
@@ -143,4 +143,26 @@ fn ff1_round_trip_self_consistency() {
             assert_eq!(pt, x, "round trip, radix {radix} n {n} key_len {key_len}");
         }
     }
+}
+
+/// `[n]^4` and `[t]^4` (Algorithm 7 step 5) are checked, never narrowed
+/// (review 00007 MED-01). Python validation rejects both lengths first;
+/// this is the defence-in-depth layer, so it must fail closed on its own.
+#[test]
+fn encode_len_u32_is_big_endian_at_the_boundary() {
+    assert_eq!(encode_len_u32(0), Ok([0, 0, 0, 0]));
+    assert_eq!(encode_len_u32(10), Ok([0, 0, 0, 10]));
+    assert_eq!(
+        encode_len_u32(u32::MAX as usize),
+        Ok([0xff, 0xff, 0xff, 0xff])
+    );
+}
+
+#[cfg(target_pointer_width = "64")]
+#[test]
+fn encode_len_u32_rejects_rather_than_wraps() {
+    // `2**32 as u32` is 0: the old cast would have encoded this as a
+    // zero-length field and produced non-conformant ciphertext.
+    assert!(encode_len_u32(u32::MAX as usize + 1).is_err());
+    assert!(encode_len_u32(1usize << 40).is_err());
 }

@@ -42,9 +42,9 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5"
 execution_branch: "release/v2"
 execution_started_at: "2026-09-16T12:32:08Z"
-execution_updated_at: "2026-09-16T12:42:01Z"
+execution_updated_at: "2026-09-16T12:51:56Z"
 execution_completed_at: null
-current_step: "PLAN-00007-STEP-02"
+current_step: "PLAN-00007-STEP-03"
 ---
 
 # Delivery Plan 00007: Stable v2.0.0 Release
@@ -738,7 +738,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 | Step | Status | Started (UTC) | Completed (UTC) | Evidence | Builder notes |
 |---|---|---|---|---|---|
 | PLAN-00007-STEP-01 | completed | 2026-09-16T12:32:08Z | 2026-09-16T12:42:01Z | Commit (this one); red-then-green recorded; checkpoint green | The plan-named parity test passes before the fix by design (a current-format payload already carries _backend); the red evidence is the same vars() parity assertion inside the legacy round-trip test |
-| PLAN-00007-STEP-02 | not-started | — | — | — | — |
+| PLAN-00007-STEP-02 | completed | 2026-09-16T12:42:01Z | 2026-09-16T12:51:56Z | Commit (this one); checkpoint logs checkpoint-124333 | Ceiling message: 'tweak length N above encodable maximum 4294967295'. Changelog wording (SemVer note) deferred to STEP-09 as planned |
 | PLAN-00007-STEP-03 | not-started | — | — | — | — |
 | PLAN-00007-STEP-04 | not-started | — | — | — | — |
 | PLAN-00007-STEP-05 | not-started | — | — | — | — |
@@ -762,6 +762,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T12:32:08Z | — | Builder started on approved plan (approval commit 57c4794); clean worktree on release/v2 | git status --porcelain empty; HEAD 57c4794 | Record baseline, then STEP-01 |
 | 2026-09-16T12:42:01Z | PLAN-00007-STEP-01 | Tests written first: 3 __setstate__ tests restore onto FF1.__new__(FF1); added test_legacy_serialized_state_round_trips (real pickle payload with the pinned 1.1 attribute set) and test_unpickled_instance_has_every_constructor_attribute (both backends) | Before fix: 2 failed -- AttributeError '_backend' and the vars() parity assertion in the legacy test | Apply fix |
 | 2026-09-16T12:42:01Z | PLAN-00007-STEP-01 | Fix: __setstate__ assigns self._backend = backend after validation | src/fpr_ff1/_ff1.py; 44 passed in the two modules | Checkpoint |
+| 2026-09-16T12:51:56Z | PLAN-00007-STEP-02 | Tests written first: ceiling tests via a len() double (no allocation) on both backends; three constructor bound cases in test_validation.py and _malformed_calls; Rust encode_len_u32 tests | Before fix: 14 Python tests failed; Rust tests did not compile (unresolved encode_len_u32); _encode_uint(2**32, 4) raised OverflowError. Contract case bounds-min-unencodable already raised pre-fix, via the empty default tweak failing the minimum | Implement |
+| 2026-09-16T12:51:56Z | PLAN-00007-STEP-02 | Implemented FF1._MAX_TWEAK_LEN, FF1._validate_tweak_length (called first in _validate_tweak), bound-ceiling checks in _validate_tweak_bounds, lib.rs encode_len_u32 for both n and t; documented in docs/configuration.md and README parameter table | 201 passed in test_validation.py + test_contract.py; cargo test 10 passed | Checkpoint |
 
 ### Deviations and blockers
 
@@ -779,6 +781,9 @@ None
 | 2026-09-16T12:42:01Z | PLAN-00007-STEP-01 | just format-check lint typecheck; just rust-test; just rust-lint | Pass | pyright 0 errors after annotating pickle.loads results as FF1 (first run: 4 reportUnknownArgumentType errors in the new tests) |
 | 2026-09-16T12:42:01Z | PLAN-00007-STEP-01 | FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR_FF1_REQUIRE_ORACLE=1 uv run pytest --cov=fpr_ff1 --cov-fail-under=100 | Pass | 1409 passed in 262.38s; TOTAL 331 stmts 0 miss 114 branches 100%; -k rust 551/1409. Run before the annotation-only test change |
 | 2026-09-16T12:42:01Z | PLAN-00007-STEP-01 | just quality with src/fpr_ff1/_rs.so moved aside (Rust-free) | Pass | 858 passed, 5 skipped in 217.70s; coverage 100% |
+| 2026-09-16T12:51:56Z | PLAN-00007-STEP-02 | static checks; just rust-test; just rust-lint | Pass | ruff + pyright clean; cargo test 10 passed; fmt + clippy -D warnings exit 0 |
+| 2026-09-16T12:51:56Z | PLAN-00007-STEP-02 | FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR_FF1_REQUIRE_ORACLE=1 uv run pytest --cov=fpr_ff1 --cov-fail-under=100 | Pass | 1428 passed in 266.98s; TOTAL 342 stmts 120 branches 100%; -k rust 559/1428; NIST, intermediates and frozen KAT unchanged |
+| 2026-09-16T12:51:56Z | PLAN-00007-STEP-02 | just quality with _rs.so moved aside (Rust-free) | Pass | 869 passed, 5 skipped in 215.34s; coverage 100% |
 
 ### Completion summary
 
