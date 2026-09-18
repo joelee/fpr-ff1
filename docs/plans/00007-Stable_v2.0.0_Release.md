@@ -42,9 +42,9 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5"
 execution_branch: "release/v2"
 execution_started_at: "2026-09-16T12:32:08Z"
-execution_updated_at: "2026-09-18T23:04:18Z"
+execution_updated_at: "2026-09-18T23:15:41Z"
 execution_completed_at: null
-current_step: "PLAN-00007-STEP-11"
+current_step: "PLAN-00007-STEP-12"
 ---
 
 # Delivery Plan 00007: Stable v2.0.0 Release
@@ -747,8 +747,8 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 | PLAN-00007-STEP-08 | completed | 2026-09-16T21:32:04Z | 2026-09-16T21:32:04Z | Commit (this one) | No NIST status change; Option A transcribed verbatim |
 | PLAN-00007-STEP-09 | completed | 2026-09-16T21:33:18Z | 2026-09-16T21:33:18Z | Commit (this one) | Contract test red then green; lock drift limited to the version lines |
 | PLAN-00007-STEP-10 | completed | 2026-09-16T21:33:18Z | 2026-09-16T22:58:21Z | Local gate + audits + packages recorded; CI run 35158807685 green 36/36 at b10d3b0 | Two git-dependent contract skips in the unpacked-sdist run accepted by the user |
-| PLAN-00007-STEP-11 | blocked | 2026-09-16T22:58:21Z | — | v2.0.0rc2 public and verified: publish run 35402901107 green, 7 files digest-identical to CI artifacts, 7 attestations verified, installs pass on py3.12/3.14 and from the sdist | Waiting on the owner's D6 soak statement |
-| PLAN-00007-STEP-12 | not-started | — | — | — | — |
+| PLAN-00007-STEP-11 | completed | 2026-09-16T22:58:21Z | 2026-09-18T23:15:41Z | Tag v2.0.0rc2 at b10d3b0; PR #9 merge 895c633; publish run 35402901107 green; PyPI files digest-identical and attestations verified; installs verified; soak until 2026-09-25 | Plan omission (no merge to main) resolved by user decision, merge commit |
+| PLAN-00007-STEP-12 | blocked | — | — | — | Not startable before 2026-09-25 (owner soak statement) |
 | PLAN-00007-STEP-13 | not-started | — | — | — | — |
 | PLAN-00007-STEP-14 | not-started | — | — | — | — |
 
@@ -793,6 +793,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T22:58:21Z | PLAN-00007-STEP-11 | Hand-off to owner. Frozen rc2 commit: b10d3b0e88a425e424b040a925de43364f5ae08d on release/v2 (content = 3050615; the extra commit changes only docs/plans/00007, which ships in no artifact). Gate evidence: CI run 35158807685 green 36/36 at that exact commit; local gate recorded under STEP-10. Tag must be exactly v2.0.0rc2 (publish.yml compares it with pyproject 2.0.0rc2) | git rev-parse origin/release/v2 at hand-off = b10d3b0; CHANGELOG [2.0.0rc2] dated 2026-09-16 | Owner: tag v2.0.0rc2 at b10d3b0, push the tag, publish a GitHub pre-release; then Builder verifies PyPI |
 | 2026-09-16T23:14:25Z | PLAN-00007-STEP-11 | User pushed tag v2.0.0rc2 (annotated, tagger date 2026-09-17T00:02:25+01:00 = 2026-09-16T23:02:25Z) at b10d3b0. Builder opened PR #9 release/v2 -> main with the filled PR template, head b10d3b0 (local work-log commits not pushed) | https://github.com/joelee/fpr-ff1/pull/9 (mergeable, checks pending) | Merge with a merge commit once checks pass; owner then publishes the GitHub pre-release |
 | 2026-09-18T22:48:18Z | PLAN-00007-STEP-11 | Owner published the GitHub release ('v2.0.0rc2 released.'): tag v2.0.0rc2, prerelease=true, draft=false, published 2026-09-18T22:44:59Z, notes from the Builder's draft; publish.yml triggered | gh release view v2.0.0rc2; publish run https://github.com/joelee/fpr-ff1/actions/runs/35402901107 (head b10d3b0, created 2026-09-18T22:45:01Z) | Wait for publish.yml; then verify PyPI |
+| 2026-09-18T23:15:41Z | PLAN-00007-STEP-11 | Owner D6 soak statement: 'soak until 2026-09-25' | Recorded verbatim from the user | STEP-12 may start only after 2026-09-25 (plan §7 D6; STEP-11 completion criteria) |
 
 ### Deviations and blockers
 
@@ -865,10 +866,10 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 ### Completion summary
 
 - **Implementation status:** `blocked`
-- **Completed requirements:** PLAN-00007-REQ-01 to REQ-09; REQ-10 except the soak statement
-- **Incomplete requirements:** REQ-10 soak statement; REQ-11 to REQ-13
-- **Outstanding blockers:** Owner soak statement for v2.0.0rc2 (decision D6)
-- **Review request:** Not ready
+- **Completed requirements:** PLAN-00007-REQ-01 to REQ-10
+- **Incomplete requirements:** REQ-11 to REQ-13
+- **Outstanding blockers:** rc2 soak until 2026-09-25 (owner D6); then the owner requests the STEP-12 re-review
+- **Review request:** Not ready (STEP-12 prepares the evidence bundle after the soak)
 <!-- BUILDER_WORK_LOG_END -->
 
 ## 18. Planning change log
