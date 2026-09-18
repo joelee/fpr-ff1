@@ -42,7 +42,7 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5"
 execution_branch: "release/v2"
 execution_started_at: "2026-09-16T12:32:08Z"
-execution_updated_at: "2026-09-16T23:31:39Z"
+execution_updated_at: "2026-09-18T23:04:18Z"
 execution_completed_at: null
 current_step: "PLAN-00007-STEP-11"
 ---
@@ -747,7 +747,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 | PLAN-00007-STEP-08 | completed | 2026-09-16T21:32:04Z | 2026-09-16T21:32:04Z | Commit (this one) | No NIST status change; Option A transcribed verbatim |
 | PLAN-00007-STEP-09 | completed | 2026-09-16T21:33:18Z | 2026-09-16T21:33:18Z | Commit (this one) | Contract test red then green; lock drift limited to the version lines |
 | PLAN-00007-STEP-10 | completed | 2026-09-16T21:33:18Z | 2026-09-16T22:58:21Z | Local gate + audits + packages recorded; CI run 35158807685 green 36/36 at b10d3b0 | Two git-dependent contract skips in the unpacked-sdist run accepted by the user |
-| PLAN-00007-STEP-11 | blocked | 2026-09-16T22:58:21Z | — | Tag v2.0.0rc2 at b10d3b0 (pushed by owner); PR #9 merged into main with a merge commit | Waiting on owner: publish the GitHub pre-release from the existing tag |
+| PLAN-00007-STEP-11 | blocked | 2026-09-16T22:58:21Z | — | v2.0.0rc2 public and verified: publish run 35402901107 green, 7 files digest-identical to CI artifacts, 7 attestations verified, installs pass on py3.12/3.14 and from the sdist | Waiting on the owner's D6 soak statement |
 | PLAN-00007-STEP-12 | not-started | — | — | — | — |
 | PLAN-00007-STEP-13 | not-started | — | — | — | — |
 | PLAN-00007-STEP-14 | not-started | — | — | — | — |
@@ -792,6 +792,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T22:40:50Z | PLAN-00007-STEP-10 | User decisions: 'I accept two git-only test skips in the unpacked-sdist run.' and pushed release/v2 ('release/v2 pushed.'); origin/release/v2 = b10d3b0 (3050615 candidate + a work-log-only commit). Builder dispatched ci.yml | Run https://github.com/joelee/fpr-ff1/actions/runs/35158807685 (workflow_dispatch, head b10d3b0e88a425e424b040a925de43364f5ae08d, created 2026-09-16T22:40:24Z) | Record the run; hand the frozen commit to the owner for STEP-11 |
 | 2026-09-16T22:58:21Z | PLAN-00007-STEP-11 | Hand-off to owner. Frozen rc2 commit: b10d3b0e88a425e424b040a925de43364f5ae08d on release/v2 (content = 3050615; the extra commit changes only docs/plans/00007, which ships in no artifact). Gate evidence: CI run 35158807685 green 36/36 at that exact commit; local gate recorded under STEP-10. Tag must be exactly v2.0.0rc2 (publish.yml compares it with pyproject 2.0.0rc2) | git rev-parse origin/release/v2 at hand-off = b10d3b0; CHANGELOG [2.0.0rc2] dated 2026-09-16 | Owner: tag v2.0.0rc2 at b10d3b0, push the tag, publish a GitHub pre-release; then Builder verifies PyPI |
 | 2026-09-16T23:14:25Z | PLAN-00007-STEP-11 | User pushed tag v2.0.0rc2 (annotated, tagger date 2026-09-17T00:02:25+01:00 = 2026-09-16T23:02:25Z) at b10d3b0. Builder opened PR #9 release/v2 -> main with the filled PR template, head b10d3b0 (local work-log commits not pushed) | https://github.com/joelee/fpr-ff1/pull/9 (mergeable, checks pending) | Merge with a merge commit once checks pass; owner then publishes the GitHub pre-release |
+| 2026-09-18T22:48:18Z | PLAN-00007-STEP-11 | Owner published the GitHub release ('v2.0.0rc2 released.'): tag v2.0.0rc2, prerelease=true, draft=false, published 2026-09-18T22:44:59Z, notes from the Builder's draft; publish.yml triggered | gh release view v2.0.0rc2; publish run https://github.com/joelee/fpr-ff1/actions/runs/35402901107 (head b10d3b0, created 2026-09-18T22:45:01Z) | Wait for publish.yml; then verify PyPI |
 
 ### Deviations and blockers
 
@@ -854,13 +855,19 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-16T21:42:24Z | PLAN-00007-STEP-10 | uv lock --check; cargo build --locked (STEP-09, same commit) | Pass | Consistent; Cargo.lock unchanged by the locked build |
 | 2026-09-16T22:58:21Z | PLAN-00007-STEP-10 | CI run 35158807685 at b10d3b0 (rc2 candidate 3050615 + work-log commit) https://github.com/joelee/fpr-ff1/actions/runs/35158807685 | Pass | completed/success, 36/36 jobs. Artifacts: fpr_ff1-2.0.0rc2 cp312-abi3 macosx_10_12_x86_64, macosx_11_0_arm64, manylinux_2_34_aarch64, manylinux_2_34_x86_64, win_amd64 wheels + py3-none-any wheel + sdist. Import-origin 'installed wheel, fpr-ff1 2.0.0rc2' in 16/16 wheel jobs; wheel-test-native 15/15 '149 passed'; wheel-conformance-abi3 573 rust collected, 1682 passed in 176.04s, 100.00%; rust-conformance 1682 passed in 541.95s |
 | 2026-09-16T23:31:39Z | PLAN-00007-STEP-11 | PR #9 checks, then merge with a merge commit (gh pr merge --merge --match-head-commit b10d3b0) | Pass | PR checks 36/36 pass, merge state CLEAN. Merged 2026-09-16T23:31:16Z as 895c63350e33a17ffa8719b55a2c861baaf24942 'Release/v2.0.0rc2 (#9)', parents 89c74b7 (old main) and b10d3b0 (tagged). v2.0.0rc2 is an ancestor of origin/main; origin/main tree == v2.0.0rc2 tree |
+| 2026-09-18T23:04:17Z | PLAN-00007-STEP-11 | publish.yml run 35402901107 on tag v2.0.0rc2 (b10d3b0) | Pass | completed/success, 37/37 jobs (the 36-job gate plus publish); publish job completed 2026-09-18T23:01:31Z |
+| 2026-09-18T23:04:18Z | PLAN-00007-STEP-11 | PyPI JSON for fpr-ff1 2.0.0rc2; project-level JSON | Pass | version 2.0.0rc2, requires_python >=3.12, requires_dist cryptography>=50.0.0, release not yanked; 7 files, none yanked: sdist, py3-none-any, cp312-abi3 manylinux_2_34 x86_64 and aarch64, macosx_10_12_x86_64, macosx_11_0_arm64, win_amd64. Default (non-prerelease) version still 1.1.0, so rc2 is hidden from plain installs |
+| 2026-09-18T23:04:18Z | PLAN-00007-STEP-11 | SHA-256 of each PyPI file vs the artifacts downloaded from publish run 35402901107 (gh run download) | Pass | 7 of 7 identical (diff empty) |
+| 2026-09-18T23:04:18Z | PLAN-00007-STEP-11 | Attestations: PyPI integrity API provenance per file; then uvx pypi-attestations 0.0.30 'verify pypi --repository https://github.com/joelee/fpr-ff1' per file | Pass | 7 of 7: publisher GitHub joelee/fpr-ff1, workflow publish.yml, environment pypi, subject name and SHA-256 equal to the file; Sigstore verification OK for all 7 |
+| 2026-09-18T23:04:18Z | PLAN-00007-STEP-11 | Fresh venvs, py3.12+gil and py3.14+gil: uv pip install --refresh fpr-ff1==2.0.0rc2 plus exported dev requirements; .github/scripts/assert_installed_wheel.py; installed-package subset + tests/test_backend_agreement.py with both REQUIRE flags | Pass | Both resolved the cp312-abi3-manylinux_2_34_x86_64 wheel; import origin 'installed wheel, fpr-ff1 2.0.0rc2, _rs 2.0.0-rc2'; 389 passed on each (NIST both directions, intermediates, AES KAT, frozen KAT incl. d > 16, dispatch, pickle, smoke, backend agreement) |
+| 2026-09-18T23:04:18Z | PLAN-00007-STEP-11 | Fresh py3.12 venv: uv pip install --refresh --no-binary fpr-ff1 fpr-ff1==2.0.0rc2 (sdist only) | Pass | Built by hatchling as py3-none-any; no _rs file in the package; NIST sample 2 encrypt/decrypt ok; radix 10 n=60 (d > 16) round trip ok; backend='rust' raises BackendError |
 
 ### Completion summary
 
 - **Implementation status:** `blocked`
-- **Completed requirements:** PLAN-00007-REQ-01 to REQ-09; REQ-10 version and documentation portion
-- **Incomplete requirements:** REQ-10 publication, verification and soak; REQ-11 to REQ-13
-- **Outstanding blockers:** Owner release actions for v2.0.0rc2 (STEP-11)
+- **Completed requirements:** PLAN-00007-REQ-01 to REQ-09; REQ-10 except the soak statement
+- **Incomplete requirements:** REQ-10 soak statement; REQ-11 to REQ-13
+- **Outstanding blockers:** Owner soak statement for v2.0.0rc2 (decision D6)
 - **Review request:** Not ready
 <!-- BUILDER_WORK_LOG_END -->
 
