@@ -27,7 +27,7 @@ previous_plan: null
 requirements_count: 11
 steps_count: 12
 acceptance_criteria_count: 12
-blocking_decisions: 2
+blocking_decisions: 0
 build_ready: false
 web_research_used: true
 confidence: medium
@@ -47,7 +47,7 @@ current_step: null
 # Delivery Plan 00008: Publish Rust Crate To Crates Io
 
 > [!abstract] Plan status: `draft`
-> Split the existing PyO3 crate into a publishable pure-Rust library plus a thin binding, port the validation layer that today lives only in Python, hold both to the same conformance evidence, and publish to crates.io from this repository in version lock-step with the PyPI distribution. **Two decisions are open and block approval: the crate name (D2) and the licence (D3).**
+> Split the existing PyO3 crate into a publishable pure-Rust library plus a thin binding, port the validation layer that today lives only in Python, hold both to the same conformance evidence, and publish to crates.io from this repository in version lock-step with the PyPI distribution. The crate is published as **`fpr-ff1`** under **MIT OR Apache-2.0** (user decisions D2 and D3, 2026-09-22); no decision remains open, and the plan awaits explicit user approval.
 
 ## 1. Objective and outcome
 
@@ -130,8 +130,8 @@ None. Unresolved matters are recorded as decisions and block approval when mater
 | ID | Decision or blocker | Resolution | Owner | Status |
 |---|---|---|---|---|
 | D1 | Crate version independent of the distribution version, or locked in step | **User decided 2026-09-22: keep lock-step.** The first published crate version is therefore the distribution version at publication (`2.0.x`), not `0.1.0`. The README states why a first release carries that number | User | Resolved |
-| D2 | **Published crate name** | **Open.** `fpr-ff1`, `ff1`, `nist-ff1` and `sp800-38g` were all unregistered on 2026-09-22. §7.1 gives the trade-offs. The name is permanent in practice: crates.io does not allow renaming, and squatting a better name later is not possible | User | **Open (blocking)** |
-| D3 | **Crate licence** | **Open.** The repository is MIT. Rust convention is dual MIT OR Apache-2.0, which most corporate consumers expect and which grants an explicit patent licence. Changing the licence of the crate's sources touches files also used by the Python package. §7.2 gives the options | User | **Open (blocking)** |
+| D2 | **Published crate name** | **User selected `fpr-ff1` on 2026-09-22**, matching the PyPI distribution for one identity across both registries. The crate directory becomes `rust/fpr-ff1/` and the library target is `fpr_ff1`; the binding crate keeps the package name `fpr-ff1-rust` and the library target `_fpr_ff1_rs` | User | Resolved |
+| D3 | **Crate licence** | **User selected dual MIT OR Apache-2.0 on 2026-09-22.** Both crate manifests carry `license = "MIT OR Apache-2.0"`; `LICENSE-APACHE` is added beside the existing MIT text; the PyPI distribution's `license = "MIT"` and `license-files` are unchanged. `README.md` states which files are dual-licensed | User | Resolved |
 | D4 | Where validation lives | Duplicate it: the crate validates for Rust callers, Python keeps its own for both backends (plan 00003 D4 unchanged). A shared JSON case file proves the two agree. Rejected alternative: Python calling into Rust validation, which would change exception messages, break the pure-Python path's independence, and contradict plan 00003 D4 | Planner | Resolved |
 | D5 | Key zeroization in the crate | Out of scope for the first release. Rust could zeroize, unlike Python, but a partial claim is worse than none: the key still reaches the AES key schedule and any caller-held buffer. Revisit with `zeroize` behind a feature once there is a claim the crate can defend in `SECURITY.md` | Planner | Resolved |
 | D6 | `no_std` support | Out of scope for the first release. `num-bigint` supports `no_std` with `alloc`, so this stays open as a later, separately evidenced change | Planner | Resolved |
@@ -139,7 +139,7 @@ None. Unresolved matters are recorded as decisions and block approval when mater
 | D8 | MSRV | Declare `rust-version = "1.87"` and test it in CI. The current core already uses `u32::is_multiple_of` (stable 1.87), `std::iter::repeat_n` (1.82) and `usize::div_ceil` (1.73). Raising the MSRV later is a minor version for the crate | Planner | Resolved |
 | D9 | Numeral type in the public API | `u16` slices, matching the internal core and the documented radix subset `2 <= radix < 2**16`. Rejected: `u32`, which would admit values the radix bound already excludes and force a second validation pass | Planner | Resolved |
 
-### 7.1 D2 options (for the user)
+### 7.1 D2 options (`fpr-ff1` selected; the rest record what was offered)
 
 | Option | For | Against |
 |---|---|---|
@@ -148,21 +148,21 @@ None. Unresolved matters are recorded as decisions and block approval when mater
 | `nist-ff1` | Descriptive and honest about the standard; good search terms | Implies a NIST endorsement the project explicitly disclaims (`AGENTS.md`: never claim FIPS validation) |
 | `sp800-38g` | Precise, spec-anchored | Unreadable in a dependency list; the spec also covers FF3, which this crate will never implement |
 
-Planner recommendation: **`fpr-ff1`**, for one identity across registries. If discovery matters more than identity, `ff1` is defensible; `nist-ff1` is not, given the no-endorsement rule.
+Planner recommendation was **`fpr-ff1`**, for one identity across registries; the user selected it on 2026-09-22.
 
-### 7.2 D3 options (for the user)
+### 7.2 D3 options (dual MIT OR Apache-2.0 selected)
 
 | Option | Effect |
 |---|---|
 | Dual MIT OR Apache-2.0 (Rust convention) | `license = "MIT OR Apache-2.0"`, add `LICENSE-APACHE`, keep `LICENSE` as `LICENSE-MIT`. Matches `fpe` and nearly all of the ecosystem; the Apache grant covers patents explicitly. Requires adding a licence the repository has not used before, and the crate's sources are shared with the Python package, so the repository's licensing statement must say which files are dual-licensed |
 | MIT only | No change to the repository's licensing. Some corporate consumers require an explicit patent grant and will treat MIT-only as a blocker |
 
-Planner recommendation: **dual MIT OR Apache-2.0 for the crate's sources**, stated in `README.md` and both crate manifests. This is a licensing decision only the maintainer can make.
+Planner recommendation was **dual MIT OR Apache-2.0 for the crate's sources**; the user selected it on 2026-09-22. STEP-07 adds `LICENSE-APACHE` and `LICENSE-MIT` to the crate and sets both manifests; STEP-09 states in `README.md` which files are dual-licensed.
 
 ## 8. Affected architecture and components
 
 - `rust/Cargo.toml` — workspace members become the core crate and the binding crate.
-- `rust/<core-crate>/` (new, name per D2) — `src/lib.rs` (core moved here, PyO3 removed), `src/validate.rs`, `src/error.rs`, `src/alphabet.rs`, `src/tests/`, `README.md`, licence files.
+- `rust/fpr-ff1/` (new) — the published crate `fpr-ff1` (library target `fpr_ff1`): `src/lib.rs` (core moved here, PyO3 removed), `src/validate.rs`, `src/error.rs`, `src/alphabet.rs`, `src/tests/`, `README.md`, `LICENSE-MIT`, `LICENSE-APACHE`.
 - `rust/fpr-ff1-rust/` — keeps `crate-type = ["cdylib"]`, `publish = false`, PyO3 bindings and the test-only trace bridge; depends on the core crate by path.
 - `tests/vectors/*.json` — unchanged, read by both suites.
 - `tests/vectors/validation_cases.json` (new) — the shared accept/reject case file (REQ-05).
@@ -191,7 +191,7 @@ flowchart LR
 - **Requirement:** Create the core crate (name per D2) containing the FF1 core, PRF, AES seams and conversion, with **no PyO3 dependency**, `crate-type = ["rlib"]`, and publishable metadata. Reduce `fpr-ff1-rust` to the PyO3 layer: the `#[pymodule]`, the production bindings, and the test-only trace bridge, depending on the core by path with `publish = false` retained. The extension's module name, exported symbols, `__version__` and behaviour are unchanged, and the wheels keep the same contents.
 - **Rationale:** The crate cannot be published while it is `cdylib`-only with a mandatory `extension-module` dependency; and `extension-module` must not leak into a library Rust callers link.
 - **Source:** User instruction; `rust/fpr-ff1-rust/Cargo.toml:14,17-18`; `rust/fpr-ff1-rust/src/lib.rs` `#[pymodule] fn _rs`.
-- **Acceptance evidence:** `cargo tree -p <core>` shows no `pyo3`; `just backend-dev`, `just rust-test`, `just rust-lint` and the full dual-backend gate are unchanged and green; the built wheel's contents equal the previous release's file list.
+- **Acceptance evidence:** `cargo tree -p fpr-ff1` shows no `pyo3`; `just backend-dev`, `just rust-test`, `just rust-lint` and the full dual-backend gate are unchanged and green; the built wheel's contents equal the previous release's file list.
 
 ### PLAN-00008-REQ-02 — Port the validation layer with typed errors
 
@@ -244,7 +244,7 @@ flowchart LR
 
 ### PLAN-00008-REQ-09 — Publish by Trusted Publishing
 
-- **Requirement:** `publish.yml` gains a `publish-crate` job that runs only after the gate, uses `rust-lang/crates-io-auth-action` (SHA-pinned) with `id-token: write` to obtain a short-lived token, and runs `cargo publish --locked -p <core>`. No crates.io token is stored in the repository. The job is skipped for pre-release versions unless the user asks otherwise, so a candidate is not published to crates.io.
+- **Requirement:** `publish.yml` gains a `publish-crate` job that runs only after the gate, uses `rust-lang/crates-io-auth-action` (SHA-pinned) with `id-token: write` to obtain a short-lived token, and runs `cargo publish --locked -p fpr-ff1`. No crates.io token is stored in the repository. The job is skipped for pre-release versions unless the user asks otherwise, so a candidate is not published to crates.io.
 - **Rationale:** Mirrors the PyPI Trusted Publishing posture: no long-lived credentials, publish only what the gate verified.
 - **Source:** crates.io Trusted Publishing documentation (§19); `.github/workflows/publish.yml`.
 - **Acceptance evidence:** A dry run on a pre-release proves the job is skipped; the real publication produces the crate on crates.io from the tagged commit.
@@ -284,16 +284,16 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 - **Objective:** A publishable core crate and a PyO3 binding, with no behaviour change.
 - **Requirements:** `PLAN-00008-REQ-01`
 - **Depends on:** None
-- **Affected components:** `rust/Cargo.toml`, `rust/<core>/` (new), `rust/fpr-ff1-rust/{Cargo.toml,src/lib.rs}`, `rust/Cargo.lock`, `justfile`
-- **Preconditions:** Clean worktree; `v2.0.0` published (D7); plan approved; D2 resolved (the directory and crate take that name)
+- **Affected components:** `rust/Cargo.toml`, `rust/fpr-ff1/` (new), `rust/fpr-ff1-rust/{Cargo.toml,src/lib.rs}`, `rust/Cargo.lock`, `justfile`
+- **Preconditions:** Clean worktree; `v2.0.0` published (D7); plan approved
 - **Test or evidence first:** Record the current wheel's file list and `_rs.__version__`, and the dual-backend gate result, as the before-state.
 - **Implementation tasks:**
-  1. Create the core crate with the name from D2; move the FF1 core, PRF, AES seams, conversion and `TraceRecord` into it; delete its PyO3 imports.
+  1. Create `rust/fpr-ff1/` (package `fpr-ff1`, library target `fpr_ff1`); move the FF1 core, PRF, AES seams, conversion and `TraceRecord` into it; delete its PyO3 imports.
   2. Reduce `fpr-ff1-rust` to `#[pymodule]`, the production bindings and the trace bridge; add the core as a path dependency; keep `publish = false`, the `cdylib` type and the `_fpr_ff1_rs` library name.
   3. Update the workspace members and `just backend-dev` if the artifact path changes.
   4. Re-run the gate and compare the wheel's file list with the before-state.
 - **Documentation/configuration/operations:** None (STEP-09).
-- **Verification:** `cargo tree -p <core>` has no `pyo3`; `cargo test`; `just rust-lint`; `just backend-dev`; full dual-backend gate; wheel file list unchanged.
+- **Verification:** `cargo tree -p fpr-ff1` has no `pyo3`; `cargo test`; `just rust-lint`; `just backend-dev`; full dual-backend gate; wheel file list unchanged.
 - **Completion criteria:** The extension behaves identically and the core crate builds without PyO3.
 - **Rollback or recovery:** Revert the commit.
 - **Builder stop conditions:** Any ciphertext or intermediate change; any wheel content change; `extension-module` reachable from the core crate.
@@ -304,7 +304,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 - **Objective:** The crate rejects everything the Python package rejects, with typed errors.
 - **Requirements:** `PLAN-00008-REQ-02`
 - **Depends on:** STEP-01
-- **Affected components:** `rust/<core>/src/{error.rs,validate.rs,lib.rs}`
+- **Affected components:** `rust/fpr-ff1/src/{error.rs,validate.rs,lib.rs}`
 - **Preconditions:** STEP-01 committed.
 - **Test or evidence first:** Write the rejection tests from the Python rules first: every error variant, every boundary (`min_length` exactly, one below; radix 1 and `2**16`; key 15/17/23/25/31/33; tweak ceiling; inverted and oversized bounds; duplicate and wrong-length alphabet). They fail until the code exists.
 - **Implementation tasks:**
@@ -324,7 +324,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 - **Objective:** The API Rust callers use, documented with runnable examples.
 - **Requirements:** `PLAN-00008-REQ-03`
 - **Depends on:** STEP-02
-- **Affected components:** `rust/<core>/src/{lib.rs,alphabet.rs}`, `rust/<core>/README.md`
+- **Affected components:** `rust/fpr-ff1/src/{lib.rs,alphabet.rs}`, `rust/fpr-ff1/README.md`
 - **Preconditions:** STEP-02 committed.
 - **Test or evidence first:** Doctests for construction, the numeral interface, the string interface and one rejection; a `Send + Sync` assertion.
 - **Implementation tasks:**
@@ -344,7 +344,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 - **Objective:** The crate carries the project's conformance evidence in its own right.
 - **Requirements:** `PLAN-00008-REQ-04`
 - **Depends on:** STEP-03
-- **Affected components:** `rust/<core>/tests/`, `rust/<core>/Cargo.toml` (dev-dependencies: a JSON parser, a property-test crate)
+- **Affected components:** `rust/fpr-ff1/tests/`, `rust/fpr-ff1/Cargo.toml` (dev-dependencies: a JSON parser, a property-test crate)
 - **Preconditions:** STEP-03 committed.
 - **Test or evidence first:** This step is the evidence. Each suite is written against the JSON vectors before any convenience helper is added.
 - **Implementation tasks:**
@@ -365,7 +365,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 - **Objective:** Prove both validation layers accept and reject identically.
 - **Requirements:** `PLAN-00008-REQ-05`
 - **Depends on:** STEP-04
-- **Affected components:** `tests/vectors/validation_cases.json` (new), `tests/test_validation.py` or a new Python module, `rust/<core>/tests/`
+- **Affected components:** `tests/vectors/validation_cases.json` (new), `tests/test_validation.py` or a new Python module, `rust/fpr-ff1/tests/`
 - **Preconditions:** STEP-04 committed.
 - **Test or evidence first:** Write the case file first, from the Python rules, and confirm the Python suite passes against it before the Rust side exists.
 - **Implementation tasks:**
@@ -402,13 +402,13 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 - **Status placeholder:** `not-started`
 - **Objective:** A `.crate` that contains the right files and nothing else.
 - **Requirements:** `PLAN-00008-REQ-07`
-- **Depends on:** STEP-04, STEP-06; D3 resolved
-- **Affected components:** `rust/<core>/Cargo.toml`, `rust/<core>/{README.md,LICENSE*}`
-- **Preconditions:** D3 resolved so the licence fields and files are known.
+- **Depends on:** STEP-04, STEP-06
+- **Affected components:** `rust/fpr-ff1/Cargo.toml`, `rust/fpr-ff1/{README.md,LICENSE-MIT,LICENSE-APACHE}`
+- **Preconditions:** STEP-04 and STEP-06 committed.
 - **Test or evidence first:** `cargo package --list` before the metadata work, recorded as the before-state.
 - **Implementation tasks:**
-  1. Set description, repository, documentation, homepage, keywords, categories, `rust-version` (D8), licence (D3) and docs.rs metadata; set `publish` appropriately on both crates.
-  2. Add the licence files the choice requires; if the vectors are needed by packaged tests, include them explicitly, otherwise exclude the test data and gate those tests out of the packaged build.
+  1. Set description, repository, documentation, homepage, keywords, categories, `rust-version` (D8), `license = "MIT OR Apache-2.0"` (D3) and docs.rs metadata; set `publish` appropriately on both crates.
+  2. Add `LICENSE-MIT` and `LICENSE-APACHE` to the crate; if the vectors are needed by packaged tests, include them explicitly, otherwise exclude the test data and gate those tests out of the packaged build.
   3. Add a contents assertion over `cargo package --list` with required and forbidden patterns.
   4. Run `cargo package --locked` and `cargo publish --dry-run`.
 - **Documentation/configuration/operations:** Crate README finalised.
@@ -488,7 +488,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 - **Preconditions:** STEP-10 green; the user has configured the crates.io Trusted Publisher for this repository and workflow; per-action authorization for the tag, the merge to `main` and the release.
 - **Test or evidence first:** `cargo publish --dry-run` in CI on the release commit.
 - **Implementation tasks:**
-  1. Add the `publish-crate` job with `rust-lang/crates-io-auth-action` (SHA-pinned), `id-token: write`, running `cargo publish --locked -p <core>`; skip it for pre-release versions.
+  1. Add the `publish-crate` job with `rust-lang/crates-io-auth-action` (SHA-pinned), `id-token: write`, running `cargo publish --locked -p fpr-ff1`; skip it for pre-release versions.
   2. Builder records the frozen commit; the owner merges to `main` by PR with a merge commit (the convention plan 00007 established), tags, and publishes the GitHub release.
   3. The release triggers `publish.yml`, which publishes to PyPI and crates.io from the same gated commit.
 - **Documentation/configuration/operations:** Work-log record of the run and the published versions.
@@ -557,7 +557,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 - [ ] `PLAN-00008-AC-04` The crate's tests reproduce the nine NIST samples both directions, the per-round intermediates for every round, the AES known-answer vectors, the frozen vectors including `d > 16`, the property suite and the bijectivity sweeps, all from the existing JSON files, and the float scan fails on a deliberate float.
 - [ ] `PLAN-00008-AC-05` `tests/vectors/validation_cases.json` is consumed by both suites; every Python exception type except `BackendError` and every Rust error variant appears; a deliberate divergence fails exactly one suite.
 - [ ] `PLAN-00008-AC-06` The contract test checks all three manifests and their `publish` flags, fails on drift, and runs without a Rust toolchain.
-- [ ] `PLAN-00008-AC-07` `cargo package --locked` and `cargo publish --dry-run` are green, and the contents assertion passes and fails when a forbidden path is added.
+- [ ] `PLAN-00008-AC-07` The published package is named `fpr-ff1` and declares `MIT OR Apache-2.0` with both licence files present; `cargo package --locked` and `cargo publish --dry-run` are green, and the contents assertion passes and fails when a forbidden path is added.
 - [ ] `PLAN-00008-AC-08` The new CI jobs (workspace tests on three operating systems, MSRV, docs, package, semver) are green and required by the publishing gate.
 - [ ] `PLAN-00008-AC-09` `publish.yml` publishes the crate by Trusted Publishing with no stored token, skips pre-release versions, and runs only after the gate.
 - [ ] `PLAN-00008-AC-10` `AGENTS.md`, `README.md`, `SECURITY.md`, `docs/architecture.md`, `docs/directory-structure.md`, `docs/developer-guide.md` and `docs/backlog.md` describe the two artifacts, and none implies the crate is the reference or carries stronger claims.
@@ -571,7 +571,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 | The split changes the extension's behaviour | Low | High | Dual-backend gate and wheel file-list comparison as the step's own checkpoint | Builder/STEP-01 |
 | The two validation layers diverge over time | Medium | High | The shared case file is the gate, not a convention; a divergence probe is recorded | Builder/STEP-05 |
 | A published API proves wrong and needs a breaking change | Medium | Medium | API review before publication; `cargo-semver-checks` afterwards; the first release is deliberately small in surface | Owner/STEP-03, STEP-08 |
-| The crate is published with a wrong or missing licence file | Low | High | D3 resolved before packaging; contents assertion covers the licence files | Builder/STEP-07 |
+| The crate is published with a wrong or missing licence file | Low | High | D3 resolved (MIT OR Apache-2.0); the contents assertion covers both licence files | Builder/STEP-07 |
 | Publication cannot be undone | Certain | Medium | Dry run in CI; yank-and-patch procedure recorded before the first publish | Builder/STEP-11 |
 | Vector files are unavailable to packaged tests | Medium | Low | Either include them explicitly or gate those tests out of the packaged build; decided in STEP-07 with the contents assertion as evidence | Builder/STEP-07 |
 | Lock-step forces an unwanted Python release to ship a crate fix | Medium | Medium | Accepted consequence of D1, recorded here; revisit only by a superseding plan | User/D1 |
@@ -580,7 +580,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 
 ## 16. Builder hand-off
 
-- **Start condition:** User approval with D2 and D3 resolved, `v2.0.0` published (D7), and a clean repository.
+- **Start condition:** User approval, `v2.0.0` published (D7), and a clean repository.
 - **First step:** PLAN-00008-STEP-01.
 - **Required sequence:** STEP-01 → STEP-02 → STEP-03 → STEP-04 → STEP-05 → STEP-06 → STEP-07 → STEP-08 → STEP-09 → STEP-10 → STEP-11 → STEP-12. STEP-06 depends only on STEP-01 and may be done earlier if convenient.
 - **Parallel-safe work:** None; each step's checkpoint depends on the previous step's code.
@@ -638,7 +638,7 @@ None
 - **Implementation status:** `not-started`
 - **Completed requirements:** None
 - **Incomplete requirements:** All
-- **Outstanding blockers:** D2 (crate name) and D3 (licence) are open
+- **Outstanding blockers:** None
 - **Review request:** Not ready
 <!-- BUILDER_WORK_LOG_END -->
 
@@ -646,6 +646,7 @@ None
 
 | Timestamp (UTC) | Plan status | Change | Reason | Requested/approved by |
 |---|---|---|---|---|
+| 2026-09-22T12:30:53Z | draft | D2 resolved: crate name `fpr-ff1` (directory `rust/fpr-ff1/`, library target `fpr_ff1`). D3 resolved: dual `MIT OR Apache-2.0` for the crate, adding `LICENSE-APACHE` and leaving the PyPI distribution MIT. `blocking_decisions` 2 → 0; the abstract, §7 rows, §7.1, §7.2, §8, §9, §11, §14, §15, §16, §17 and §20 updated to the chosen name and licence; §7.1 and §7.2 option tables retained as the record of what was offered. No requirement, step or acceptance-criterion count changed. | User decisions ("`fpr-ff1` and dual MIT/Apache-2.0") | User |
 | 2026-09-22T12:08:45Z | draft | Initial draft written at `docs/plans/00008-Publish_Rust_Crate_To_Crates_io.md`: publish the Rust core as a crate from this repository, in version lock-step with the PyPI distribution (user decision D1). Two decisions left open and blocking: the crate name (D2) and the licence (D3). Seven decisions resolved by the planner (D4 to D9) with rationale. | User instruction on 2026-09-22 ("Keep lock-step and write a plan for the crate"), after a landscape scan of crates.io | User |
 
 ## 19. External references
@@ -657,4 +658,4 @@ None
 
 ## 20. Confidence
 
-**Medium.** The repository side is certain: the core, its tests and the vectors were read directly at the baseline, and the split, lock-step and CI work are all well-bounded by existing patterns. The uncertainty is in the new surface. The validation port and the public API are the first Rust code in this project that has no Python counterpart to be checked against line by line, and the API is fixed at publication. The two open decisions (name, licence) are the user's and are recorded rather than assumed. The effort estimate behind the step list is 12 to 18 focused days to reach the project's usual evidence bar; STEP-04 and STEP-05 carry most of it.
+**Medium.** The repository side is certain: the core, its tests and the vectors were read directly at the baseline, and the split, lock-step and CI work are all well-bounded by existing patterns. The uncertainty is in the new surface. The validation port and the public API are the first Rust code in this project that has no Python counterpart to be checked against line by line, and the API is fixed at publication. The name and licence were the user's decisions, taken on 2026-09-22 and recorded in §7. The effort estimate behind the step list is 12 to 18 focused days to reach the project's usual evidence bar; STEP-04 and STEP-05 carry most of it.
