@@ -24,7 +24,9 @@ The mapping between the two APIs::
     # after
     from fpr_ff1 import FF1
     ctx = FF1(key, radix, alphabet=alphabet, tweak=tweak,
-              min_tweak_len=twk_min_len, max_tweak_len=twk_max_len)
+              min_tweak_len=twk_min_len,
+              # legacy 0 meant "no maximum"; here that is None (README note 5)
+              max_tweak_len=twk_max_len or None)
     ct  = ctx.encrypt(pt)
     pt  = ctx.decrypt(ct)
 
@@ -104,6 +106,62 @@ def test_ciphertexts_are_identical(ff1_factory: Any, key_len: int, tweak: bytes)
     assert _migrated(key, tweak, ff1_factory).encrypt(_PLAINTEXT) == _legacy(key, tweak).Encrypt(
         _PLAINTEXT, None
     )
+
+
+def _migrated_by_the_documented_recipe(
+    key: bytes,
+    tweak: bytes,
+    twk_min_len: int,
+    twk_max_len: int,
+    ff1_factory: Any,
+) -> FF1:
+    """Build the new context exactly as the README migration recipe says to.
+
+    The only translation the recipe performs is the maximum-tweak sentinel:
+    ``ubiq_security_fpe`` applied ``twk_max_len`` only when positive, so ``0``
+    meant "no maximum", while ``fpr-ff1`` reads bounds literally and
+    ``max_tweak_len=0`` accepts only an empty tweak.  Copying the ``0``
+    across -- as the recipe used to -- makes the constructor reject every
+    non-empty tweak (review 00011 MED-01).
+    """
+    return ff1_factory(
+        key=key,
+        radix=_RADIX,
+        alphabet=_ALPHABET,
+        tweak=tweak,
+        min_tweak_len=twk_min_len,
+        max_tweak_len=twk_max_len or None,
+    )
+
+
+@pytest.mark.parametrize(
+    ("twk_min_len", "twk_max_len"),
+    [pytest.param(0, 0, id="legacy-unbounded"), pytest.param(4, 8, id="positive-bounds")],
+)
+def test_documented_migration_recipe_accepts_what_the_legacy_context_accepted(
+    ff1_factory: Any, twk_min_len: int, twk_max_len: int
+) -> None:
+    """Following the README recipe must not narrow the accepted tweak set.
+
+    The legacy ``(0, 0)`` configuration -- the usual way to say "any tweak" --
+    is the case that matters: with a non-empty tweak it must still construct,
+    encrypt identically, and accept a per-call tweak.
+    """
+    key = bytes(range(16))
+    tweak = bytes.fromhex("3938373635")
+
+    legacy = _oracle.Context(key, tweak, twk_min_len, twk_max_len, _RADIX, _ALPHABET)  # pyright: ignore[reportOptionalMemberAccess]
+    migrated = _migrated_by_the_documented_recipe(key, tweak, twk_min_len, twk_max_len, ff1_factory)
+
+    ciphertext = migrated.encrypt(_PLAINTEXT)
+    assert ciphertext == legacy.Encrypt(_PLAINTEXT, None)
+    assert migrated.decrypt(ciphertext) == _PLAINTEXT
+    assert legacy.Decrypt(ciphertext, None) == _PLAINTEXT
+
+    # A per-call tweak within the legacy bounds must work too: under the old
+    # mapping this raised for the (0, 0) case.
+    per_call = bytes.fromhex("3132333435")
+    assert migrated.encrypt(_PLAINTEXT, per_call) == legacy.Encrypt(_PLAINTEXT, per_call)
 
 
 def test_tweak_bounds_map_across_apis(ff1_factory: Any) -> None:

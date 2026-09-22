@@ -426,7 +426,14 @@ plaintext = ctx.Decrypt(ciphertext, None)
 from fpr_ff1 import FF1
 
 ctx = FF1(
-    key, radix, alphabet=alphabet, tweak=tweak, min_tweak_len=twk_min_len, max_tweak_len=twk_max_len
+    key,
+    radix,
+    alphabet=alphabet,
+    tweak=tweak,
+    min_tweak_len=twk_min_len,
+    # `twk_max_len=0` meant "no maximum" in the legacy library; here that is
+    # `None`. A positive bound copies across unchanged. See note 5 below.
+    max_tweak_len=twk_max_len or None,
 )
 ciphertext = ctx.encrypt(plaintext)
 plaintext = ctx.decrypt(ciphertext)
@@ -435,6 +442,7 @@ plaintext = ctx.decrypt(ciphertext)
 | `ubiq_security_fpe` | `fpr-ff1` |
 |---|---|
 | `ff1.Context(key, twk, twk_min_len, twk_max_len, radix, alpha)` | `FF1(key, radix, alphabet=..., tweak=..., min_tweak_len=..., max_tweak_len=...)` |
+| `twk_max_len=0` (means *no maximum*) | `max_tweak_len=None` — **not** `0`, which means *empty tweaks only* |
 | `ctx.Encrypt(pt, twk)` | `ctx.encrypt(pt, twk)` |
 | `ctx.Decrypt(ct, twk)` | `ctx.decrypt(ct, twk)` |
 | — | `ctx.encrypt_numerals(...)` / `ctx.decrypt_numerals(...)` (no alphabet needed) |
@@ -454,6 +462,12 @@ plaintext = ctx.decrypt(ciphertext)
 3. **No `M2Crypto` dependency.** `fpr-ff1` depends only on `cryptography`.
 4. **Alphabet is validated at construction.** A wrong-length alphabet or one with duplicate
    characters raises `AlphabetError` immediately rather than misbehaving later.
+5. **A zero maximum tweak length means the opposite of what it did.** `ubiq_security_fpe`
+   applied `twk_max_len` only when it was positive, so `0` meant "no maximum" — and `(0, 0)` was
+   the usual way to say "any tweak". In `fpr-ff1` the bounds are literal: `max_tweak_len=0`
+   accepts only an empty tweak, and `None` means unbounded. Translate a legacy `0` to `None`, as
+   the recipe above does; copy positive bounds unchanged. Copying a literal `0` makes the
+   constructor raise `TweakLengthError` for any non-empty tweak.
 
 ## FIPS disclaimer
 
