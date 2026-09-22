@@ -1,14 +1,14 @@
 ---
-title: 'Code Review 00010: Release V2 Rc2 Code Review'
+title: 'Code Review 00011: Release V2 Rc2 Code Review'
 aliases:
-- Review 00010
+- Review 00011
 tags:
 - code-review
 - software-quality
 - opencode
 type: code-review
 status: open
-review_id: '00010'
+review_id: '00011'
 reviewed_at: '2026-09-22T13:24:39Z'
 reviewer_agent: review
 review_model: GPT-6 Astra Pro
@@ -65,7 +65,7 @@ repository_modified: false
 review_guidelines: User-supplied CodeReview.md
 ---
 
-# Code Review 00010: Release V2 Rc2 Code Review
+# Code Review 00011: Release V2 Rc2 Code Review
 
 > [!abstract] Verdict: `approve-with-comments` -- supplied source snapshot only
 > The bounded static review found no Critical or Major issue, one Medium migration defect, and three Low validation/test defects. The four code findings from review 00007 appear addressed in the supplied source or CI definitions. This is not verification of the live `release/v2` branch, an rc1-to-rc2 diff, published binaries, or completion of the stable-release plan.
@@ -120,16 +120,16 @@ The source includes a stronger release gate than review 00007 described: all fiv
 
 | Finding | Category | Summary |
 |---|---|---|
-| `REV-00010-MED-01` | Documentation / compatibility | Translate the legacy zero maximum in the migration recipe |
-| `REV-00010-LOW-01` | Correctness / validation | Normalize released-buffer failures into the documented error family |
-| `REV-00010-LOW-02` | Testing | Replace ineffective sensitivity assertions with collision-safe verification |
-| `REV-00010-LOW-03` | Testing | Check every concurrency-test iteration, not just the final result |
+| `REV-00011-MED-01` | Documentation / compatibility | Translate the legacy zero maximum in the migration recipe |
+| `REV-00011-LOW-01` | Correctness / validation | Normalize released-buffer failures into the documented error family |
+| `REV-00011-LOW-02` | Testing | Replace ineffective sensitivity assertions with collision-safe verification |
+| `REV-00011-LOW-03` | Testing | Check every concurrency-test iteration, not just the final result |
 
 ## Findings
 
 ### Medium
 
-#### REV-00010-MED-01 - The documented migration copies a legacy zero maximum into an empty-only tweak policy
+#### REV-00011-MED-01 - The documented migration copies a legacy zero maximum into an empty-only tweak policy
 
 > [!warning] Changes requested
 > **Confidence:** High for the contradiction and new-API rejection; the legacy convention is evidenced by the supplied interoperability adapter, not a newly executed upstream installation.
@@ -170,7 +170,7 @@ if self._max_tweak_len is not None and len(tweak) > self._max_tweak_len:
 
 ### Low
 
-#### REV-00010-LOW-01 - A released memoryview escapes the documented typed validation errors
+#### REV-00011-LOW-01 - A released memoryview escapes the documented typed validation errors
 
 > [!note] Non-blocking validation edge case
 > **Confidence:** High static confidence.
@@ -195,7 +195,7 @@ return bytes(cast("bytes | bytearray | memoryview[int]", value))
 
 **References:** Repository evidence; [R2], Python `memoryview.release()` documentation.
 
-#### REV-00010-LOW-02 - The tweak-sensitivity property cannot fail when tweaks are ignored
+#### REV-00011-LOW-02 - The tweak-sensitivity property cannot fail when tweaks are ignored
 
 > [!note] Non-blocking regression-test defect
 > **Confidence:** High for the ineffective tweak test; the companion key-collision concern is a contract-level observation, not an observed flaky run.
@@ -221,7 +221,7 @@ if case.ff1.encrypt_numerals(plaintext, tweak1) == case.ff1.encrypt_numerals(pla
 
 **References:** Repository evidence. The observation about agreement at one point follows from the permutation contract; it is not a claim of a practical cryptographic attack.
 
-#### REV-00010-LOW-03 - Concurrency tests overwrite the intermediate results they claim to verify
+#### REV-00011-LOW-03 - Concurrency tests overwrite the intermediate results they claim to verify
 
 > [!note] Non-blocking regression-test gap
 > **Confidence:** High static confidence.
@@ -542,7 +542,7 @@ Previous report: [[00007-V2_0_0_Stable_Release_Readiness]]. All four findings we
 
 The earlier plan reviews [[00008-v2.0.0-plan-review]] and [[00009-Plan_00006_Re_Review]] concern plan 00006, not an independent set of current runtime findings. Plan 00007 describes itself as the superseding plan. This report does not declare all of that plan's acceptance criteria satisfied or retrospectively validate the historical execution records.
 
-**New findings to disposition:** `REV-00010-MED-01`, `REV-00010-LOW-01`, `REV-00010-LOW-02`, and `REV-00010-LOW-03`. **Critical/Major blockers established by this review:** none. **Release-process/evidence gates:** still require the owner actions described above.
+**New findings to disposition:** `REV-00011-MED-01`, `REV-00011-LOW-01`, `REV-00011-LOW-02`, and `REV-00011-LOW-03`. **Critical/Major blockers established by this review:** none. **Release-process/evidence gates:** still require the owner actions described above.
 
 The uploaded source archive and all existing review files remain unchanged. Only this new Markdown report was created. Place it under the repository's `docs/reviews/` directory to retain the intended numbering and Obsidian cross-links; this downloadable copy does not modify or publish to GitHub.
 
