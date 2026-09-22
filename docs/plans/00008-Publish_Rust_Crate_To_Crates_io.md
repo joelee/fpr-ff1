@@ -10,10 +10,10 @@ tags:
   - packaging
 type: delivery-plan
 plan_id: "PLAN-00008"
-plan_status: draft
+plan_status: approved
 plan_kind: initial
 created_at: "2026-09-22T12:08:45Z"
-approved_at: null
+approved_at: "2026-09-22T12:37:49Z"
 planner_agent: claude-code
 planner_model: "anthropic/claude-opus-5"
 triggered_by: user
@@ -28,7 +28,7 @@ requirements_count: 11
 steps_count: 12
 acceptance_criteria_count: 12
 blocking_decisions: 0
-build_ready: false
+build_ready: true
 web_research_used: true
 confidence: medium
 
@@ -46,8 +46,8 @@ current_step: null
 
 # Delivery Plan 00008: Publish Rust Crate To Crates Io
 
-> [!abstract] Plan status: `draft`
-> Split the existing PyO3 crate into a publishable pure-Rust library plus a thin binding, port the validation layer that today lives only in Python, hold both to the same conformance evidence, and publish to crates.io from this repository in version lock-step with the PyPI distribution. The crate is published as **`fpr-ff1`** under **MIT OR Apache-2.0** (user decisions D2 and D3, 2026-09-22); no decision remains open, and the plan awaits explicit user approval.
+> [!abstract] Plan status: `approved`
+> Split the existing PyO3 crate into a publishable pure-Rust library plus a thin binding, port the validation layer that today lives only in Python, hold both to the same conformance evidence, and publish to crates.io from this repository in version lock-step with the PyPI distribution. The crate is published as **`fpr-ff1`** under **MIT OR Apache-2.0** (user decisions D2 and D3, 2026-09-22); no decision remains open; approved by the user on 2026-09-22 and Builder-ready once `v2.0.0` is published (D7).
 
 ## 1. Objective and outcome
 
@@ -646,6 +646,7 @@ None
 
 | Timestamp (UTC) | Plan status | Change | Reason | Requested/approved by |
 |---|---|---|---|---|
+| 2026-09-22T12:37:49Z | approved | Plan approved: `plan_status: approved`, `build_ready: true`, `approved_at` set. Planning content frozen; only the Builder-maintained front matter and §17 may change from here. Execution still waits on D7 (`v2.0.0` published, plan 00007 STEP-14). | Explicit user approval ("approve") after the D2/D3 amendment was committed in 0e89126 | User |
 | 2026-09-22T12:30:53Z | draft | D2 resolved: crate name `fpr-ff1` (directory `rust/fpr-ff1/`, library target `fpr_ff1`). D3 resolved: dual `MIT OR Apache-2.0` for the crate, adding `LICENSE-APACHE` and leaving the PyPI distribution MIT. `blocking_decisions` 2 → 0; the abstract, §7 rows, §7.1, §7.2, §8, §9, §11, §14, §15, §16, §17 and §20 updated to the chosen name and licence; §7.1 and §7.2 option tables retained as the record of what was offered. No requirement, step or acceptance-criterion count changed. | User decisions ("`fpr-ff1` and dual MIT/Apache-2.0") | User |
 | 2026-09-22T12:08:45Z | draft | Initial draft written at `docs/plans/00008-Publish_Rust_Crate_To_Crates_io.md`: publish the Rust core as a crate from this repository, in version lock-step with the PyPI distribution (user decision D1). Two decisions left open and blocking: the crate name (D2) and the licence (D3). Seven decisions resolved by the planner (D4 to D9) with rationale. | User instruction on 2026-09-22 ("Keep lock-step and write a plan for the crate"), after a landscape scan of crates.io | User |
 
