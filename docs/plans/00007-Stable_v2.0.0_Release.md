@@ -817,6 +817,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 
 | Timestamp (UTC) | Step | Command or check | Result | Evidence |
 |---|---|---|---|---|
+| 2026-09-22T13:07:03Z | PLAN-00007-STEP-05 | Follow-up to the recorded deviation: repeated the SECURITY.md value-dependent measurement (7 repeats per case), then a 9-repeat probe at radix 10 n=10 comparing measurement order and a warm-up call | Pass (noise, not a behaviour change) | radix 10 n=10: median -1.0%, range -33.0% to +5.1%, the outlier always in the first repeat; other rows within ~2 points of published (r10 n60 +1.5% vs +2.6%; r10 n200 +2.9% vs +2.6%; r256 n32 +1.1% vs +1.9%; r65535 n12 +1.9% vs +0.6%). Order probe medians all +0.1% (zero first, max first, warm-up first), so the STEP-05 -28.2% was a first-run artifact. SECURITY.md unchanged; scripts in the session scratchpad |
 | 2026-09-16T12:32:08Z | Baseline | just backend-dev; just rust-test; just rust-lint | Pass | cargo test 8 passed; fmt + clippy -D warnings exit 0; rustc 1.98.1, cargo 1.98.1 |
 | 2026-09-16T12:32:08Z | Baseline | FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR_FF1_REQUIRE_ORACLE=1 uv run pytest --cov=fpr_ff1 --cov-report=term-missing --cov-fail-under=100 | Pass | 1406 passed in 255.76s; coverage 100.00% (330 stmts, 114 branches); -k rust collects 550/1406 |
 | 2026-09-16T12:42:01Z | PLAN-00007-STEP-01 | just format-check lint typecheck; just rust-test; just rust-lint | Pass | pyright 0 errors after annotating pickle.loads results as FF1 (first run: 4 reportUnknownArgumentType errors in the new tests) |
