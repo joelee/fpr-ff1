@@ -620,6 +620,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 
 | Timestamp (UTC) | Step | Event | Evidence or reference | Next action |
 |---|---|---|---|---|
+| 2026-09-22T12:56:55Z | PLAN-00008-STEP-11 | Standing user instruction, recorded before execution starts: publish a crate **pre-release** to crates.io once STEP-07 and STEP-08 are green, ahead of the stable publication, as a live test of Trusted Publishing, the packaged contents and the docs.rs build. REQ-09 anticipates this ("skipped for pre-release versions **unless the user asks otherwise**"), so no plan change is required. Under lock-step (D1) the pre-release carries the distribution version at that moment, in Cargo semver spelling | User instruction 2026-09-22 ("Yes, publish a crate pre-release during plan 00008") | At STEP-11, publish the pre-release first, verify it as STEP-12 describes, then publish the stable version |
 
 ### Deviations and blockers
 
