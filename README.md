@@ -210,7 +210,7 @@ than the ceiling punishing users of new Pythons.
 |---|---|
 | **1.0** | **Pure Python.** Conformance, a stable API, and a single runtime dependency (`cryptography`). No compiled extension, no optional backends — one code path, and it is the one the vectors test. |
 | **1.1** | **Pure-Python performance.** Subquadratic base conversion and an O(n) power-of-two fast path; ciphertext bit-identical to 1.0.0. Still one code path, still one dependency. |
-| **2.0** | **Optional accelerated backend.** An opt-in faster path for high-throughput callers, with the pure-Python implementation retained as the reference and the default. Shipped as `2.0.0rc1`. |
+| **2.0** | **Optional accelerated backend.** An opt-in faster path for high-throughput callers, with the pure-Python implementation retained as the reference and the default. Shipped in `2.0.0`. |
 
 The 2.0 backend is opt-in and additive: the pure-Python path is unchanged and remains the default,
 so existing callers are unaffected. The accelerated path is only worth having once the reference

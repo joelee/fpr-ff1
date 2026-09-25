@@ -9,6 +9,57 @@ expanding the accepted domain without changing existing behaviour is a minor ver
 
 ## [Unreleased]
 
+## [2.0.0] — 2026-09-25
+
+**The optional accelerated backend, stable.** The pure-Python implementation remains the reference
+and the default, and its ciphertext is bit-identical to 1.1.0 for every input both versions accept,
+so upgrading is drop-in and no data needs re-encrypting. This is a major version because the 2.0
+line adds the compiled backend and because two input classes are newly rejected (below), not
+because any accepted input changed its output.
+
+Everything in `[2.0.0rc1]` and `[2.0.0rc2]` ships here; those sections stay as the candidate
+record. The changes relative to `2.0.0rc2` are documentation only.
+
+### Added
+
+- **Opt-in compiled backend** (`backend="rust"`): SP 800-38G Algorithm 7 and the Algorithm 6 PRF in
+  Rust over a pinned RustCrypto AES core, exposed as `fpr_ff1._rs` inside the platform wheels.
+  Bit-identical ciphertext and identical typed exceptions, because validation runs in Python for
+  both backends. The compiled backend releases the GIL for the duration of the computation.
+- **`BackendError`**, a typed exception for an unknown backend name or a missing extension.
+- **Platform wheels** (abi3, CPython 3.12 to 3.14) for Linux x86_64 and aarch64 (`manylinux_2_34`,
+  glibc 2.34 or newer), macOS x86_64 (10.12+) and arm64 (11+), and Windows x64. The pure-Python
+  wheel and the sdist remain the universal fallback: they need no Rust toolchain, work fully, and
+  raise `BackendError` if `backend="rust"` is requested.
+
+### Changed
+
+- **Newly rejected inputs (SemVer-relevant).** A tweak of `2**32` bytes or more, and a
+  `min_tweak_len` or `max_tweak_len` above `2**32 - 1`, raise `TweakLengthError`. FF1 encodes the
+  tweak length in four bytes, so a longer tweak could never produce conformant ciphertext. Bounds
+  are rejected at construction, never clamped.
+- **Migration mapping corrected.** `ubiq_security_fpe` applied `twk_max_len` only when positive, so
+  `0` meant "no maximum"; here bounds are literal and `max_tweak_len=0` accepts only an empty
+  tweak. The README recipe now translates a legacy `0` to `None` and copies positive bounds
+  unchanged, with a behaviour-change note and tests that follow the recipe literally.
+- **Security support policy.** `2.0.x` receives bug and security fixes. `1.1.x` receives security
+  fixes only, until `2.1.0` ships or 2027-03-25, whichever is later. `1.0.x` is no longer
+  supported. See `SECURITY.md`.
+
+### Fixed
+
+- Unpickling a 1.x instance produced an object whose every operation raised `AttributeError`.
+- Tweak lengths FF1 cannot encode now fail closed identically on both backends; the compiled core
+  previously wrapped the length.
+- Unpickling state with a wrong-length key raises `KeyLengthError` rather than an untyped
+  `ValueError`.
+
+### Unchanged
+
+- Public API beyond the additive `backend` keyword, the default backend, produced ciphertext for
+  every previously accepted input, thread safety, pickling of 2.x instances, and the single runtime
+  dependency (`cryptography`) for the pure-Python path.
+
 ## [2.0.0rc2] — 2026-09-16
 
 Second release candidate, from review 00007 and plan 00007. **The pure-Python path's ciphertext is
@@ -377,7 +428,8 @@ requiring a major version.
 
 <!-- Keep a Changelog link reference definitions (review 00003 B7): without
      these, the bracketed version headings render as literal brackets. -->
-[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v2.0.0rc2...HEAD
+[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/joelee/fpr-ff1/compare/v2.0.0rc2...v2.0.0
 [2.0.0rc2]: https://github.com/joelee/fpr-ff1/compare/v2.0.0rc1...v2.0.0rc2
 [2.0.0rc1]: https://github.com/joelee/fpr-ff1/compare/v1.1.0...v2.0.0rc1
 [1.1.0]: https://github.com/joelee/fpr-ff1/compare/v1.0.0...v1.1.0
