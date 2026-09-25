@@ -11,11 +11,20 @@ This file tracks high-level feature ideas and technical debt for `fpr-ff1`.
 - Raise the `requires-python` floor as new Python versions enter the CI matrix and pass. The
   upper-bound cap policy was retired at 1.0.0 (review 00003 B4): a cap becomes a hard resolution
   failure on future interpreters, so classifiers state the tested versions instead.
-- **Stable `v2.0.0` (plan 00007).** Candidate `2.0.0rc2` is cut; still to come are its
-  publication and soak, an independent re-review, then the final bump and release.
+- Publish the Rust core as a crate on crates.io in version lock-step with the distribution
+  (plan 00008, approved and not started; begins after `v2.0.0`). Deferred within it: `no_std`
+  support and key zeroization behind a feature.
 
 ## Completed Items
 
+- **Stable `v2.0.0` released** (plan 00007, from review 00007). Legacy-pickle restoration fixed;
+  unencodable tweak lengths and bounds fail closed on both backends; the divide-and-conquer
+  conversion ported to the Rust core; the release gate installs and tests all five native wheels
+  on their own platforms plus full conformance on the installed abi3 wheel; CI negative-control
+  evidence recorded (closing plan 00005 AC-02); the 1.x security-support window decided; the
+  `ubiq_security_fpe` migration recipe corrected for the legacy zero-maximum sentinel.
+  `2.0.0rc2` was published and soaked from 2026-09-16 to 2026-09-25, and re-reviewed by reviews
+  00010 to 00014 with no Critical or Major finding.
 - **Divide-and-conquer conversion ported to the Rust core for `2.0.0rc2`** (plan 00007 STEP-04,
   from review 00006 open question 1). The same dispatch as the Python reference, proven equal to
   the retained reference loops across every supported radix, with ciphertext unchanged. Measured
