@@ -37,14 +37,14 @@ confidence: high
 
 # Builder-maintained front matter. Builder may update only these keys after
 # explicit user approval; Delivery Planner initializes them.
-implementation_status: blocked
+implementation_status: completed
 builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5"
 execution_branch: "release/v2"
 execution_started_at: "2026-09-16T12:32:08Z"
-execution_updated_at: "2026-09-25T17:34:16Z"
-execution_completed_at: null
-current_step: "PLAN-00007-STEP-14"
+execution_updated_at: "2026-09-25T18:24:58Z"
+execution_completed_at: "2026-09-25T18:24:58Z"
+current_step: null
 ---
 
 # Delivery Plan 00007: Stable v2.0.0 Release
@@ -750,7 +750,7 @@ Checkpoint after each of STEP-01 to STEP-05: `FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR
 | PLAN-00007-STEP-11 | completed | 2026-09-16T22:58:21Z | 2026-09-18T23:15:41Z | Tag v2.0.0rc2 at b10d3b0; PR #9 merge 895c633; publish run 35402901107 green; PyPI files digest-identical and attestations verified; installs verified; soak until 2026-09-25 | Plan omission (no merge to main) resolved by user decision, merge commit |
 | PLAN-00007-STEP-12 | completed | 2026-09-22T14:29:41Z | 2026-09-25T15:44:35Z | Reviews 00012, 00013, 00014 at 0fe89ea (plus 00010 and 00011 earlier); evidence bundle prepared in the session scratchpad | AC-10 and AC-11 met: an independent review exists with no Critical/Major, and every remaining finding is dispositioned above |
 | PLAN-00007-STEP-13 | completed | 2026-09-25T15:44:35Z | 2026-09-25T15:44:35Z | Commit (this one) | Docs-and-metadata only; no src/ or rust/ change since the rc2 candidate apart from 0fe89ea's tests and documentation |
-| PLAN-00007-STEP-14 | in-progress | 2026-09-25T15:53:59Z | — | Local gate and artifact checks done at 4886bc7; CI run and owner release actions pending | — |
+| PLAN-00007-STEP-14 | completed | 2026-09-25T15:53:59Z | 2026-09-25T18:24:58Z | Tag v2.0.0 on 0ac0877; publish run 36169799621 green; PyPI 2.0.0 verified (digests, attestations, installs); handoff and recovery recorded | Owner performed the merge, tag and release; Builder verified |
 
 Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 `skipped`. A skipped step requires explicit user approval recorded in Evidence.
@@ -801,6 +801,9 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-25T15:53:59Z | PLAN-00007-STEP-14 | Dependency hand-off recorded: user decided on 2026-09-25 to hold all three open Dependabot PRs until v2.0.0 ships. #11 (hypothesis 6.168.0, pyright 1.1.414, ruff 0.16.7; uv.lock only) and #10 (setup-uv v10.1.0, dtolnay/rust-toolchain SHA; workflows only) are mergeable and green under the 36-job gate. #7 (aes 0.8.4 -> 0.9.3 with cipher/crypto-common majors, num-bigint 0.4.8 -> 0.5.1, plus RustCrypto API edits in prf/cipher_block) is conflicting and its 21 green checks came from the pre-plan-00007 gate; it needs a rebase, splitting into two changes, and a fresh benchmark because num-bigint drives the divide-and-conquer conversion | gh pr view 7/10/11; cargo-audit and both pip-audit runs clean at the candidate, so no advisory forces the order | Merge #11 and #10 after the release; handle #7 as two gated changes |
 | 2026-09-25T15:53:59Z | PLAN-00007-STEP-14 | Builder hand-off for the owner's release actions. Frozen final commit: 4886bc7 on release/v2 (version 2.0.0 / crate 2.0.0). Required sequence: push release/v2; open a PR to main and merge it with a MERGE COMMIT (not a squash) so the tag stays reachable from main, as PR #9 established; tag exactly v2.0.0 at the merged content; publish a NON-prerelease GitHub release; publish.yml then reruns the gate and uploads to PyPI | Release notes drafted at scratchpad/v2.0.0-release-notes.md; the three review reports 00012, 00013 and 00014 are still untracked and should be committed as records before or with the release | Owner: push, PR, merge commit, tag, publish; then Builder verifies PyPI and records the handoff |
 | 2026-09-25T17:34:15Z | PLAN-00007-STEP-14 | Owner merged PR #12 (Release/v2.0.0) into main with a merge commit and pushed an annotated tag v2.0.0 ('Merged to main, tagged and pushed') | PR #12 merged 2026-09-25T17:28:07Z as 0ac0877, parents 895c633 (previous main) and f25ce1c (release/v2 head); PR checks run 36165521955 green; v2.0.0 (annotated) -> 0ac0877 = origin/main head; tree(v2.0.0) == tree(release/v2 head); pyproject version 2.0.0 at the tag. No GitHub release yet, so publish.yml has not run; CI run 36167311205 on the main push in progress | Owner: publish a non-prerelease GitHub release from the existing tag; then Builder verifies PyPI |
+| 2026-09-25T18:24:58Z | PLAN-00007-STEP-14 | Owner published the GitHub release ('v2.0.0 released and available on PyPI'): non-prerelease, not draft, published 2026-09-25T17:52:00Z; publish.yml run https://github.com/joelee/fpr-ff1/actions/runs/36169799621 on 0ac0877 green 37/37 | gh release view v2.0.0; gh run view 36169799621 | Verify the public release |
+| 2026-09-25T18:24:58Z | PLAN-00007-STEP-14 | HANDOFF RECORD. Release: fpr-ff1 2.0.0 (crate 2.0.0). Commit: 0ac0877 on main (merge of release/v2 f25ce1c via PR #12; gated code commit 4886bc7). Tag: v2.0.0, annotated, on 0ac0877. Runs: PR checks 36165521955; publish 36169799621. Toolchain: rustc 1.98.1 (48a229cea 2026-09-01), cargo 1.98.1 (797e8a9bc 2026-08-05) in all five wheel builds; maturin 1.15.0. Artifact SHA-256 prefixes: macosx_10_12_x86_64 81e2017b6f7ecf7e; macosx_11_0_arm64 f026cb5e6cd2da95; manylinux_2_34_aarch64 65d90d045e179c08; manylinux_2_34_x86_64 ec16a3fb0570eb30; win_amd64 c1e386c2b69f627a; py3-none-any e0ca66b6207e86b9; sdist c99757ddcfa7e85a (full digests on PyPI and in the attestations). Support policy: 2.0.x bug and security fixes; 1.1.x security fixes only until 2.1.0 ships or 2027-03-25, whichever is later; 1.0.x unsupported. Verification: all checks above pass | SECURITY.md; CHANGELOG [2.0.0]; this work log | Recovery procedure below |
+| 2026-09-25T18:24:58Z | PLAN-00007-STEP-14 | RECOVERY PROCEDURE. If a defect is reported: (1) first establish whether it concerns availability (install, import, platform) or ciphertext; a ciphertext divergence between backends or against 1.1.0 is a security issue handled privately per SECURITY.md. (2) Stop promotion and tell users which backend or platform is affected; the pure-Python backend and the sdist are the fallback for any native-wheel problem. (3) Fix forward in a new version (2.0.1); yank 2.0.0 on PyPI only if installs are actively harmful, since yanking does not remove files. (4) Never replace published files or move the v2.0.0 tag. (5) For a ciphertext defect, state before recommending any rollback or re-encryption whether data written by the defective version is affected | Plan 00007 REQ-13, STABLE-20 | Plan complete |
 
 ### Deviations and blockers
 
@@ -879,14 +882,16 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-25T15:44:35Z | PLAN-00007-STEP-13 | uv lock --check; pytest tests/test_contract.py; ruff format --check; ruff check; grep -rn '<v2.0.0 date' . | Pass, with one qualified item | uv lock --check resolved 28 packages; 61 passed; 56 files already formatted; All checks passed. The placeholder grep is not empty tree-wide: 11 occurrences remain in this plan's own frozen planning text (the D4 Option A block, REQ-08, STEP-13 tasks, AC-12) and 7 in immutable review reports 00010, 00012 and 00014 that quote it. Zero occurrences in any shipped or published document (src, tests, rust, README.md, SECURITY.md, CHANGELOG.md, the five sdist-included docs, justfile, pyproject.toml) |
 | 2026-09-25T15:53:59Z | PLAN-00007-STEP-14 | Local gate at the final commit 4886bc7: static checks, just rust-test, just rust-lint, full dual-backend gate, just quality with _rs.so moved aside | Pass | 1688 passed in 271.39s, TOTAL 342 stmts 120 branches 100%, -k rust 576/1688; Rust-free 872 passed, 245 skipped, 100%; cargo test 16 passed; logs checkpoint-154443 |
 | 2026-09-25T15:53:59Z | PLAN-00007-STEP-14 | Artifacts at 4886bc7: uv build; uvx maturin@1.15.0 build --release --locked; uvx twine check; contents against required and forbidden lists; sdist fallback | Pass | fpr_ff1-2.0.0.tar.gz, fpr_ff1-2.0.0-py3-none-any.whl, fpr_ff1-2.0.0-cp312-abi3-manylinux_2_34_x86_64.whl; twine PASSED 3/3; sdist 49 entries, pure wheel 8, native wheel 10 with fpr_ff1/_rs.abi3.so and no extension in the pure wheel; forbidden paths none; fresh-venv sdist install reports __version__ 2.0.0, reproduces NIST sample 2 and raises BackendError for backend='rust' |
+| 2026-09-25T18:24:58Z | PLAN-00007-STEP-14 | PyPI fpr-ff1 2.0.0: JSON metadata, file set, SHA-256 against the publish run's downloaded artifacts, pypi-attestations 0.0.30 verify against https://github.com/joelee/fpr-ff1 | Pass | version 2.0.0, not yanked, requires_python >=3.12, requires_dist cryptography>=50.0.0; 7 files (sdist, py3-none-any, cp312-abi3 manylinux_2_34 x86_64 and aarch64, macosx_10_12_x86_64, macosx_11_0_arm64, win_amd64), none yanked; 7/7 digest-identical to the CI artifacts; 7/7 attestations verified. PyPI's default version is now 2.0.0, so it resolves without prerelease opt-in |
+| 2026-09-25T18:24:58Z | PLAN-00007-STEP-14 | Clean installs from PyPI: plain 'uv pip install fpr-ff1' on py3.12+gil and py3.14+gil with the import-origin script and the conformance subset (NIST, intermediates, AES KAT, frozen KAT, dispatch, pickle, smoke, backend agreement, interoperability); --no-binary sdist install on py3.12 | Pass | Both resolved 2.0.0 by default; import origin 'installed wheel, fpr-ff1 2.0.0, _rs 2.0.0'; 431 passed on each. sdist-only: pure path, NIST sample 2, radix 10 n=60 (d > 16) round trip, backend='rust' raises BackendError |
 
 ### Completion summary
 
-- **Implementation status:** `in-progress`
-- **Completed requirements:** PLAN-00007-REQ-01 to REQ-12
-- **Incomplete requirements:** REQ-13 (freeze, publish, verify, handoff)
+- **Implementation status:** `completed`
+- **Completed requirements:** PLAN-00007-REQ-01 to REQ-13
+- **Incomplete requirements:** None
 - **Outstanding blockers:** None
-- **Review request:** STEP-14: owner merges to main, tags v2.0.0 and publishes
+- **Review request:** Complete. Deferred and dispositioned: REV-00011-LOW-01/02/03 (post-2.0.0), REV-00013-MED-01 (plan 00008 MSRV), Dependabot PRs #7, #10, #11 (post-release)
 <!-- BUILDER_WORK_LOG_END -->
 
 ## 18. Planning change log
