@@ -38,14 +38,14 @@ confidence: medium
 
 # Builder-maintained front matter. Builder may update only these keys after
 # explicit user approval; Delivery Planner initializes them.
-implementation_status: blocked
+implementation_status: in-progress
 builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1"
 execution_started_at: "2026-09-26T16:28:45Z"
-execution_updated_at: "2026-09-26T18:30:21Z"
+execution_updated_at: "2026-09-26T20:37:39Z"
 execution_completed_at: null
-current_step: "PLAN-00009-STEP-11"
+current_step: "PLAN-00009-STEP-12"
 ---
 
 # Delivery Plan 00009: Crate And v2.1.0 Release
@@ -715,7 +715,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 | PLAN-00009-STEP-08 | completed | 2026-09-26T18:05:36Z | 2026-09-26T18:05:36Z | Commit (this one); divergence probe recorded; checkpoint-175654 | Cases carry exact messages as well as kinds, which is stricter than REQ-08 requires |
 | PLAN-00009-STEP-09 | completed | 2026-09-26T18:14:34Z | 2026-09-26T18:14:34Z | Commit (this one) | — |
 | PLAN-00009-STEP-10 | completed | 2026-09-26T18:27:32Z | 2026-09-26T18:27:32Z | Commit (this one); checkpoint-181841; clean-tree package digest recorded after commit | MSRV 1.89 proven; packaged-test limitation documented |
-| PLAN-00009-STEP-11 | blocked | 2026-09-26T18:30:21Z | — | Workflows committed (f3301e3); local recipes and probes green; CI run pending a push | Awaiting push authorization |
+| PLAN-00009-STEP-11 | completed | 2026-09-26T18:30:21Z | 2026-09-26T20:37:39Z | f3301e3; CI run 36269172052 green 41/41; .crate reproducible | The pre-release skip of publish-crate is evidenced at STEP-14 (release event only) |
 | PLAN-00009-STEP-12 | not-started | — | — | — | — |
 | PLAN-00009-STEP-13 | not-started | — | — | — | — |
 | PLAN-00009-STEP-14 | not-started | — | — | — | — |
@@ -752,6 +752,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T18:27:32Z | PLAN-00009-STEP-10 | Evidence first: cargo package --list before metadata (16 entries, no licence files); Rust 1.88 and 1.89 installed with rustup (minimal profile). cargo +1.88 build -p fpr-ff1 --locked: refused, 'rustc 1.88.0 is not supported by the following package: aes@0.9.3 requires rustc 1.89'. cargo +1.89 test -p fpr-ff1 --locked: 43 unit + 9 integration + 3 doctests passed | D8 floor proven, not assumed | Metadata |
 | 2026-09-26T18:27:32Z | PLAN-00009-STEP-10 | rust/fpr-ff1/Cargo.toml: rust-version 1.89, description, homepage, documentation (docs.rs), readme, keywords [ff1, fpe, format-preserving, encryption, sp800-38g], categories [cryptography], explicit include list, [package.metadata.docs.rs] with no features (never 'internal'). LICENSE-MIT copied from the repository LICENSE; LICENSE-APACHE is the canonical https://www.apache.org/licenses/LICENSE-2.0.txt verbatim (sha256 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30). Fixture access moved to src/test_fixtures.rs: outside the repository fixture tests skip; with FPR_FF1_REQUIRE_FIXTURES set they fail; the switch is set in just rust-test and the CI rust-conformance job. .github/scripts/assert_crate_contents.py: cargo package --list checked against an allow-list, forbidden patterns (agent files, docs, .github, target, Python, native libraries, fixtures) and required files; only --allow-dirty accepted as an argument | package list: 19 entries | Probes |
 | 2026-09-26T18:30:06Z | PLAN-00009-STEP-11 | ci.yml: crate-test (ubuntu/macos/windows: cargo test -p fpr-ff1 --locked, then --release -- --ignored for the bijectivity sweeps; FPR_FF1_REQUIRE_FIXTURES=1), crate-msrv (cargo +1.89 test, plus a check that Cargo.toml declares 1.89), crate-package (cargo doc -D warnings; assert_crate_contents.py; cargo package and publish --dry-run --locked; sha256 of the .crate; .crate uploaded as artifact 'crate'; cargo-semver-checks 0.50.0 --default-features against the last published version, skipped while crates.io returns 404). publish.yml: publish-crate needs [quality, publish], runs only for non-prerelease releases, environment crates-io, id-token: write, tag == v<crate version> check, rust-lang/crates-io-auth-action pinned to v1.0.5 c6f97d42243bad5fab37ca0427f495c86d5b1a18, cargo publish --locked -p fpr-ff1. justfile: crate-test, crate-msrv, crate-package | actionlint 1.7.12 clean on both workflows | Local runs and probes |
+| 2026-09-26T20:20:42Z | PLAN-00009-STEP-11 | User authorized the push and closing PR #7 ('Push authorised to complete STEP-11. Yes, close PR #7.'). Builder pushed release/v2.1 (new branch, 5a6ca38), closed Dependabot PR #7 with a comment linking 126ece6 and c1f5a79, and dispatched ci.yml | origin/release/v2.1 = 5a6ca385edb400df87c4193286ef81eefc4ed40f; PR #7 state CLOSED; run https://github.com/joelee/fpr-ff1/actions/runs/36269172052 | Watch the run; iterate to green |
+| 2026-09-26T20:37:39Z | PLAN-00009-STEP-11 | Environment check: the owner created the GitHub environment crates-io (2026-09-26T20:24:14Z); like pypi it has no protection rules or deployment policy. Builder gave hardening guidance (restrict to v* tags; optional required reviewer) and the crates.io Trusted Publisher fields to enter after the bootstrap (joelee / fpr-ff1 / publish.yml / crates-io) | gh api repos/joelee/fpr-ff1/environments | STEP-12 |
 
 ### Deviations and blockers
 
@@ -792,13 +794,15 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T18:27:32Z | PLAN-00009-STEP-10 | cargo package --locked; cargo publish --dry-run --locked; unpacked .crate tests outside the repository with and without FPR_FF1_REQUIRE_FIXTURES (working tree, --allow-dirty) | Pass | Packaged 19 files, 122.8KiB (37.0KiB compressed), verification build green; dry run 'aborting upload due to dry run'. Unpacked package: 43 + 9 + 3 passed without the switch; with it, each fixture test fails naming the missing tests/vectors file |
 | 2026-09-26T18:27:32Z | PLAN-00009-STEP-10 | clippy -D warnings (three configurations); fmt; cargo doc -D warnings; doctests; full checkpoint | Pass | 0 warnings each; docs clean; 3 doctests; dual gate 1808 passed in 277.45s, 100%; Rust-free 934 passed, 100%; logs checkpoint-181841 |
 | 2026-09-26T18:30:06Z | PLAN-00009-STEP-11 | Local runs of the new recipes; probes; the semver skip path | Pass | just crate-test: 43 + 9 + 3 passed, sweeps 2 passed in 7.56s; just crate-msrv on 1.89: 43 + 9 passed. Probes (reverted): unresolved doc link -> 'error: unresolved link to NoSuchItem'; rust-version 1.85 -> the MSRV grep step fails. crates.io/api/v1/crates/fpr-ff1 -> 404, so the semver step takes its recorded skip |
+| 2026-09-26T20:37:39Z | PLAN-00009-STEP-11 | CI run 36269172052 on release/v2.1 at 5a6ca38 https://github.com/joelee/fpr-ff1/actions/runs/36269172052 | Pass | completed/success, 41/41 jobs. crate-test on ubuntu, macos and windows: 43 unit (2 ignored) + 9 integration + 3 doctests, then both bijectivity sweeps 2 passed in release; FPR_FF1_REQUIRE_FIXTURES=1 set. crate-msrv on rustc 1.89.0: 43 + 9 + 3 passed. crate-package: docs built with -D warnings, 'crate package: 19 entries, 0 problems', dry run aborted before upload, .crate sha256 82477361864de20048c8f5b86a984808d911cbc79608debb1bd5bf8ebbf0e61c uploaded as artifact 'crate', semver step skipped ('fpr-ff1 is not yet on crates.io'). rust-conformance: 1808 passed, 100.00% coverage, workspace cargo test 43 + 9 + 3 passed |
+| 2026-09-26T20:37:39Z | PLAN-00009-STEP-11 | Reproducibility of the .crate: cargo package --locked locally at 5a6ca38 vs the CI artifact | Pass | Byte-identical: both 82477361864de20048c8f5b86a984808d911cbc79608debb1bd5bf8ebbf0e61c. The digest varies between commits only through .cargo_vcs_info.json, which records the commit sha1 (5a6ca385...) and path_in_vcs rust/fpr-ff1; STEP-14's bootstrap must therefore upload the .crate built at the tagged commit, and the digest comparison proves it |
 
 ### Completion summary
 
-- **Implementation status:** `blocked`
-- **Completed requirements:** PLAN-00009-REQ-01 to REQ-10; REQ-11 and REQ-12 implemented locally (CI evidence pending)
-- **Incomplete requirements:** REQ-11/REQ-12 CI evidence; REQ-13; REQ-14
-- **Outstanding blockers:** Push authorization for release/v2.1; authorization to close Dependabot PR #7
+- **Implementation status:** `in-progress`
+- **Completed requirements:** PLAN-00009-REQ-01 to REQ-11; REQ-12 implemented (publication at STEP-14/17)
+- **Incomplete requirements:** REQ-12 publication; REQ-13; REQ-14
+- **Outstanding blockers:** None
 - **Review request:** Not ready
 <!-- BUILDER_WORK_LOG_END -->
 
