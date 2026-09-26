@@ -4,7 +4,7 @@ name = "fpr-ff1"
 # binding crate, in semver form: Cargo cannot parse the PEP 440 spelling
 # ("2.0.0rc1"), so a pre-release is written 2.0.0-rc1 here.
 # tests/test_contract.py enforces the versions on every CI leg.
-version = "2.0.0"
+version = "2.1.0-rc1"
 edition = "2021"
 # The minimum supported Rust version (plan 00009 D8): aes 0.9.3 declares
 # 1.89, and the core itself needs 1.88 for slice::as_chunks. A build on
