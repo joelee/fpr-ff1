@@ -96,13 +96,25 @@ def test_determinism(case: Case, data: st.DataObject) -> None:
 @given(ff1_case(), st.data())
 @_SETTINGS
 def test_tweak_sensitivity(case: Case, data: st.DataObject) -> None:
+    """Changing the tweak must change the ciphertext.
+
+    A single pair of distinct tweaks may legitimately collide, so the test
+    compares one tweak against three others and requires at least one to
+    differ.  The domain is at least 1,000,000 values (the minimum-domain
+    rule), so a genuine collision costs about one in a million per pair and
+    three together are negligible -- whereas an implementation that ignores
+    the tweak collides every time and fails here.  The previous form skipped
+    on a collision and so could not fail at all (review 00011 LOW-02).
+    """
     plaintext = case.plaintext(data)
-    tweak1 = data.draw(st.binary(min_size=0, max_size=16))
-    tweak2 = data.draw(st.binary(min_size=0, max_size=16).filter(lambda t: t != tweak1))
-    if case.ff1.encrypt_numerals(plaintext, tweak1) == case.ff1.encrypt_numerals(plaintext, tweak2):
-        # Two distinct tweaks colliding for a given plaintext is permitted but
-        # vanishingly unlikely except on tiny domains.
-        pytest.skip("tweak collision")
+    tweaks = data.draw(
+        st.lists(st.binary(min_size=0, max_size=16), min_size=4, max_size=4, unique=True)
+    )
+    baseline = case.ff1.encrypt_numerals(plaintext, tweaks[0])
+    others = [case.ff1.encrypt_numerals(plaintext, tweak) for tweak in tweaks[1:]]
+    assert any(ciphertext != baseline for ciphertext in others), (
+        "four distinct tweaks produced identical ciphertext; the tweak is being ignored"
+    )
 
 
 @given(ff1_case(), st.data())

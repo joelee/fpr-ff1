@@ -43,9 +43,9 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1"
 execution_started_at: "2026-09-26T16:28:45Z"
-execution_updated_at: "2026-09-26T16:57:05Z"
+execution_updated_at: "2026-09-26T17:07:11Z"
 execution_completed_at: null
-current_step: "PLAN-00009-STEP-03"
+current_step: "PLAN-00009-STEP-04"
 ---
 
 # Delivery Plan 00009: Crate And v2.1.0 Release
@@ -707,7 +707,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 |---|---|---|---|---|---|
 | PLAN-00009-STEP-01 | completed | 2026-09-26T16:46:28Z | 2026-09-26T16:46:28Z | Commit (this one); checkpoint-163734; cargo audit clean | Closing PR #7 deferred to after STEP-02 (authorization pending) |
 | PLAN-00009-STEP-02 | completed | 2026-09-26T16:57:05Z | 2026-09-26T16:57:05Z | Commit (this one); park rule passed; checkpoint-164751 | No API adaptation needed; performance unchanged |
-| PLAN-00009-STEP-03 | not-started | — | — | — | — |
+| PLAN-00009-STEP-03 | completed | 2026-09-26T17:07:11Z | 2026-09-26T17:07:11Z | Commit (this one); red probes recorded; checkpoint-165857 | No change to accepted inputs or ciphertext; the only behaviour change narrows an already-rejected input to the documented exception |
 | PLAN-00009-STEP-04 | not-started | — | — | — | — |
 | PLAN-00009-STEP-05 | not-started | — | — | — | — |
 | PLAN-00009-STEP-06 | not-started | — | — | — | — |
@@ -735,6 +735,9 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T16:46:28Z | PLAN-00009-STEP-01 | aes 0.8 -> 0.9 in rust/fpr-ff1-rust/Cargo.toml; cargo update -p aes; applied PR #7's two API migrations only: BlockEncrypt -> BlockCipherEncrypt, Block::clone_from_slice -> Block::from (in prf and cipher_block) | Lock diff limited to the AES stack: aes 0.8.4->0.9.3, cipher 0.4.4->0.5.2, crypto-common 0.1.7->0.2.2, inout 0.1.4->0.2.2, cpufeatures 0.2.17->0.3.1; added cpubits 0.1.1, hybrid-array 0.4.15; removed generic-array 0.14.7, cfg-if 1.0.4, version_check 0.9.5 (build dependency of generic-array). Build: no warnings | Checkpoint |
 | 2026-09-26T16:57:05Z | PLAN-00009-STEP-02 | Evidence first: just bench with num-bigint 0.4.8 (aes 0.9.3 already in place), 2026-09-26T16:46:37Z, load 2.40; same machine as plan 00007 STEP-05 (AMD Ryzen AI Max+ PRO 395, CPython 3.12.13, rustc 1.98.1) | Backend table python/rust µs/op: r10 n6 28.2/4.5; n100 108.9/38.1; n1000 940.8/390.1; n5000 5167.4/2109.9; n20000 26615.9/9689.6. r256 n100 139.5/50.3; n1000 2521.2/206.4; n5000 12866.6/1028.0; n20000 51800.6/4056.7 | Upgrade |
 | 2026-09-26T16:57:05Z | PLAN-00009-STEP-02 | num-bigint 0.4 -> 0.5 in rust/fpr-ff1-rust/Cargo.toml; cargo update -p num-bigint | Lock diff: num-bigint 0.4.8 -> 0.5.1 only. No source change needed: every call site (BigUint::from, to_bytes_be, from_bytes_be, pow, div_rem, bits, iter_u32_digits) compiles unchanged, no warnings | Checkpoint and benchmark |
+| 2026-09-26T17:07:10Z | PLAN-00009-STEP-03 | (a) Tests first: released memoryview as key, default tweak, per-call tweak (encrypt and decrypt), both backends, plus a live-view acceptance test. Before the fix: 8 failed with 'ValueError: operation forbidden on released memoryview object'. Fix: _require_bytes catches ValueError around bytes() only (bytes/bytearray cannot raise it) and raises the caller's error class with '<name> memoryview has been released'. After: 16 passed | tests/test_validation.py; src/fpr_ff1/_ff1.py _require_bytes | (b) |
+| 2026-09-26T17:07:10Z | PLAN-00009-STEP-03 | (b) test_tweak_sensitivity now draws four unique tweaks and asserts at least one of three alternatives changes the ciphertext. Red probe (not committed): _prepare patched to return self._default_tweak (tweak ignored) -> new test FAILED 'four distinct tweaks produced identical ciphertext; the tweak is being ignored'; the OLD test against the same broken code: '1 skipped' (could not fail). Probe reverted (grep PROBE = 0); new test passes on the real code | tests/test_properties.py | (c) |
+| 2026-09-26T17:07:11Z | PLAN-00009-STEP-03 | (c) Both concurrency tests keep every iteration's result and check each against the serial expectation. Red probe (not committed): a pytest plugin wrapping FF1.encrypt_numerals to corrupt exactly one mid-run result (call 30) -> new test FAILED 'thread 1 iteration 1 diverged from the serial result'; the OLD test with the same corruption: '1 passed'. Changelog [Unreleased] gains the exception-type fix, the two test fixes, and the STEP-01/02 dependency upgrades | tests/test_thread_safety.py; CHANGELOG.md; probe plugin in the session scratchpad | Checkpoint |
 
 ### Deviations and blockers
 
@@ -752,6 +755,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T16:46:28Z | PLAN-00009-STEP-01 | cargo-audit 0.22.2 (CI pin) on rust/Cargo.lock | Pass | exit 0, 27 crate dependencies, no advisories |
 | 2026-09-26T16:57:05Z | PLAN-00009-STEP-02 | cargo test (includes every_supported_radix_is_equivalent_above_the_threshold and the power-of-two chunk sweep); full checkpoint | Pass | cargo test 16 passed; dual gate 1688 passed in 257.40s, 100%, -k rust 576; Rust-free 872 passed, 100%; logs checkpoint-164751 |
 | 2026-09-26T16:57:05Z | PLAN-00009-STEP-02 | just bench with num-bigint 0.5.1, 2026-09-26T16:55:51Z, load 1.50; park rule D15 | Pass | r10 n20000 rust 9657.1 µs vs python 26330.7 (rust <= python) and vs ceiling 10.89 ms (plan 00007 9.9 ms + 10%); r256 n20000 rust 4111.6 µs vs python 51802.1 and vs ceiling 4.51 ms. Full table r10: n6 27.8/4.4, n100 108.4/38.1, n1000 916.8/391.8, n5000 5091.8/2103.7; r256: n100 140.2/50.7, n1000 2503.1/202.7, n5000 12915.5/1019.6. Within noise of 0.4.8 on every row, so README performance figures left unchanged |
+| 2026-09-26T17:07:11Z | PLAN-00009-STEP-03 | Full checkpoint | Pass | 1698 passed in 257.63s, TOTAL 345 stmts 120 branches 100% (the new except branch covered), -k rust 581; Rust-free 877 passed, 100%; static clean; logs checkpoint-165857 |
 
 ### Completion summary
 

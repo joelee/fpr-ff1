@@ -119,7 +119,14 @@ def _require_bytes(value: object, name: str, error: type[FF1Error]) -> bytes:
         raise error(f"{name} must be bytes-like, got {type(value).__name__}")
     # Normalise to immutable bytes: a caller holding the bytearray must not be
     # able to mutate a tweak or key after construction.
-    return bytes(cast("bytes | bytearray | memoryview[int]", value))
+    try:
+        return bytes(cast("bytes | bytearray | memoryview[int]", value))
+    except ValueError:
+        # Only a released memoryview reaches here: bytes() of bytes or a
+        # bytearray cannot raise ValueError.  Without this the caller gets
+        # Python's bare ValueError, outside the FF1Error hierarchy (review
+        # 00011 LOW-01).  The message names the argument, never its contents.
+        raise error(f"{name} memoryview has been released") from None
 
 
 class _Aes(NamedTuple):

@@ -199,6 +199,41 @@ def test_max_tweak_len_zero_means_empty_tweaks_only(ff1_factory: Any) -> None:
         ff1.encrypt_numerals(plaintext, b"x")
 
 
+def _released_view(data: bytes) -> memoryview:
+    view = memoryview(data)
+    view.release()
+    return view
+
+
+def test_released_memoryview_key_raises_key_length_error(ff1_factory: Any) -> None:
+    """A released view is still a ``memoryview``, but ``bytes()`` of it raises
+    Python's ``ValueError``.  It must surface inside the documented hierarchy,
+    and without the buffer's contents (review 00011 LOW-01)."""
+    with pytest.raises(KeyLengthError, match="key memoryview has been released"):
+        ff1_factory(key=_released_view(_VALID_KEY), radix=10)
+
+
+def test_released_memoryview_default_tweak_raises_tweak_length_error(ff1_factory: Any) -> None:
+    with pytest.raises(TweakLengthError, match="tweak memoryview has been released"):
+        ff1_factory(key=_VALID_KEY, radix=10, tweak=_released_view(b"abc"))
+
+
+@pytest.mark.parametrize("operation", ["encrypt_numerals", "decrypt_numerals"])
+def test_released_memoryview_call_tweak_raises_tweak_length_error(
+    ff1_factory: Any, operation: str
+) -> None:
+    ff1 = ff1_factory(key=_VALID_KEY, radix=10)
+    with pytest.raises(TweakLengthError, match="tweak memoryview has been released"):
+        getattr(ff1, operation)([1, 2, 3, 4, 5, 6], _released_view(b"abc"))
+
+
+def test_live_memoryview_is_still_accepted(ff1_factory: Any) -> None:
+    ff1 = ff1_factory(key=memoryview(_VALID_KEY), radix=10, tweak=memoryview(b"abc"))
+    assert ff1.encrypt_numerals([1, 2, 3, 4, 5, 6]) == ff1_factory(
+        key=_VALID_KEY, radix=10, tweak=b"abc"
+    ).encrypt_numerals([1, 2, 3, 4, 5, 6])
+
+
 def test_plaintext_too_short_raises() -> None:
     ff1 = FF1(key=_VALID_KEY, radix=10)
     with pytest.raises(LengthError):

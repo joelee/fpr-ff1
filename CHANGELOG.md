@@ -9,6 +9,24 @@ expanding the accepted domain without changing existing behaviour is a minor ver
 
 ## [Unreleased]
 
+### Changed
+
+- The compiled backend now uses `aes` 0.9 (with `cipher` 0.5 and `crypto-common` 0.2) and
+  `num-bigint` 0.5. Output is unchanged: the FIPS 197 known-answer vectors, PRF equality with the
+  Python path, the per-round intermediates and the full dual-backend suite pass bit-exact, and
+  long-input performance is within measurement noise of 2.0.0.
+
+### Fixed
+
+- A released `memoryview` passed as the key, the default tweak or a per-call tweak now raises
+  `KeyLengthError` or `TweakLengthError` instead of Python's bare `ValueError`, so every rejection
+  stays inside the documented `FF1Error` hierarchy. The message names the argument, not its
+  contents.
+- Two tests could not fail when their property broke, and now can. The tweak-sensitivity property
+  test skipped on a collision, so an implementation that ignored the tweak skipped instead of
+  failing. The concurrency tests compared only each thread's last result, so a wrong result
+  mid-loop was overwritten and missed.
+
 ## [2.0.0] — 2026-09-25
 
 **The optional accelerated backend, stable.** The pure-Python implementation remains the reference
