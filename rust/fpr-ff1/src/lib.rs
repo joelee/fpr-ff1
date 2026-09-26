@@ -15,8 +15,18 @@
 #[cfg_attr(not(feature = "internal"), allow(dead_code))]
 mod engine;
 
+mod error;
+// Allowed until STEP-06's public API calls the validation layer; the tests
+// exercise it meanwhile.
+#[cfg_attr(not(test), allow(dead_code))]
+mod validate;
+
+pub use error::{Error, ErrorKind};
+
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod validate_tests;
 
 /// Unvalidated core and test seams for the PyO3 binding and the
 /// conformance tests. Not public API; not covered by semver (plan 00009

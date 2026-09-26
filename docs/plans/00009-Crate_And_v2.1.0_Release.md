@@ -43,9 +43,9 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1"
 execution_started_at: "2026-09-26T16:28:45Z"
-execution_updated_at: "2026-09-26T17:19:01Z"
+execution_updated_at: "2026-09-26T17:30:12Z"
 execution_completed_at: null
-current_step: "PLAN-00009-STEP-05"
+current_step: "PLAN-00009-STEP-06"
 ---
 
 # Delivery Plan 00009: Crate And v2.1.0 Release
@@ -709,7 +709,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 | PLAN-00009-STEP-02 | completed | 2026-09-26T16:57:05Z | 2026-09-26T16:57:05Z | Commit (this one); park rule passed; checkpoint-164751 | No API adaptation needed; performance unchanged |
 | PLAN-00009-STEP-03 | completed | 2026-09-26T17:07:11Z | 2026-09-26T17:07:11Z | Commit (this one); red probes recorded; checkpoint-165857 | No change to accepted inputs or ciphertext; the only behaviour change narrows an already-rejected input to the documented exception |
 | PLAN-00009-STEP-04 | completed | 2026-09-26T17:19:01Z | 2026-09-26T17:19:01Z | Commit (this one); checkpoint-171023; wheel identity check | engine.rs is the former lib.rs; use git log -C --follow / git blame -C for its history |
-| PLAN-00009-STEP-05 | not-started | — | — | — | — |
+| PLAN-00009-STEP-05 | completed | 2026-09-26T17:30:12Z | 2026-09-26T17:30:12Z | Commit (this one); checkpoint-172153 | Error modelled as struct + ErrorKind (see Deviations) |
 | PLAN-00009-STEP-06 | not-started | — | — | — | — |
 | PLAN-00009-STEP-07 | not-started | — | — | — | — |
 | PLAN-00009-STEP-08 | not-started | — | — | — | — |
@@ -740,6 +740,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T17:07:11Z | PLAN-00009-STEP-03 | (c) Both concurrency tests keep every iteration's result and check each against the serial expectation. Red probe (not committed): a pytest plugin wrapping FF1.encrypt_numerals to corrupt exactly one mid-run result (call 30) -> new test FAILED 'thread 1 iteration 1 diverged from the serial result'; the OLD test with the same corruption: '1 passed'. Changelog [Unreleased] gains the exception-type fix, the two test fixes, and the STEP-01/02 dependency upgrades | tests/test_thread_safety.py; CHANGELOG.md; probe plugin in the session scratchpad | Checkpoint |
 | 2026-09-26T17:19:01Z | PLAN-00009-STEP-04 | Before-state recorded: maturin wheel fpr_ff1-2.0.0-cp312-abi3-manylinux_2_34_x86_64.whl (10 entries); _rs.__version__ 2.0.0; exports _test_cipher_block, _test_encrypt_traced, _test_prf, decrypt_numerals, encrypt_numerals | scratchpad step04/before-files.txt, before-rs.txt | Split |
 | 2026-09-26T17:19:01Z | PLAN-00009-STEP-04 | Split: git mv rust/fpr-ff1-rust/src/lib.rs -> rust/fpr-ff1/src/engine.rs (PyO3 imports and the #[pymodule] block removed) and src/tests.rs -> rust/fpr-ff1/src/tests.rs; new rust/fpr-ff1 crate (package fpr-ff1, lib fpr_ff1, rlib, MIT OR Apache-2.0, feature 'internal'); engine is a private module, so every item is unreachable outside the crate; #[cfg(feature = "internal")] #[doc(hidden)] pub mod __internal re-exports ff1, ff1_traced, TraceRecord, prf_with_key, cipher_block_with_key; fpr-ff1-rust keeps cdylib, publish = false, _fpr_ff1_rs, and holds only the #[pymodule] block, depending on fpr-ff1 with features = ["internal"]; workspace members [fpr-ff1, fpr-ff1-rust]. Aes enum widened from private to pub(crate) (same reach as before: it was private at the crate root) | Build, clippy -D warnings (workspace and fpr-ff1 alone): no warnings | Checkpoint |
+| 2026-09-26T17:30:11Z | PLAN-00009-STEP-05 | Tests first: rust/fpr-ff1/src/validate_tests.rs (14 tests: key lengths 0/15/17/23/25/31/33/64; radix 0/1/65536/u32::MAX; min_length table incl. 999->3 and 1000->2; length min and 2**32 ceiling; numerals by position; tweak-bound ceilings and min>max; tweak ceiling first then min/max; literal zero maximum; alphabet length by scalar value and duplicates; decode by position; alphabet-required; Error is std::error::Error + Send + Sync). Red: E0432 unresolved crate::validate and crate::{Error, ErrorKind} | cargo test -p fpr-ff1 compile failure | Implement |
+| 2026-09-26T17:30:11Z | PLAN-00009-STEP-05 | Implemented error.rs (pub struct Error { kind, message } with kind(), Display and core::error::Error; #[non_exhaustive] pub enum ErrorKind { KeyLength, Radix, Length, ValueRange, TweakLength, Alphabet, AlphabetRequired }, one per Python exception class, AlphabetRequired = base FF1Error) and validate.rs (key, radix, min_length by integer multiplication, length, numerals, tweak_bounds, tweak, alphabet, decode, alphabet_required), in the Python order and with the Python messages; messages give positions and lengths, never values, key bytes or characters | 30 passed (16 existing + 14 new) | Checkpoint |
 
 ### Deviations and blockers
 
@@ -747,6 +749,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 |---|---|---|---|---|
 | 2026-09-26T16:46:28Z | PLAN-00009-STEP-01 | Task 4 (close Dependabot PR #7 with a comment) is an outward action; no per-action authorization recorded yet. Deferred until STEP-02 lands so the closing comment can link both commits | None on the code; #7 stays open meanwhile | User: authorize closing PR #7 after STEP-02 |
 | 2026-09-26T17:19:01Z | PLAN-00009-STEP-04 | The split broke 'cargo fmt --check --manifest-path rust/Cargo.toml' (just rust-lint and the CI rust-conformance job): with a virtual manifest and more than one package, cargo-fmt selects only packages whose manifest equals the given path, finds none, and exits 1 with 'Failed to find targets'. Fixed with --all in justfile and ci.yml in this commit, ahead of STEP-11, so the tree and CI are never broken. AGENTS.md and CLAUDE.md named the core's old path (rust/fpr-ff1-rust/src/lib.rs); updated here per docs/AGENTS.md (document updated in the change that makes it true). Temporary #[cfg_attr(not(feature = "internal"), allow(dead_code))] on mod engine until STEP-06's public API calls into it | Small scope additions to STEP-04, each forced by the split; broader documentation remains STEP-12 | None |
+| 2026-09-26T17:30:12Z | PLAN-00009-STEP-05 | REQ-05 asks for 'a non-exhaustive enum ... implementing core::error::Error'. Implemented as std::io::Error does: a struct Error implementing core::error::Error and Display, whose kind() returns the non-exhaustive ErrorKind enum with the six Python-mirroring variants plus AlphabetRequired. Messages then match Python's exactly and can be reworded without a breaking change. The validation functions are pub(crate) and called only by tests until STEP-06 builds the public API on them (temporary allow(dead_code) outside test builds, removed at STEP-06) | Same kinds and messages as specified; API shape differs slightly from a bare enum | None; recorded for the re-review |
 
 ### Verification results
 
@@ -760,6 +763,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T17:07:11Z | PLAN-00009-STEP-03 | Full checkpoint | Pass | 1698 passed in 257.63s, TOTAL 345 stmts 120 branches 100% (the new except branch covered), -k rust 581; Rust-free 877 passed, 100%; static clean; logs checkpoint-165857 |
 | 2026-09-26T17:19:01Z | PLAN-00009-STEP-04 | Full checkpoint after the split | Pass | 1698 passed in 258.68s, 100%, -k rust 581; Rust-free 877 passed, 100%; cargo test 16 passed (tests now in the fpr-ff1 crate); just rust-lint green with --all; actionlint clean; logs checkpoint-171023 |
 | 2026-09-26T17:19:01Z | PLAN-00009-STEP-04 | Wheel and extension identity; core dependencies; public API without 'internal' | Pass | maturin wheel after the split: file list identical to the before-state (10 entries); _rs.__version__ and exported names identical. cargo tree -p fpr-ff1 -e normal: aes 0.9.3, num-bigint 0.5.1, num-integer 0.1.47, num-traits 0.2.19; pyo3 count 0. cargo doc -p fpr-ff1 --no-deps: SIDEBAR_ITEMS = {} (no public items, so no third-party type in any public signature) |
+| 2026-09-26T17:30:12Z | PLAN-00009-STEP-05 | cargo clippy -D warnings (workspace, and fpr-ff1 alone); cargo fmt --all --check; float scan over rust/fpr-ff1/src; full checkpoint | Pass | clippy clean both ways; fmt ok; the only float-like match is the step-3 comment quoting the spec; dual gate 1698 passed, 100%; Rust-free 877 passed, 100%; logs checkpoint-172153 |
 
 ### Completion summary
 
