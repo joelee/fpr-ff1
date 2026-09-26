@@ -140,6 +140,94 @@ jobs:
       - name: Rust lint
         run: cargo clippy --manifest-path rust/Cargo.toml --all-targets -- -D warnings
 
+  # The fpr-ff1 crate, published to crates.io in lock-step with the PyPI
+  # distribution (plan 00009 STEP-11). rust-conformance above proves the PyO3
+  # binding; these prove the library a Rust caller depends on: its tests on
+  # every OS, on its declared minimum Rust, its documentation, and exactly
+  # what `cargo publish` would upload.
+  crate-test:
+    name: fpr-ff1 crate tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    env:
+      # A missing tests/vectors fixture fails here, never passes vacuously.
+      FPR_FF1_REQUIRE_FIXTURES: "1"
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: stable
+      - name: Unit, integration and doc tests
+        run: cargo test -p fpr-ff1 --locked --manifest-path rust/Cargo.toml
+      # About two million FF1 calls; #[ignore]d in the default run.
+      - name: Exhaustive bijectivity sweeps (release)
+        run: cargo test -p fpr-ff1 --release --locked --manifest-path rust/Cargo.toml -- --ignored
+
+  crate-msrv:
+    name: fpr-ff1 crate on its MSRV (Rust 1.89)
+    runs-on: ubuntu-latest
+    env:
+      FPR_FF1_REQUIRE_FIXTURES: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust 1.89
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: "1.89"
+      # `+1.89` overrides rust-toolchain.toml, which pins the stable channel.
+      - name: Build and test on the declared rust-version
+        run: cargo +1.89 test -p fpr-ff1 --locked --manifest-path rust/Cargo.toml
+      - name: The declared rust-version is the one tested here
+        run: grep -qx 'rust-version = "1.89"' rust/fpr-ff1/Cargo.toml
+
+  crate-package:
+    name: fpr-ff1 crate docs, package and API compatibility
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de
+        with:
+          toolchain: stable
+      - name: Documentation builds without warnings
+        env:
+          RUSTDOCFLAGS: "-D warnings"
+        run: cargo doc -p fpr-ff1 --no-deps --locked --manifest-path rust/Cargo.toml
+      - name: Package contents
+        run: python3 .github/scripts/assert_crate_contents.py
+      - name: Package and publish dry run
+        run: |
+          cargo package --locked -p fpr-ff1 --manifest-path rust/Cargo.toml
+          cargo publish --dry-run --locked -p fpr-ff1 --manifest-path rust/Cargo.toml
+          sha256sum rust/target/package/fpr-ff1-*.crate
+      # The exact .crate CI verified; the owner's manual bootstrap publication
+      # (plan 00009 D11) compares its digest against this artifact.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: crate
+          path: rust/target/package/fpr-ff1-*.crate
+      # No baseline exists until the first publication; after it, a public
+      # API break without a major version fails here. Checked with default
+      # features only, so the hidden `internal` feature is never compared.
+      - name: API compatibility with the last published version
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H 'User-Agent: fpr-ff1-ci (https://github.com/joelee/fpr-ff1)' \
+            https://crates.io/api/v1/crates/fpr-ff1)
+          if [ "$code" = "404" ]; then
+            echo "skip: fpr-ff1 is not yet on crates.io, so there is no published baseline (plan 00009 REQ-11)"
+            exit 0
+          fi
+          cargo install cargo-semver-checks --version 0.50.0 --locked
+          cargo semver-checks -p fpr-ff1 --manifest-path rust/Cargo.toml --default-features
+
   audit:
     name: Dependency audit
     runs-on: ubuntu-latest

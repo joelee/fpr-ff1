@@ -88,6 +88,21 @@ rust-test:
     # repository a missing fixture must fail, never pass vacuously.
     FPR_FF1_REQUIRE_FIXTURES=1 cargo test --manifest-path rust/Cargo.toml
 
+# The fpr-ff1 crate's CI jobs, locally (plan 00009 STEP-11).
+crate-test:
+    FPR_FF1_REQUIRE_FIXTURES=1 cargo test -p fpr-ff1 --locked --manifest-path rust/Cargo.toml
+    FPR_FF1_REQUIRE_FIXTURES=1 cargo test -p fpr-ff1 --release --locked --manifest-path rust/Cargo.toml -- --ignored
+
+# Needs `rustup toolchain install 1.89 --profile minimal`.
+crate-msrv:
+    FPR_FF1_REQUIRE_FIXTURES=1 cargo +1.89 test -p fpr-ff1 --locked --manifest-path rust/Cargo.toml
+
+crate-package:
+    RUSTDOCFLAGS="-D warnings" cargo doc -p fpr-ff1 --no-deps --locked --manifest-path rust/Cargo.toml
+    python3 .github/scripts/assert_crate_contents.py
+    cargo package --locked -p fpr-ff1 --manifest-path rust/Cargo.toml
+    cargo publish --dry-run --locked -p fpr-ff1 --manifest-path rust/Cargo.toml
+
 # Rust hygiene gates: the crate's equivalent of ruff + pyright. Like
 # `rust-test`, deliberately NOT part of `quality` -- the pure-Python path
 # must never depend on a Rust toolchain being installed. CI runs both
