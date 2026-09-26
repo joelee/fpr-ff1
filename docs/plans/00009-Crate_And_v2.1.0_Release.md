@@ -38,12 +38,12 @@ confidence: medium
 
 # Builder-maintained front matter. Builder may update only these keys after
 # explicit user approval; Delivery Planner initializes them.
-implementation_status: in-progress
+implementation_status: blocked
 builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1"
 execution_started_at: "2026-09-26T16:28:45Z"
-execution_updated_at: "2026-09-26T18:30:06Z"
+execution_updated_at: "2026-09-26T18:30:21Z"
 execution_completed_at: null
 current_step: "PLAN-00009-STEP-11"
 ---
@@ -715,7 +715,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 | PLAN-00009-STEP-08 | completed | 2026-09-26T18:05:36Z | 2026-09-26T18:05:36Z | Commit (this one); divergence probe recorded; checkpoint-175654 | Cases carry exact messages as well as kinds, which is stricter than REQ-08 requires |
 | PLAN-00009-STEP-09 | completed | 2026-09-26T18:14:34Z | 2026-09-26T18:14:34Z | Commit (this one) | — |
 | PLAN-00009-STEP-10 | completed | 2026-09-26T18:27:32Z | 2026-09-26T18:27:32Z | Commit (this one); checkpoint-181841; clean-tree package digest recorded after commit | MSRV 1.89 proven; packaged-test limitation documented |
-| PLAN-00009-STEP-11 | not-started | — | — | — | — |
+| PLAN-00009-STEP-11 | blocked | 2026-09-26T18:30:21Z | — | Workflows committed (f3301e3); local recipes and probes green; CI run pending a push | Awaiting push authorization |
 | PLAN-00009-STEP-12 | not-started | — | — | — | — |
 | PLAN-00009-STEP-13 | not-started | — | — | — | — |
 | PLAN-00009-STEP-14 | not-started | — | — | — | — |
@@ -764,6 +764,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T17:54:52Z | PLAN-00009-STEP-07 | The plan's evidence item 'a deliberate S-expansion break fails the intermediates' cannot hold: none of the nine NIST samples reaches d > 16, so the NIST intermediates never execute the step 6.iii expansion (the core's own comments say so). Probe 2 confirmed it: the break passes both NIST suites and is caught by the frozen oracle vectors, which include d > 16. The intermediates' teeth were demonstrated with a break they can see (probe 3, b from u) | Evidence reworded, not weakened: each suite shown to catch what it can see | None; recorded for the re-review |
 | 2026-09-26T18:27:32Z | PLAN-00009-STEP-10 | Fixtures cannot be packaged (Cargo includes only files under the crate directory) and copying them would duplicate the conformance evidence, which plans 00008/00009 say to escalate rather than do. Chose the gate the plan offers ('packaged tests gated'), modelled on FPR_FF1_REQUIRE_ORACLE. Limitation: libtest hides a passing test's output, so in the packaged crate the skip notice is not visible and fixture tests pass vacuously unless FPR_FF1_REQUIRE_FIXTURES=1; stated in the crate README's Testing section. In the repository and CI the switch is always set | Downstream packagers running cargo test on the published crate get the API, validation, property and doc tests, not the fixture-backed conformance tests | None; recorded for the re-review |
 | 2026-09-26T18:30:06Z | PLAN-00009-STEP-11 | The publish-crate job's 'skipped for a pre-release' behaviour depends on GitHub's release event and cannot be exercised locally; it will be evidenced by the v2.1.0rc1 publish run at STEP-14. The job uses a GitHub environment named crates-io, which the owner should create (with any protection rules) and name in the crates.io Trusted Publisher configuration | One acceptance item (AC-11: skipped for a pre-release) moves its evidence to STEP-14 | Owner: create the crates-io environment before STEP-14 |
+| 2026-09-26T18:30:21Z | PLAN-00009-STEP-11 | BLOCKER: task 4 needs release/v2.1 pushed so the new jobs run in CI (the branch has never been pushed). Pushing is an outward action with no authorization recorded. Also pending since STEP-01: closing Dependabot PR #7 with a comment linking 126ece6 (aes 0.9) and c1f5a79 (num-bigint 0.5) | STEP-11 cannot complete; STEP-12 onward wait, per the required sequence | User: authorize 'git push -u origin release/v2.1' (Builder then dispatches ci.yml and iterates to green), and closing PR #7 |
 
 ### Verification results
 
@@ -794,10 +795,10 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 
 ### Completion summary
 
-- **Implementation status:** `not-started`
-- **Completed requirements:** None
-- **Incomplete requirements:** All
-- **Outstanding blockers:** None
+- **Implementation status:** `blocked`
+- **Completed requirements:** PLAN-00009-REQ-01 to REQ-10; REQ-11 and REQ-12 implemented locally (CI evidence pending)
+- **Incomplete requirements:** REQ-11/REQ-12 CI evidence; REQ-13; REQ-14
+- **Outstanding blockers:** Push authorization for release/v2.1; authorization to close Dependabot PR #7
 - **Review request:** Not ready
 <!-- BUILDER_WORK_LOG_END -->
 
