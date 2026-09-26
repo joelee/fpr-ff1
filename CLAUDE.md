@@ -53,6 +53,9 @@ Compiled backend (requires a local Rust toolchain; `rust-toolchain.toml` pins th
 just backend-dev    # cargo build --release + copy the cdylib to src/fpr_ff1/_rs.so
 just rust-test      # cargo test --manifest-path rust/Cargo.toml
 just rust-lint      # cargo fmt --check + cargo clippy --all-targets -- -D warnings
+just crate-test     # the fpr-ff1 crate's tests, plus the exhaustive sweeps
+just crate-msrv     # the crate on Rust 1.89, its declared rust-version
+just crate-package  # crate docs, package contents, publish dry run
 ```
 
 The full dual-backend gate — the checkpoint that matters after any core change:
@@ -92,8 +95,8 @@ plausible-looking but wrong ciphertext, or breaks the project's reason to exist.
 
 ## Version lock-step
 
-`pyproject.toml` `[project].version` and `rust/fpr-ff1-rust/Cargo.toml`
-`[package].version` are bumped together. Cargo requires the semver form, so PEP 440
+`pyproject.toml` `[project].version`, `rust/fpr-ff1/Cargo.toml` and
+`rust/fpr-ff1-rust/Cargo.toml` `[package].version` are bumped together. Cargo requires the semver form, so PEP 440
 `2.0.0rc1` is `2.0.0-rc1` in the crate; `tests/test_contract.py` compares them after
 normalising with `packaging.version.Version`. Git tags follow `pyproject.toml`
 exactly (`v2.0.0rc1`, no hyphen) — `publish.yml` compares against it.

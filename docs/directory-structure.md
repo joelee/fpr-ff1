@@ -31,14 +31,24 @@
 │       ├── _exceptions.py  # Typed exception hierarchy
 │       ├── _ff1.py         # FF1 core implementation (the reference backend)
 │       └── py.typed        # PEP 561 typed-package marker
-├── rust/                    # Optional compiled backend (plan 00003 E2)
+├── rust/                    # Rust workspace (plan 00003 E2; split by plan 00009)
 │   ├── Cargo.toml          # Workspace manifest
 │   ├── Cargo.lock          # Locked Rust dependencies (committed, like uv.lock)
-│   └── fpr-ff1-rust/       # The PyO3 crate (module fpr_ff1._rs)
+│   ├── fpr-ff1/            # The fpr-ff1 crate, published to crates.io
+│   │   ├── Cargo.toml      # Metadata, rust-version 1.89, include list, `internal` feature
+│   │   ├── README.md       # Crate documentation (also the crate-root docs)
+│   │   ├── LICENSE-MIT / LICENSE-APACHE
+│   │   ├── src/
+│   │   │   ├── lib.rs      # Public exports; hidden `__internal` for the binding and tests
+│   │   │   ├── engine.rs   # Algorithm 7 core + PRF + numeral conversion
+│   │   │   ├── ff1.rs      # Public FF1 type and builder
+│   │   │   ├── validate.rs # Input validation, mirroring _ff1.py
+│   │   │   ├── error.rs    # Error and ErrorKind
+│   │   │   └── *_tests.rs  # Unit, conformance, property and shared-case tests
+│   │   └── tests/api.rs    # Public-API integration tests
+│   └── fpr-ff1-rust/       # The PyO3 binding (module fpr_ff1._rs); never published
 │       ├── Cargo.toml
-│       └── src/
-│           ├── lib.rs      # Algorithm 7 core + PRF + PyO3 bindings
-│           └── tests.rs    # Rust unit tests
+│       └── src/lib.rs      # #[pymodule] only
 ├── tests/                  # Pytest test root
 │   ├── __init__.py
 │   ├── conftest.py         # Shared fixtures (NIST loader, backend/ff1_factory/encrypt_traced)
