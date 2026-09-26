@@ -33,3 +33,11 @@ num-integer = "0.1"
 # single-block primitives -- more spec-literal than the `cbc` wrapper,
 # which would need one concrete instantiation per key size anyway.
 aes = "0.9"
+
+[dev-dependencies]
+# Reads the shared JSON fixtures in tests/vectors. arbitrary_precision keeps
+# the per-round y and c values, which exceed u64, exact.
+serde_json = { version = "1", features = ["arbitrary_precision"] }
+# Property tests: round trip, length and range preservation, key and tweak
+# sensitivity, determinism.
+proptest = { version = "1", default-features = false, features = ["std"] }

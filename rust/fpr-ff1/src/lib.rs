@@ -21,6 +21,10 @@ pub use error::{Error, ErrorKind};
 pub use ff1::{Builder, FF1};
 
 #[cfg(test)]
+mod conformance_tests;
+#[cfg(test)]
+mod property_tests;
+#[cfg(test)]
 mod tests;
 #[cfg(test)]
 mod validate_tests;
