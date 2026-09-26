@@ -43,9 +43,9 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1"
 execution_started_at: "2026-09-26T16:28:45Z"
-execution_updated_at: "2026-09-26T17:54:52Z"
+execution_updated_at: "2026-09-26T18:05:36Z"
 execution_completed_at: null
-current_step: "PLAN-00009-STEP-08"
+current_step: "PLAN-00009-STEP-09"
 ---
 
 # Delivery Plan 00009: Crate And v2.1.0 Release
@@ -712,7 +712,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 | PLAN-00009-STEP-05 | completed | 2026-09-26T17:30:12Z | 2026-09-26T17:30:12Z | Commit (this one); checkpoint-172153 | Error modelled as struct + ErrorKind (see Deviations) |
 | PLAN-00009-STEP-06 | completed | 2026-09-26T17:41:32Z | 2026-09-26T17:41:32Z | Commit (this one); checkpoint-173259 | Alphabet kept private (see Deviations) |
 | PLAN-00009-STEP-07 | completed | 2026-09-26T17:54:52Z | 2026-09-26T17:54:52Z | Commit (this one); probes recorded; checkpoint-174537 | Bijectivity sweeps gated #[ignore]; STEP-11 must run them in CI with --release -- --ignored |
-| PLAN-00009-STEP-08 | not-started | — | — | — | — |
+| PLAN-00009-STEP-08 | completed | 2026-09-26T18:05:36Z | 2026-09-26T18:05:36Z | Commit (this one); divergence probe recorded; checkpoint-175654 | Cases carry exact messages as well as kinds, which is stricter than REQ-08 requires |
 | PLAN-00009-STEP-09 | not-started | — | — | — | — |
 | PLAN-00009-STEP-10 | not-started | — | — | — | — |
 | PLAN-00009-STEP-11 | not-started | — | — | — | — |
@@ -746,6 +746,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T17:41:32Z | PLAN-00009-STEP-06 | Implemented rust/fpr-ff1/src/ff1.rs: pub struct FF1 (Clone; Debug omits the key), FF1::new(key, radix), FF1::builder(key, radix) -> Builder { alphabet, tweak, min_tweak_len, max_tweak_len, build }, encrypt_numerals/decrypt_numerals(&[u16], Option<&[u8]>), encrypt/decrypt(&str, Option<&[u8]>), min_length() -> usize, max_length() -> u64. Validation in the Python order before engine::ff1; the core's own Result is unwrapped with an invariant message because every condition it can refuse is rejected first. Alphabet kept crate-private. rust/fpr-ff1/README.md written and used as the crate-root docs via include_str!, so its three examples run as doctests. The temporary dead_code allows from STEP-04/05 removed; instead prf_with_key is compiled for tests or 'internal', cipher_block_with_key and ff1_traced only for 'internal', and TraceRecord's fields allowed unread without 'internal' | Unit 30, integration 9, doctests 3 passed | Checkpoint |
 | 2026-09-26T17:54:52Z | PLAN-00009-STEP-07 | Conformance suite added as crate unit tests (rust/fpr-ff1/src/conformance_tests.rs, property_tests.rs), reading tests/vectors/*.json at runtime: 9 NIST samples both directions via the public string API; per-round intermediates (i, P, Q, R, S, y, m, c, C, and u, v, b, d) for all 10 rounds of all 9 samples via the trace hook; 3 FIPS 197 AES vectors; 46 frozen oracle vectors both directions via the public API, with max d > 16 asserted; power-of-two radices 2..256 round trip with b checked against an independent exact computation; b-from-v and Q padding/alignment; a float scan of engine.rs, validate.rs, ff1.rs, error.rs, lib.rs; proptest (64 cases each) round trip with length and range, determinism, tweak sensitivity (4 unique tweaks), key sensitivity (one flipped bit); exhaustive bijectivity for radix 2 n=20 and radix 10 n=6, #[ignore] by default. Dev-dependencies serde_json 1 (arbitrary_precision) and proptest 1 (std only); cipher_block_with_key and ff1_traced now compiled for tests too | cargo test -p fpr-ff1: 41 passed, 2 ignored; cargo test --release -- --ignored: both sweeps passed in 7.56s | Red probes |
 | 2026-09-26T17:54:52Z | PLAN-00009-STEP-07 | Two defects in the new test helpers, fixed before any result was relied on: (1) the AES-192 key in nist_ff1_intermediates.json carries an embedded line break from its transcription; the Python suite reads it with bytes.fromhex, which skips whitespace, so the Rust decoder now skips ASCII whitespace the same way (the fixture is not edited); (2) the frozen radix-62 vectors use a non-ASCII alphabet starting at U+10000, and the test's numeral mapping used str::find byte offsets; now by character position. The crate's own alphabet handling was already correct: both public-API assertions for those vectors passed before the helper failed | No change to fixtures or to crate code | Red probes |
+| 2026-09-26T18:05:36Z | PLAN-00009-STEP-08 | Case file first: tests/vectors/validation_cases.json, 53 cases written from the Python rules (key lengths, radix, bounds incl. ceilings and min>max, default tweak, alphabet length/duplicates/non-ASCII, lengths by side incl. min_length at radix 2/999/1000, numerals by position incl. radix 65535, call tweaks incl. literal zero maximum, string interface, and six cross-check ordering cases), each with the expected Python class and exact message; one python_only case (released memoryview key) with its reason. tests/test_validation_cases.py passed on both backends before any Rust harness existed | 108 passed (53 x 2 backends + 2 coverage/meta tests); every FF1Error subclass except BackendError covered | Rust harness |
+| 2026-09-26T18:05:36Z | PLAN-00009-STEP-08 | Rust harness rust/fpr-ff1/src/validation_case_tests.rs: builds each case through the public builder, runs the call, maps ErrorKind to the Python class with an exhaustive match (a new variant fails to compile until mapped), compares class and exact message; skips only python_only cases and asserts exactly one such; a second test requires a case for every ErrorKind | 2 passed; 52 cases run, 1 python_only skipped | Divergence probe |
 
 ### Deviations and blockers
 
@@ -774,6 +776,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T17:41:32Z | PLAN-00009-STEP-06 | Full checkpoint | Pass | 1698 passed in 267.75s, 100%, -k rust 581; Rust-free 877 passed, 100%; logs checkpoint-173259 |
 | 2026-09-26T17:54:52Z | PLAN-00009-STEP-07 | Red probes on engine.rs (each reverted; restored byte-identical by cmp): (1) float literal '1.5_f64' added; (2) S-expansion counter j starts at 0; (3) b derived from u instead of v | Pass (each break caught) | (1) no_floating_point_in_any_ff1_path FAILED. (2) nist_per_round_intermediates ok, nist_samples ok, frozen_oracle_vectors FAILED. (3) nist_per_round_intermediates FAILED, nist_samples FAILED. After restore: 41 passed |
 | 2026-09-26T17:54:52Z | PLAN-00009-STEP-07 | clippy -D warnings in three configurations; fmt; cargo doc -D warnings; cargo-audit on the lock with the new dev-dependencies; full checkpoint | Pass | 0 warnings each (after replacing '% 2 == 0' with is_multiple_of in a test helper); docs clean; audit exit 0, 52 crate dependencies; dual gate 1698 passed, 100%; Rust-free 877 passed, 100%; logs checkpoint-174537 |
+| 2026-09-26T18:05:36Z | PLAN-00009-STEP-08 | Divergence probe (not committed): Rust validate::key accepts 17 bytes | Pass (fails exactly one suite) | Rust: every_shared_case_has_the_same_outcome FAILED 'key-17: accepted, expected KeyLengthError'; Python tests/test_validation_cases.py at the same moment: 108 passed. validate.rs restored byte-identical; Rust harness 2 passed |
+| 2026-09-26T18:05:36Z | PLAN-00009-STEP-08 | clippy -D warnings in three configurations; fmt; full checkpoint | Pass | 0 warnings each; dual gate 1806 passed in 259.79s, 100%, -k rust 634; Rust-free 932 passed, 100%; logs checkpoint-175654 |
 
 ### Completion summary
 

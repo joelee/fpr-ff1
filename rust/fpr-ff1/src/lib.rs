@@ -28,6 +28,8 @@ mod property_tests;
 mod tests;
 #[cfg(test)]
 mod validate_tests;
+#[cfg(test)]
+mod validation_case_tests;
 
 /// Unvalidated core and test seams for the PyO3 binding and the
 /// conformance tests. Not public API; not covered by semver (plan 00009

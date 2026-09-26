@@ -1,0 +1,724 @@
+{
+  "description": "Validation cases shared by the Python package and the fpr-ff1 Rust crate (plan 00009 STEP-08). Both suites run every case and require the same outcome: 'accepted', or rejection with the named Python exception class and exactly this message. The Rust crate maps each class to one ErrorKind (FF1Error, the base class, to AlphabetRequired). A case may not be added to one suite alone; a case only one language can express carries python_only with the reason. The key is bytes(range(key_len)); tweak_hex defaults to empty; a call's missing tweak_hex means the instance's default tweak.",
+  "cases": [
+    {
+      "id": "key-16-accepted",
+      "construct": {
+        "key_len": 16,
+        "radix": 10
+      },
+      "expect": "accepted"
+    },
+    {
+      "id": "key-24-accepted",
+      "construct": {
+        "key_len": 24,
+        "radix": 10
+      },
+      "expect": "accepted"
+    },
+    {
+      "id": "key-32-accepted",
+      "construct": {
+        "key_len": 32,
+        "radix": 10
+      },
+      "expect": "accepted"
+    },
+    {
+      "id": "key-0",
+      "construct": {
+        "key_len": 0,
+        "radix": 10
+      },
+      "expect": "KeyLengthError",
+      "message": "key must be 16, 24, or 32 bytes, got 0"
+    },
+    {
+      "id": "key-15",
+      "construct": {
+        "key_len": 15,
+        "radix": 10
+      },
+      "expect": "KeyLengthError",
+      "message": "key must be 16, 24, or 32 bytes, got 15"
+    },
+    {
+      "id": "key-17",
+      "construct": {
+        "key_len": 17,
+        "radix": 10
+      },
+      "expect": "KeyLengthError",
+      "message": "key must be 16, 24, or 32 bytes, got 17"
+    },
+    {
+      "id": "key-23",
+      "construct": {
+        "key_len": 23,
+        "radix": 10
+      },
+      "expect": "KeyLengthError",
+      "message": "key must be 16, 24, or 32 bytes, got 23"
+    },
+    {
+      "id": "key-25",
+      "construct": {
+        "key_len": 25,
+        "radix": 10
+      },
+      "expect": "KeyLengthError",
+      "message": "key must be 16, 24, or 32 bytes, got 25"
+    },
+    {
+      "id": "key-31",
+      "construct": {
+        "key_len": 31,
+        "radix": 10
+      },
+      "expect": "KeyLengthError",
+      "message": "key must be 16, 24, or 32 bytes, got 31"
+    },
+    {
+      "id": "key-33",
+      "construct": {
+        "key_len": 33,
+        "radix": 10
+      },
+      "expect": "KeyLengthError",
+      "message": "key must be 16, 24, or 32 bytes, got 33"
+    },
+    {
+      "id": "radix-2-accepted",
+      "construct": {
+        "key_len": 16,
+        "radix": 2
+      },
+      "expect": "accepted"
+    },
+    {
+      "id": "radix-65535-accepted",
+      "construct": {
+        "key_len": 16,
+        "radix": 65535
+      },
+      "expect": "accepted"
+    },
+    {
+      "id": "radix-0",
+      "construct": {
+        "key_len": 16,
+        "radix": 0
+      },
+      "expect": "RadixError",
+      "message": "radix must satisfy 2 <= radix < 65536, got 0"
+    },
+    {
+      "id": "radix-1",
+      "construct": {
+        "key_len": 16,
+        "radix": 1
+      },
+      "expect": "RadixError",
+      "message": "radix must satisfy 2 <= radix < 65536, got 1"
+    },
+    {
+      "id": "radix-65536",
+      "construct": {
+        "key_len": 16,
+        "radix": 65536
+      },
+      "expect": "RadixError",
+      "message": "radix must satisfy 2 <= radix < 65536, got 65536"
+    },
+    {
+      "id": "order-key-before-radix",
+      "construct": {
+        "key_len": 15,
+        "radix": 1
+      },
+      "expect": "KeyLengthError",
+      "message": "key must be 16, 24, or 32 bytes, got 15"
+    },
+    {
+      "id": "order-radix-before-bounds",
+      "construct": {
+        "key_len": 16,
+        "radix": 1,
+        "min_tweak_len": 8,
+        "max_tweak_len": 4
+      },
+      "expect": "RadixError",
+      "message": "radix must satisfy 2 <= radix < 65536, got 1"
+    },
+    {
+      "id": "bounds-inverted",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "min_tweak_len": 8,
+        "max_tweak_len": 4
+      },
+      "expect": "TweakLengthError",
+      "message": "min_tweak_len 8 exceeds max_tweak_len 4; no tweak length could satisfy both bounds"
+    },
+    {
+      "id": "bounds-min-unencodable",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "min_tweak_len": 4294967296
+      },
+      "expect": "TweakLengthError",
+      "message": "min_tweak_len 4294967296 above encodable maximum tweak length 4294967295; no tweak could satisfy it"
+    },
+    {
+      "id": "bounds-max-unencodable",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "max_tweak_len": 4294967296
+      },
+      "expect": "TweakLengthError",
+      "message": "max_tweak_len 4294967296 above encodable maximum tweak length 4294967295; bounds are rejected, not clamped"
+    },
+    {
+      "id": "bounds-max-at-ceiling-accepted",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "max_tweak_len": 4294967295
+      },
+      "expect": "accepted"
+    },
+    {
+      "id": "default-tweak-too-long",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "tweak_hex": "616263",
+        "max_tweak_len": 2
+      },
+      "expect": "TweakLengthError",
+      "message": "tweak length 3 above maximum 2"
+    },
+    {
+      "id": "default-tweak-too-short",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "min_tweak_len": 1
+      },
+      "expect": "TweakLengthError",
+      "message": "tweak length 0 below minimum 1"
+    },
+    {
+      "id": "order-bounds-before-default-tweak",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "tweak_hex": "",
+        "min_tweak_len": 8,
+        "max_tweak_len": 4
+      },
+      "expect": "TweakLengthError",
+      "message": "min_tweak_len 8 exceeds max_tweak_len 4; no tweak length could satisfy both bounds"
+    },
+    {
+      "id": "alphabet-accepted",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "alphabet": "0123456789"
+      },
+      "expect": "accepted"
+    },
+    {
+      "id": "alphabet-non-ascii-accepted",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "alphabet": "αβγδεζηθικ"
+      },
+      "expect": "accepted"
+    },
+    {
+      "id": "alphabet-short",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "alphabet": "012"
+      },
+      "expect": "AlphabetError",
+      "message": "alphabet length 3 does not match radix 10"
+    },
+    {
+      "id": "alphabet-duplicate",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "alphabet": "0123456788"
+      },
+      "expect": "AlphabetError",
+      "message": "alphabet contains duplicate characters"
+    },
+    {
+      "id": "order-default-tweak-before-alphabet",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "tweak_hex": "616263",
+        "max_tweak_len": 2,
+        "alphabet": "012"
+      },
+      "expect": "TweakLengthError",
+      "message": "tweak length 3 above maximum 2"
+    },
+    {
+      "id": "length-at-min-accepted",
+      "construct": {
+        "key_len": 16,
+        "radix": 10
+      },
+      "call": {
+        "op": "encrypt_numerals",
+        "x": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "expect": "accepted"
+    },
+    {
+      "id": "plaintext-too-short",
+      "construct": {
+        "key_len": 16,
+        "radix": 10
+      },
+      "call": {
+        "op": "encrypt_numerals",
+        "x": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "expect": "LengthError",
+      "message": "plaintext length 5 below minimum 6 for radix 10"
+    },
+    {
+      "id": "ciphertext-too-short",
+      "construct": {
+        "key_len": 16,
+        "radix": 10
+      },
+      "call": {
+        "op": "decrypt_numerals",
+        "x": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "expect": "LengthError",
+      "message": "ciphertext length 5 below minimum 6 for radix 10"
+    },
+    {
+      "id": "radix-2-length-20-accepted",
+      "construct": {
+        "key_len": 16,
+        "radix": 2
+      },
+      "call": {
+        "op": "encrypt_numerals",
+        "x": [
+          0,
+          1,
+          0,
+          1,
+          0,
+          1,
+          0,
+          1,
+          0,
+          1,
+          0,
+          1,
+          0,
+          1,
+          0,
+          1,
+          0,
+          1,
+          0,
+          1
+        ]
+      },
+      "expect": "accepted"
+    },
+    {
+      "id": "radix-2-length-19",
+      "construct": {
+        "key_len": 16,
+        "radix": 2
+      },
+      "call": {
+        "op": "encrypt_numerals",
+        "x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "expect": "LengthError",
+      "message": "plaintext length 19 below minimum 20 for radix 2"
+    },
+    {
+      "id": "radix-1000-length-2-accepted",
+      "construct": {
+        "key_len": 16,
+        "radix": 1000
+      },
+      "call": {
+        "op": "encrypt_numerals",
+        "x": [
+          7,
+          999
+        ]
+      },
+      "expect": "accepted"
+    },
+    {
+      "id": "radix-999-length-2",
+      "construct": {
+        "key_len": 16,
+        "radix": 999
+      },
+      "call": {
+        "op": "encrypt_numerals",
+        "x": [
+          7,
+          998
+        ]
+      },
+      "expect": "LengthError",
+      "message": "plaintext length 2 below minimum 3 for radix 999"
+    },
+    {
+      "id": "numeral-out-of-range",
+      "construct": {
+        "key_len": 16,
+        "radix": 10
+      },
+      "call": {
+        "op": "encrypt_numerals",
+        "x": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          10
+        ]
+      },
+      "expect": "ValueRangeError",
+      "message": "plaintext[5] is out of range for radix 10"
+    },
+    {
+      "id": "numeral-radix-minus-one-accepted",
+      "construct": {
+        "key_len": 16,
+        "radix": 65535
+      },
+      "call": {
+        "op": "decrypt_numerals",
+        "x": [
+          65534,
+          0
+        ]
+      },
+      "expect": "accepted"
+    },
+    {
+      "id": "numeral-equal-to-radix",
+      "construct": {
+        "key_len": 16,
+        "radix": 65535
+      },
+      "call": {
+        "op": "decrypt_numerals",
+        "x": [
+          0,
+          65535
+        ]
+      },
+      "expect": "ValueRangeError",
+      "message": "ciphertext[1] is out of range for radix 65535"
+    },
+    {
+      "id": "call-tweak-too-long",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "max_tweak_len": 2
+      },
+      "call": {
+        "op": "encrypt_numerals",
+        "x": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "tweak_hex": "616263"
+      },
+      "expect": "TweakLengthError",
+      "message": "tweak length 3 above maximum 2"
+    },
+    {
+      "id": "call-tweak-too-short",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "tweak_hex": "78",
+        "min_tweak_len": 1
+      },
+      "call": {
+        "op": "encrypt_numerals",
+        "x": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "tweak_hex": ""
+      },
+      "expect": "TweakLengthError",
+      "message": "tweak length 0 below minimum 1"
+    },
+    {
+      "id": "call-default-tweak-accepted",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "tweak_hex": "78",
+        "min_tweak_len": 1
+      },
+      "call": {
+        "op": "encrypt_numerals",
+        "x": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "expect": "accepted"
+    },
+    {
+      "id": "max-zero-empty-accepted",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "max_tweak_len": 0
+      },
+      "call": {
+        "op": "encrypt_numerals",
+        "x": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "tweak_hex": ""
+      },
+      "expect": "accepted"
+    },
+    {
+      "id": "max-zero-nonempty",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "max_tweak_len": 0
+      },
+      "call": {
+        "op": "encrypt_numerals",
+        "x": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "tweak_hex": "78"
+      },
+      "expect": "TweakLengthError",
+      "message": "tweak length 1 above maximum 0"
+    },
+    {
+      "id": "order-length-before-tweak",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "max_tweak_len": 2
+      },
+      "call": {
+        "op": "encrypt_numerals",
+        "x": [
+          1,
+          2,
+          3
+        ],
+        "tweak_hex": "616263"
+      },
+      "expect": "LengthError",
+      "message": "plaintext length 3 below minimum 6 for radix 10"
+    },
+    {
+      "id": "order-tweak-before-numerals",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "max_tweak_len": 2
+      },
+      "call": {
+        "op": "encrypt_numerals",
+        "x": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          99
+        ],
+        "tweak_hex": "616263"
+      },
+      "expect": "TweakLengthError",
+      "message": "tweak length 3 above maximum 2"
+    },
+    {
+      "id": "string-accepted",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "alphabet": "0123456789"
+      },
+      "call": {
+        "op": "encrypt",
+        "s": "0123456789"
+      },
+      "expect": "accepted"
+    },
+    {
+      "id": "string-without-alphabet-encrypt",
+      "construct": {
+        "key_len": 16,
+        "radix": 10
+      },
+      "call": {
+        "op": "encrypt",
+        "s": "0123456789"
+      },
+      "expect": "FF1Error",
+      "message": "alphabet required for string interface; use encrypt_numerals for the numeral interface"
+    },
+    {
+      "id": "string-without-alphabet-decrypt",
+      "construct": {
+        "key_len": 16,
+        "radix": 10
+      },
+      "call": {
+        "op": "decrypt",
+        "s": "0123456789"
+      },
+      "expect": "FF1Error",
+      "message": "alphabet required for string interface; use decrypt_numerals for the numeral interface"
+    },
+    {
+      "id": "string-unknown-character",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "alphabet": "0123456789"
+      },
+      "call": {
+        "op": "encrypt",
+        "s": "01234x6789"
+      },
+      "expect": "ValueRangeError",
+      "message": "character at index 5 is not in the alphabet"
+    },
+    {
+      "id": "string-too-short",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "alphabet": "0123456789"
+      },
+      "call": {
+        "op": "encrypt",
+        "s": "012"
+      },
+      "expect": "LengthError",
+      "message": "plaintext length 3 below minimum 6 for radix 10"
+    },
+    {
+      "id": "order-alphabet-required-before-characters",
+      "construct": {
+        "key_len": 16,
+        "radix": 10
+      },
+      "call": {
+        "op": "encrypt",
+        "s": "x"
+      },
+      "expect": "FF1Error",
+      "message": "alphabet required for string interface; use encrypt_numerals for the numeral interface"
+    },
+    {
+      "id": "released-memoryview-key",
+      "construct": {
+        "key_len": 16,
+        "radix": 10,
+        "key_form": "released_memoryview"
+      },
+      "expect": "KeyLengthError",
+      "message": "key memoryview has been released",
+      "python_only": "A released memoryview is a Python object; a Rust &[u8] cannot be released."
+    }
+  ]
+}
