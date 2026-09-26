@@ -43,9 +43,9 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1"
 execution_started_at: "2026-09-26T16:28:45Z"
-execution_updated_at: "2026-09-26T16:46:28Z"
+execution_updated_at: "2026-09-26T16:57:05Z"
 execution_completed_at: null
-current_step: "PLAN-00009-STEP-02"
+current_step: "PLAN-00009-STEP-03"
 ---
 
 # Delivery Plan 00009: Crate And v2.1.0 Release
@@ -706,7 +706,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 | Step | Status | Started (UTC) | Completed (UTC) | Evidence | Builder notes |
 |---|---|---|---|---|---|
 | PLAN-00009-STEP-01 | completed | 2026-09-26T16:46:28Z | 2026-09-26T16:46:28Z | Commit (this one); checkpoint-163734; cargo audit clean | Closing PR #7 deferred to after STEP-02 (authorization pending) |
-| PLAN-00009-STEP-02 | not-started | — | — | — | — |
+| PLAN-00009-STEP-02 | completed | 2026-09-26T16:57:05Z | 2026-09-26T16:57:05Z | Commit (this one); park rule passed; checkpoint-164751 | No API adaptation needed; performance unchanged |
 | PLAN-00009-STEP-03 | not-started | — | — | — | — |
 | PLAN-00009-STEP-04 | not-started | — | — | — | — |
 | PLAN-00009-STEP-05 | not-started | — | — | — | — |
@@ -733,6 +733,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T16:28:46Z | — | Builder started on approved plan 00009 (approval commit ab95fd6) on release/v2.1, branched from main 62c6115 | git status clean; plan 00007 closeout (PR #13) and Dependabot #10, #11 merged into main | Baseline, then STEP-01 |
 | 2026-09-26T16:46:28Z | PLAN-00009-STEP-01 | Evidence first at baseline: tests/test_rust_aes_validation.py (FIPS 197 KAT + PRF equality) 19 passed with aes 0.8.4 | Baseline checkpoint-162846 green | Upgrade |
 | 2026-09-26T16:46:28Z | PLAN-00009-STEP-01 | aes 0.8 -> 0.9 in rust/fpr-ff1-rust/Cargo.toml; cargo update -p aes; applied PR #7's two API migrations only: BlockEncrypt -> BlockCipherEncrypt, Block::clone_from_slice -> Block::from (in prf and cipher_block) | Lock diff limited to the AES stack: aes 0.8.4->0.9.3, cipher 0.4.4->0.5.2, crypto-common 0.1.7->0.2.2, inout 0.1.4->0.2.2, cpufeatures 0.2.17->0.3.1; added cpubits 0.1.1, hybrid-array 0.4.15; removed generic-array 0.14.7, cfg-if 1.0.4, version_check 0.9.5 (build dependency of generic-array). Build: no warnings | Checkpoint |
+| 2026-09-26T16:57:05Z | PLAN-00009-STEP-02 | Evidence first: just bench with num-bigint 0.4.8 (aes 0.9.3 already in place), 2026-09-26T16:46:37Z, load 2.40; same machine as plan 00007 STEP-05 (AMD Ryzen AI Max+ PRO 395, CPython 3.12.13, rustc 1.98.1) | Backend table python/rust µs/op: r10 n6 28.2/4.5; n100 108.9/38.1; n1000 940.8/390.1; n5000 5167.4/2109.9; n20000 26615.9/9689.6. r256 n100 139.5/50.3; n1000 2521.2/206.4; n5000 12866.6/1028.0; n20000 51800.6/4056.7 | Upgrade |
+| 2026-09-26T16:57:05Z | PLAN-00009-STEP-02 | num-bigint 0.4 -> 0.5 in rust/fpr-ff1-rust/Cargo.toml; cargo update -p num-bigint | Lock diff: num-bigint 0.4.8 -> 0.5.1 only. No source change needed: every call site (BigUint::from, to_bytes_be, from_bytes_be, pow, div_rem, bits, iter_u32_digits) compiles unchanged, no warnings | Checkpoint and benchmark |
 
 ### Deviations and blockers
 
@@ -748,6 +750,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T16:37:02Z | Baseline | Checkpoint at 88bd449+work log: static; just backend-dev; just rust-test; just rust-lint; full dual-backend gate; just quality Rust-free | Pass | pyright 1.1.414 (Dependabot #11) 0 errors; 1688 passed in 259.28s, 100%, -k rust 576/1688; Rust-free 872 passed, 245 skipped, 100%; rustc 1.98.1; logs checkpoint-162846 |
 | 2026-09-26T16:46:28Z | PLAN-00009-STEP-01 | Full checkpoint with aes 0.9.3; then tests/test_rust_aes_validation.py, test_intermediates.py, test_nist_vectors.py, test_frozen_kat.py, test_backend_agreement.py with FPR_FF1_REQUIRE_RUST_BACKEND=1 | Pass (bit-exact) | 1688 passed in 266.27s, 100%, -k rust 576; Rust-free 872 passed, 100%; cargo test and clippy -D warnings green; AES/conformance modules 336 passed (FIPS 197 KAT, PRF equality with the Python path, per-round intermediates, NIST, frozen KAT incl. d > 16, backend agreement); logs checkpoint-163734 |
 | 2026-09-26T16:46:28Z | PLAN-00009-STEP-01 | cargo-audit 0.22.2 (CI pin) on rust/Cargo.lock | Pass | exit 0, 27 crate dependencies, no advisories |
+| 2026-09-26T16:57:05Z | PLAN-00009-STEP-02 | cargo test (includes every_supported_radix_is_equivalent_above_the_threshold and the power-of-two chunk sweep); full checkpoint | Pass | cargo test 16 passed; dual gate 1688 passed in 257.40s, 100%, -k rust 576; Rust-free 872 passed, 100%; logs checkpoint-164751 |
+| 2026-09-26T16:57:05Z | PLAN-00009-STEP-02 | just bench with num-bigint 0.5.1, 2026-09-26T16:55:51Z, load 1.50; park rule D15 | Pass | r10 n20000 rust 9657.1 µs vs python 26330.7 (rust <= python) and vs ceiling 10.89 ms (plan 00007 9.9 ms + 10%); r256 n20000 rust 4111.6 µs vs python 51802.1 and vs ceiling 4.51 ms. Full table r10: n6 27.8/4.4, n100 108.4/38.1, n1000 916.8/391.8, n5000 5091.8/2103.7; r256: n100 140.2/50.7, n1000 2503.1/202.7, n5000 12915.5/1019.6. Within noise of 0.4.8 on every row, so README performance figures left unchanged |
 
 ### Completion summary
 
