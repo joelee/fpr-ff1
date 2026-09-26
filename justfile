@@ -84,7 +84,9 @@ bench:
 # Requires a local Rust toolchain; deliberately NOT part of `quality` —
 # the pure-Python path must never depend on Rust being installed.
 rust-test:
-    cargo test --manifest-path rust/Cargo.toml
+    # The fpr-ff1 crate's conformance tests read tests/vectors; in the
+    # repository a missing fixture must fail, never pass vacuously.
+    FPR_FF1_REQUIRE_FIXTURES=1 cargo test --manifest-path rust/Cargo.toml
 
 # Rust hygiene gates: the crate's equivalent of ruff + pyright. Like
 # `rust-test`, deliberately NOT part of `quality` -- the pure-Python path

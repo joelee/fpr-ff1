@@ -6,13 +6,37 @@ name = "fpr-ff1"
 # tests/test_contract.py enforces the versions on every CI leg.
 version = "2.0.0"
 edition = "2021"
-description = "NIST SP 800-38G FF1 format-preserving encryption, exact integer arithmetic, conformance-tested."
+# The minimum supported Rust version (plan 00009 D8): aes 0.9.3 declares
+# 1.89, and the core itself needs 1.88 for slice::as_chunks. A build on
+# 1.88 is refused ("aes@0.9.3 requires rustc 1.89"); CI tests on 1.89.
+rust-version = "1.89"
+description = "NIST SP 800-38G FF1 format-preserving encryption: exact integer arithmetic, conformance-tested against the published vectors."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/joelee/fpr-ff1"
+homepage = "https://github.com/joelee/fpr-ff1"
+documentation = "https://docs.rs/fpr-ff1"
+readme = "README.md"
+keywords = ["ff1", "fpe", "format-preserving", "encryption", "sp800-38g"]
+categories = ["cryptography"]
+# Only the crate's own sources and documents; the fixtures stay in the
+# repository's tests/vectors/ (see src/test_fixtures.rs).
+include = [
+    "/src/**/*.rs",
+    "/tests/**/*.rs",
+    "/Cargo.toml",
+    "/README.md",
+    "/LICENSE-MIT",
+    "/LICENSE-APACHE",
+]
 
 [lib]
 name = "fpr_ff1"
 crate-type = ["rlib"]
+
+[package.metadata.docs.rs]
+# Document the public API only: never the hidden `internal` feature.
+no-default-features = true
+features = []
 
 [features]
 # Exposes the unvalidated core, the PRF and block-cipher seams and the

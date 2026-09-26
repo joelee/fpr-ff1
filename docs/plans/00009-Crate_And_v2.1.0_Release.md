@@ -43,9 +43,9 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1"
 execution_started_at: "2026-09-26T16:28:45Z"
-execution_updated_at: "2026-09-26T18:14:34Z"
+execution_updated_at: "2026-09-26T18:27:32Z"
 execution_completed_at: null
-current_step: "PLAN-00009-STEP-10"
+current_step: "PLAN-00009-STEP-11"
 ---
 
 # Delivery Plan 00009: Crate And v2.1.0 Release
@@ -714,7 +714,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 | PLAN-00009-STEP-07 | completed | 2026-09-26T17:54:52Z | 2026-09-26T17:54:52Z | Commit (this one); probes recorded; checkpoint-174537 | Bijectivity sweeps gated #[ignore]; STEP-11 must run them in CI with --release -- --ignored |
 | PLAN-00009-STEP-08 | completed | 2026-09-26T18:05:36Z | 2026-09-26T18:05:36Z | Commit (this one); divergence probe recorded; checkpoint-175654 | Cases carry exact messages as well as kinds, which is stricter than REQ-08 requires |
 | PLAN-00009-STEP-09 | completed | 2026-09-26T18:14:34Z | 2026-09-26T18:14:34Z | Commit (this one) | — |
-| PLAN-00009-STEP-10 | not-started | — | — | — | — |
+| PLAN-00009-STEP-10 | completed | 2026-09-26T18:27:32Z | 2026-09-26T18:27:32Z | Commit (this one); checkpoint-181841; clean-tree package digest recorded after commit | MSRV 1.89 proven; packaged-test limitation documented |
 | PLAN-00009-STEP-11 | not-started | — | — | — | — |
 | PLAN-00009-STEP-12 | not-started | — | — | — | — |
 | PLAN-00009-STEP-13 | not-started | — | — | — | — |
@@ -749,6 +749,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T18:05:36Z | PLAN-00009-STEP-08 | Case file first: tests/vectors/validation_cases.json, 53 cases written from the Python rules (key lengths, radix, bounds incl. ceilings and min>max, default tweak, alphabet length/duplicates/non-ASCII, lengths by side incl. min_length at radix 2/999/1000, numerals by position incl. radix 65535, call tweaks incl. literal zero maximum, string interface, and six cross-check ordering cases), each with the expected Python class and exact message; one python_only case (released memoryview key) with its reason. tests/test_validation_cases.py passed on both backends before any Rust harness existed | 108 passed (53 x 2 backends + 2 coverage/meta tests); every FF1Error subclass except BackendError covered | Rust harness |
 | 2026-09-26T18:05:36Z | PLAN-00009-STEP-08 | Rust harness rust/fpr-ff1/src/validation_case_tests.rs: builds each case through the public builder, runs the call, maps ErrorKind to the Python class with an exhaustive match (a new variant fails to compile until mapped), compares class and exact message; skips only python_only cases and asserts exactly one such; a second test requires a case for every ErrorKind | 2 passed; 52 cases run, 1 python_only skipped | Divergence probe |
 | 2026-09-26T18:14:34Z | PLAN-00009-STEP-09 | tests/test_contract.py: test_crate_version_matches_project_version parametrized over rust/fpr-ff1/Cargo.toml and rust/fpr-ff1-rust/Cargo.toml; new test_only_the_library_crate_is_publishable (fpr-ff1 publishable, fpr-ff1-rust publish = false, names pinned). Reads TOML only; runs without a Rust toolchain | 3 passed | Red-then-green |
+| 2026-09-26T18:27:32Z | PLAN-00009-STEP-10 | Evidence first: cargo package --list before metadata (16 entries, no licence files); Rust 1.88 and 1.89 installed with rustup (minimal profile). cargo +1.88 build -p fpr-ff1 --locked: refused, 'rustc 1.88.0 is not supported by the following package: aes@0.9.3 requires rustc 1.89'. cargo +1.89 test -p fpr-ff1 --locked: 43 unit + 9 integration + 3 doctests passed | D8 floor proven, not assumed | Metadata |
+| 2026-09-26T18:27:32Z | PLAN-00009-STEP-10 | rust/fpr-ff1/Cargo.toml: rust-version 1.89, description, homepage, documentation (docs.rs), readme, keywords [ff1, fpe, format-preserving, encryption, sp800-38g], categories [cryptography], explicit include list, [package.metadata.docs.rs] with no features (never 'internal'). LICENSE-MIT copied from the repository LICENSE; LICENSE-APACHE is the canonical https://www.apache.org/licenses/LICENSE-2.0.txt verbatim (sha256 cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30). Fixture access moved to src/test_fixtures.rs: outside the repository fixture tests skip; with FPR_FF1_REQUIRE_FIXTURES set they fail; the switch is set in just rust-test and the CI rust-conformance job. .github/scripts/assert_crate_contents.py: cargo package --list checked against an allow-list, forbidden patterns (agent files, docs, .github, target, Python, native libraries, fixtures) and required files; only --allow-dirty accepted as an argument | package list: 19 entries | Probes |
 
 ### Deviations and blockers
 
@@ -759,6 +761,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T17:30:12Z | PLAN-00009-STEP-05 | REQ-05 asks for 'a non-exhaustive enum ... implementing core::error::Error'. Implemented as std::io::Error does: a struct Error implementing core::error::Error and Display, whose kind() returns the non-exhaustive ErrorKind enum with the six Python-mirroring variants plus AlphabetRequired. Messages then match Python's exactly and can be reworded without a breaking change. The validation functions are pub(crate) and called only by tests until STEP-06 builds the public API on them (temporary allow(dead_code) outside test builds, removed at STEP-06) | Same kinds and messages as specified; API shape differs slightly from a bare enum | None; recorded for the re-review |
 | 2026-09-26T17:41:32Z | PLAN-00009-STEP-06 | D10 lists 'its alphabet type' among the types the public API may expose. Kept crate-private instead: the builder takes the alphabet as &str, so no public alphabet type is needed, and a smaller public surface is a smaller semver obligation. The type is named FF1 (not Ff1) for parity with the Python package; clippy raises no upper_case_acronyms warning | Public API is FF1, Builder, Error, ErrorKind only | None; recorded for the re-review |
 | 2026-09-26T17:54:52Z | PLAN-00009-STEP-07 | The plan's evidence item 'a deliberate S-expansion break fails the intermediates' cannot hold: none of the nine NIST samples reaches d > 16, so the NIST intermediates never execute the step 6.iii expansion (the core's own comments say so). Probe 2 confirmed it: the break passes both NIST suites and is caught by the frozen oracle vectors, which include d > 16. The intermediates' teeth were demonstrated with a break they can see (probe 3, b from u) | Evidence reworded, not weakened: each suite shown to catch what it can see | None; recorded for the re-review |
+| 2026-09-26T18:27:32Z | PLAN-00009-STEP-10 | Fixtures cannot be packaged (Cargo includes only files under the crate directory) and copying them would duplicate the conformance evidence, which plans 00008/00009 say to escalate rather than do. Chose the gate the plan offers ('packaged tests gated'), modelled on FPR_FF1_REQUIRE_ORACLE. Limitation: libtest hides a passing test's output, so in the packaged crate the skip notice is not visible and fixture tests pass vacuously unless FPR_FF1_REQUIRE_FIXTURES=1; stated in the crate README's Testing section. In the repository and CI the switch is always set | Downstream packagers running cargo test on the published crate get the API, validation, property and doc tests, not the fixture-backed conformance tests | None; recorded for the re-review |
 
 ### Verification results
 
@@ -781,6 +784,10 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T18:05:36Z | PLAN-00009-STEP-08 | clippy -D warnings in three configurations; fmt; full checkpoint | Pass | 0 warnings each; dual gate 1806 passed in 259.79s, 100%, -k rust 634; Rust-free 932 passed, 100%; logs checkpoint-175654 |
 | 2026-09-26T18:14:34Z | PLAN-00009-STEP-09 | Red-then-green: library crate version drifted to 2.0.1; binding's publish = false removed; each restored | Pass | Drift: 'fpr-ff1/Cargo.toml version 2.0.1 and project version 2.0.0 disagree' (1 failed); publish: 'the PyO3 binding must set publish = false' (1 failed); after restore git diff on rust/ empty and tests/test_contract.py 63 passed |
 | 2026-09-26T18:14:34Z | PLAN-00009-STEP-09 | Full checkpoint | Pass | see checkpoint log of this step (dual gate and Rust-free quality at 100%) |
+| 2026-09-26T18:15:06Z | PLAN-00009-STEP-09 | Full checkpoint (concrete figures for the row above, which only pointed at the log) | Pass | dual gate 1808 passed in 268.84s, TOTAL 345 stmts 120 branches 100%; Rust-free 934 passed, 245 skipped, 100%; logs checkpoint-180619 |
+| 2026-09-26T18:27:32Z | PLAN-00009-STEP-10 | Contents assertion: clean run, then probes (AGENTS.md packaged; a fixture JSON copied into src/), each reverted | Pass | Clean: '19 entries, 0 problems'. AGENTS.md: 'not allowed' + 'forbidden', exit 1. src/kat.json: 'not allowed' + 'forbidden', exit 1. Restored: 0 problems |
+| 2026-09-26T18:27:32Z | PLAN-00009-STEP-10 | cargo package --locked; cargo publish --dry-run --locked; unpacked .crate tests outside the repository with and without FPR_FF1_REQUIRE_FIXTURES (working tree, --allow-dirty) | Pass | Packaged 19 files, 122.8KiB (37.0KiB compressed), verification build green; dry run 'aborting upload due to dry run'. Unpacked package: 43 + 9 + 3 passed without the switch; with it, each fixture test fails naming the missing tests/vectors file |
+| 2026-09-26T18:27:32Z | PLAN-00009-STEP-10 | clippy -D warnings (three configurations); fmt; cargo doc -D warnings; doctests; full checkpoint | Pass | 0 warnings each; docs clean; 3 doctests; dual gate 1808 passed in 277.45s, 100%; Rust-free 934 passed, 100%; logs checkpoint-181841 |
 
 ### Completion summary
 

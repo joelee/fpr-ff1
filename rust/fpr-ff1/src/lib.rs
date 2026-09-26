@@ -25,6 +25,8 @@ mod conformance_tests;
 #[cfg(test)]
 mod property_tests;
 #[cfg(test)]
+mod test_fixtures;
+#[cfg(test)]
 mod tests;
 #[cfg(test)]
 mod validate_tests;

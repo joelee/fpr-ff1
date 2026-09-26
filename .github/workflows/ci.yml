@@ -82,6 +82,9 @@ jobs:
     env:
       # A missing extension is a hard failure here, never a skip.
       FPR_FF1_REQUIRE_RUST_BACKEND: "1"
+      # Likewise a missing tests/vectors fixture for the fpr-ff1 crate's
+      # conformance tests (rust/fpr-ff1/src/test_fixtures.rs).
+      FPR_FF1_REQUIRE_FIXTURES: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0

@@ -16,16 +16,8 @@ use num_traits::One;
 use serde_json::Value;
 
 use crate::engine::{cipher_block_with_key, ff1_traced, TraceRecord};
+use crate::test_fixtures;
 use crate::FF1;
-
-/// Load a fixture from the repository's shared `tests/vectors/` directory.
-fn fixture(name: &str) -> Value {
-    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../tests/vectors/");
-    let text = std::fs::read_to_string(format!("{path}{name}")).unwrap_or_else(|e| {
-        panic!("conformance fixture {path}{name} is required and unreadable: {e}")
-    });
-    serde_json::from_str(&text).expect("fixtures are valid JSON")
-}
 
 /// Decode hex the way Python's `bytes.fromhex` does, skipping ASCII
 /// whitespace: the AES-192 key in the intermediates fixture carries a line
@@ -92,7 +84,9 @@ fn to_numerals(s: &str, alphabet: &str) -> Vec<u16> {
 
 #[test]
 fn nist_samples_encrypt_and_decrypt_through_the_public_api() {
-    let vectors = fixture("nist_ff1_samples.json");
+    let Some(vectors) = test_fixtures::load("nist_ff1_samples.json") else {
+        return;
+    };
     let vectors = vectors["vectors"].as_array().expect("vectors");
     assert_eq!(vectors.len(), 9, "all nine published samples");
     for v in vectors {
@@ -146,7 +140,9 @@ fn assert_round(rec: &TraceRecord, want: &Value, name: &str) {
 fn nist_per_round_intermediates() {
     // Two compensating bugs can pass an output test; they cannot pass this
     // one (AGENTS.md tests section 2).
-    let vectors = fixture("nist_ff1_intermediates.json");
+    let Some(vectors) = test_fixtures::load("nist_ff1_intermediates.json") else {
+        return;
+    };
     let vectors = vectors["vectors"].as_array().expect("vectors");
     assert_eq!(vectors.len(), 9);
     for v in vectors {
@@ -181,7 +177,9 @@ fn nist_per_round_intermediates() {
 
 #[test]
 fn fips197_aes_known_answer_vectors() {
-    let vectors = fixture("aes_kat_fips197.json");
+    let Some(vectors) = test_fixtures::load("aes_kat_fips197.json") else {
+        return;
+    };
     let vectors = vectors["vectors"].as_array().expect("vectors");
     assert_eq!(vectors.len(), 3, "AES-128, -192 and -256");
     for v in vectors {
@@ -198,7 +196,9 @@ fn fips197_aes_known_answer_vectors() {
 
 #[test]
 fn frozen_oracle_vectors_through_the_public_api() {
-    let vectors = fixture("oracle_kat_frozen.json");
+    let Some(vectors) = test_fixtures::load("oracle_kat_frozen.json") else {
+        return;
+    };
     let vectors = vectors["vectors"].as_array().expect("vectors");
     assert!(
         vectors.len() >= 40,

@@ -82,6 +82,15 @@ assert_eq!(err.to_string(), "plaintext length 3 below minimum 6 for radix 10");
 - **No key zeroization.** Key material is held in ordinary heap memory and is not wiped.
 - **No key management.** Generating, storing, deriving and rotating keys is the caller's job.
 
+## Testing
+
+The conformance tests read the shared fixtures in the repository's `tests/vectors/` directory
+-- the NIST samples and per-round intermediates, the FIPS 197 AES vectors, the frozen oracle
+vectors and the validation cases -- which a published crate cannot contain. Run them from a
+checkout of the repository. In the packaged crate those tests skip, and because Rust's test
+harness hides a passing test's output, the skip is not visible: set `FPR_FF1_REQUIRE_FIXTURES=1`
+to turn a missing fixture into a failure, as the repository's own runs and CI always do.
+
 ## Licence
 
 Licensed under either of the Apache License, Version 2.0, or the MIT licence, at your option.
