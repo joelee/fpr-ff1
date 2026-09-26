@@ -11,10 +11,10 @@ tags:
   - release
 type: delivery-plan
 plan_id: "PLAN-00009"
-plan_status: draft
+plan_status: approved
 plan_kind: superseding
 created_at: "2026-09-25T19:14:08Z"
-approved_at: null
+approved_at: "2026-09-26T16:25:46Z"
 planner_agent: claude-code
 planner_model: "anthropic/claude-opus-5-5"
 triggered_by: user
@@ -32,7 +32,7 @@ requirements_count: 14
 steps_count: 17
 acceptance_criteria_count: 17
 blocking_decisions: 0
-build_ready: false
+build_ready: true
 web_research_used: true
 confidence: medium
 
@@ -50,8 +50,8 @@ current_step: null
 
 # Delivery Plan 00009: Crate And v2.1.0 Release
 
-> [!abstract] Plan status: `draft`
-> Publish the Rust core as the `fpr-ff1` crate on crates.io, in version lock-step with a `2.1.0` release on PyPI, after first taking the held `aes` and `num-bigint` upgrades as separately gated changes. Supersedes approved plan 00008 to correct its MSRV, keep third-party types out of the crate's public API, bootstrap the first crates.io publication correctly, and fix the three deferred findings from review 00011. No decision is open; the plan awaits explicit user approval.
+> [!abstract] Plan status: `approved`
+> Publish the Rust core as the `fpr-ff1` crate on crates.io, in version lock-step with a `2.1.0` release on PyPI, after first taking the held `aes` and `num-bigint` upgrades as separately gated changes. Supersedes approved plan 00008 to correct its MSRV, keep third-party types out of the crate's public API, bootstrap the first crates.io publication correctly, and fix the three deferred findings from review 00011. No decision is open; approved by the user on 2026-09-26 and Builder-ready.
 
 ## 1. Objective and outcome
 
@@ -756,6 +756,7 @@ None
 
 | Timestamp (UTC) | Plan status | Change | Reason | Requested/approved by |
 |---|---|---|---|---|
+| 2026-09-26T16:25:46Z | approved | Plan approved: `plan_status: approved`, `build_ready: true`, `approved_at` set. Planning content frozen; only the Builder-maintained front matter and §17 may change from here. Start conditions in §16 are met: plan 00007's closeout (PR #13) and Dependabot #10 and #11 are merged into `main`, and `release/v2.1` branches from `main` at `62c6115`. | Explicit user approval ("plan 00009 commited and approved") after the draft was committed in 88bd449 | User |
 | 2026-09-25T19:14:08Z | draft | Initial draft written at `docs/plans/00009-Crate_And_v2.1.0_Release.md`, superseding approved plan 00008 (never started). Changes from 00008: MSRV 1.87 → 1.89 (code needs 1.88 for `as_chunks`, review 00013 MED-01; `aes` 0.9.3 declares 1.89); no third-party type in the crate's public API, internals behind a hidden `internal` feature; first crates.io publication bootstrapped manually with a scoped, revoked token because Trusted Publishing cannot create a crate, then `2.1.0` by CI; Dependabot #7 taken as two gated upgrades before the split, with a park rule for `num-bigint`; review 00011's three Lows fixed; release version `2.1.0` preceded by `2.1.0rc1` on both registries, each through a `main` merge commit. Plan 00008's decisions D1 to D6 and D9 and its requirements carried forward. | User request on 2026-09-25 ("the word") to write the superseding plan proposed after `v2.0.0` shipped | User |
 
 ## 19. External references
