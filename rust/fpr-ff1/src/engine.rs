@@ -141,11 +141,13 @@ pub(crate) fn cipher_block(cipher: &Aes, block: &[u8; 16]) -> Result<[u8; 16], S
 ///
 /// Used only by the test-only `_test_prf` binding and by `tests.rs`; the
 /// production path builds the schedule once in `ff1_impl` instead.
+#[cfg(any(test, feature = "internal"))]
 pub fn prf_with_key(key: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
     prf(&Aes::new(key)?, data)
 }
 
 /// `cipher_block` from a raw key. Same status as `prf_with_key`.
+#[cfg(feature = "internal")]
 pub fn cipher_block_with_key(key: &[u8], block: &[u8; 16]) -> Result<[u8; 16], String> {
     cipher_block(&Aes::new(key)?, block)
 }
@@ -372,6 +374,9 @@ pub fn str_radix(value: &BigUint, radix: u32, length: usize) -> Vec<u16> {
 /// ``y`` and ``c`` travel as big-endian byte strings (arbitrary-precision
 /// integers have no direct pyo3 mapping); the Python-side bridge
 /// normalizes them to ``int`` so both backends' traces share one shape.
+// Built by every call, but its fields are read only by the trace hook,
+// which exists only behind the `internal` feature.
+#[cfg_attr(not(feature = "internal"), allow(dead_code))]
 pub struct TraceRecord {
     pub i: u8,
     pub u: usize,
@@ -406,6 +411,7 @@ pub fn ff1(
 }
 
 /// The traced core: same loop, recording each round (test-only, STEP-11).
+#[cfg(feature = "internal")]
 pub fn ff1_traced(
     key: &[u8],
     radix: u32,

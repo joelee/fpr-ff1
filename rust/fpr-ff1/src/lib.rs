@@ -1,27 +1,24 @@
-//! NIST SP 800-38G FF1 format-preserving encryption.
+#![doc = include_str!("../README.md")]
 //!
-//! The FF1 core ported line for line from the pure-Python reference in
-//! `src/fpr_ff1/_ff1.py` of the `fpr-ff1` project, which remains the
-//! reference implementation. The public API, with its own validation, is
-//! added by plan 00009 STEP-05 and STEP-06; until then this crate only
-//! carries the core for the PyO3 binding.
+//! ## Relationship to the Python package
+//!
+//! Validation matches the `fpr-ff1` Python package rule for rule, in the same
+//! order and with the same messages, so an input either both accept or both
+//! reject in the same way. [`ErrorKind`] maps one to one onto the Python
+//! exception classes.
 //!
 //! No type from `num-bigint`, `aes` or `cipher` appears in the public API
 //! (plan 00009 D10), so their major versions never become this crate's.
 
-// The core stays private: every item in it is unreachable from outside the
-// crate unless re-exported below. The allow lifts once STEP-06's public API
-// calls into it; until then only the `internal` feature and the tests do.
-#[cfg_attr(not(feature = "internal"), allow(dead_code))]
+// The FF1 core stays private: nothing in it is reachable from outside the
+// crate except through the public API below or the `internal` feature.
 mod engine;
-
 mod error;
-// Allowed until STEP-06's public API calls the validation layer; the tests
-// exercise it meanwhile.
-#[cfg_attr(not(test), allow(dead_code))]
+mod ff1;
 mod validate;
 
 pub use error::{Error, ErrorKind};
+pub use ff1::{Builder, FF1};
 
 #[cfg(test)]
 mod tests;
