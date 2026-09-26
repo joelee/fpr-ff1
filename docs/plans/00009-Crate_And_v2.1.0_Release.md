@@ -43,9 +43,9 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1"
 execution_started_at: "2026-09-26T16:28:45Z"
-execution_updated_at: "2026-09-26T18:05:36Z"
+execution_updated_at: "2026-09-26T18:14:34Z"
 execution_completed_at: null
-current_step: "PLAN-00009-STEP-09"
+current_step: "PLAN-00009-STEP-10"
 ---
 
 # Delivery Plan 00009: Crate And v2.1.0 Release
@@ -713,7 +713,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 | PLAN-00009-STEP-06 | completed | 2026-09-26T17:41:32Z | 2026-09-26T17:41:32Z | Commit (this one); checkpoint-173259 | Alphabet kept private (see Deviations) |
 | PLAN-00009-STEP-07 | completed | 2026-09-26T17:54:52Z | 2026-09-26T17:54:52Z | Commit (this one); probes recorded; checkpoint-174537 | Bijectivity sweeps gated #[ignore]; STEP-11 must run them in CI with --release -- --ignored |
 | PLAN-00009-STEP-08 | completed | 2026-09-26T18:05:36Z | 2026-09-26T18:05:36Z | Commit (this one); divergence probe recorded; checkpoint-175654 | Cases carry exact messages as well as kinds, which is stricter than REQ-08 requires |
-| PLAN-00009-STEP-09 | not-started | — | — | — | — |
+| PLAN-00009-STEP-09 | completed | 2026-09-26T18:14:34Z | 2026-09-26T18:14:34Z | Commit (this one) | — |
 | PLAN-00009-STEP-10 | not-started | — | — | — | — |
 | PLAN-00009-STEP-11 | not-started | — | — | — | — |
 | PLAN-00009-STEP-12 | not-started | — | — | — | — |
@@ -748,6 +748,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T17:54:52Z | PLAN-00009-STEP-07 | Two defects in the new test helpers, fixed before any result was relied on: (1) the AES-192 key in nist_ff1_intermediates.json carries an embedded line break from its transcription; the Python suite reads it with bytes.fromhex, which skips whitespace, so the Rust decoder now skips ASCII whitespace the same way (the fixture is not edited); (2) the frozen radix-62 vectors use a non-ASCII alphabet starting at U+10000, and the test's numeral mapping used str::find byte offsets; now by character position. The crate's own alphabet handling was already correct: both public-API assertions for those vectors passed before the helper failed | No change to fixtures or to crate code | Red probes |
 | 2026-09-26T18:05:36Z | PLAN-00009-STEP-08 | Case file first: tests/vectors/validation_cases.json, 53 cases written from the Python rules (key lengths, radix, bounds incl. ceilings and min>max, default tweak, alphabet length/duplicates/non-ASCII, lengths by side incl. min_length at radix 2/999/1000, numerals by position incl. radix 65535, call tweaks incl. literal zero maximum, string interface, and six cross-check ordering cases), each with the expected Python class and exact message; one python_only case (released memoryview key) with its reason. tests/test_validation_cases.py passed on both backends before any Rust harness existed | 108 passed (53 x 2 backends + 2 coverage/meta tests); every FF1Error subclass except BackendError covered | Rust harness |
 | 2026-09-26T18:05:36Z | PLAN-00009-STEP-08 | Rust harness rust/fpr-ff1/src/validation_case_tests.rs: builds each case through the public builder, runs the call, maps ErrorKind to the Python class with an exhaustive match (a new variant fails to compile until mapped), compares class and exact message; skips only python_only cases and asserts exactly one such; a second test requires a case for every ErrorKind | 2 passed; 52 cases run, 1 python_only skipped | Divergence probe |
+| 2026-09-26T18:14:34Z | PLAN-00009-STEP-09 | tests/test_contract.py: test_crate_version_matches_project_version parametrized over rust/fpr-ff1/Cargo.toml and rust/fpr-ff1-rust/Cargo.toml; new test_only_the_library_crate_is_publishable (fpr-ff1 publishable, fpr-ff1-rust publish = false, names pinned). Reads TOML only; runs without a Rust toolchain | 3 passed | Red-then-green |
 
 ### Deviations and blockers
 
@@ -778,6 +779,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T17:54:52Z | PLAN-00009-STEP-07 | clippy -D warnings in three configurations; fmt; cargo doc -D warnings; cargo-audit on the lock with the new dev-dependencies; full checkpoint | Pass | 0 warnings each (after replacing '% 2 == 0' with is_multiple_of in a test helper); docs clean; audit exit 0, 52 crate dependencies; dual gate 1698 passed, 100%; Rust-free 877 passed, 100%; logs checkpoint-174537 |
 | 2026-09-26T18:05:36Z | PLAN-00009-STEP-08 | Divergence probe (not committed): Rust validate::key accepts 17 bytes | Pass (fails exactly one suite) | Rust: every_shared_case_has_the_same_outcome FAILED 'key-17: accepted, expected KeyLengthError'; Python tests/test_validation_cases.py at the same moment: 108 passed. validate.rs restored byte-identical; Rust harness 2 passed |
 | 2026-09-26T18:05:36Z | PLAN-00009-STEP-08 | clippy -D warnings in three configurations; fmt; full checkpoint | Pass | 0 warnings each; dual gate 1806 passed in 259.79s, 100%, -k rust 634; Rust-free 932 passed, 100%; logs checkpoint-175654 |
+| 2026-09-26T18:14:34Z | PLAN-00009-STEP-09 | Red-then-green: library crate version drifted to 2.0.1; binding's publish = false removed; each restored | Pass | Drift: 'fpr-ff1/Cargo.toml version 2.0.1 and project version 2.0.0 disagree' (1 failed); publish: 'the PyO3 binding must set publish = false' (1 failed); after restore git diff on rust/ empty and tests/test_contract.py 63 passed |
+| 2026-09-26T18:14:34Z | PLAN-00009-STEP-09 | Full checkpoint | Pass | see checkpoint log of this step (dual gate and Rust-free quality at 100%) |
 
 ### Completion summary
 
