@@ -9,6 +9,56 @@ expanding the accepted domain without changing existing behaviour is a minor ver
 
 ## [Unreleased]
 
+## [2.1.0rc1] — 2026-09-26
+
+Release candidate for **the FF1 core as a Rust crate**, `fpr-ff1` on crates.io, published in
+version lock-step with this package. **The Python package's accepted inputs, ciphertext, public API
+and default backend are unchanged**; the only behaviour change narrows one already-rejected input to
+the documented exception (below). A minor version: the crate is a new artifact, not a change to
+this one.
+
+### Added
+
+- **The `fpr-ff1` Rust crate** (`rust/fpr-ff1`). The same FF1 core the `backend="rust"` path uses,
+  with its own public API for Rust callers -- `FF1::new`, `FF1::builder` with an alphabet, default
+  tweak and tweak bounds, the numeral and string interfaces, `min_length` and `max_length` -- and
+  its own validation, matching this package's rules, order and messages. Errors are an `Error` with
+  a non-exhaustive `ErrorKind`, one kind per Python exception class. No type from `num-bigint`,
+  `aes` or `pyo3` appears in its public API. Dual-licensed MIT OR Apache-2.0; minimum Rust 1.89.
+- **The crate's own conformance evidence**, from the same `tests/vectors` fixtures: the NIST
+  samples in both directions, every per-round intermediate, the FIPS 197 AES vectors, the frozen
+  oracle vectors, an exact-arithmetic float scan, property tests and exhaustive bijectivity.
+- **Shared validation cases** (`tests/vectors/validation_cases.json`), run by both test suites,
+  which must agree on the outcome and exact message of every case.
+- **CI for the crate**: its tests on Linux, macOS and Windows and on Rust 1.89, docs built with
+  warnings denied, a package-contents check, a publish dry run and, once a version is published,
+  `cargo-semver-checks`. Final releases publish the crate from `publish.yml` by crates.io Trusted
+  Publishing, after PyPI.
+
+### Changed
+
+- The compiled backend now uses `aes` 0.9 (with `cipher` 0.5 and `crypto-common` 0.2) and
+  `num-bigint` 0.5. Output is unchanged: the FIPS 197 known-answer vectors, PRF equality with the
+  Python path, the per-round intermediates and the full dual-backend suite pass bit-exact, and
+  long-input performance is within measurement noise of 2.0.0.
+
+### Fixed
+
+- A released `memoryview` passed as the key, the default tweak or a per-call tweak now raises
+  `KeyLengthError` or `TweakLengthError` instead of Python's bare `ValueError`, so every rejection
+  stays inside the documented `FF1Error` hierarchy. The message names the argument, not its
+  contents.
+- Two tests could not fail when their property broke, and now can. The tweak-sensitivity property
+  test skipped on a collision, so an implementation that ignored the tweak skipped instead of
+  failing. The concurrency tests compared only each thread's last result, so a wrong result
+  mid-loop was overwritten and missed.
+
+### Unchanged
+
+- The Python package's public API, accepted inputs, produced ciphertext, default backend, thread
+  safety and single runtime dependency (`cryptography`). The platform wheels ship the same
+  `fpr_ff1._rs` module with the same entry points.
+
 ## [2.0.0] — 2026-09-25
 
 **The optional accelerated backend, stable.** The pure-Python implementation remains the reference
@@ -428,7 +478,8 @@ requiring a major version.
 
 <!-- Keep a Changelog link reference definitions (review 00003 B7): without
      these, the bracketed version headings render as literal brackets. -->
-[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v2.1.0rc1...HEAD
+[2.1.0rc1]: https://github.com/joelee/fpr-ff1/compare/v2.0.0...v2.1.0rc1
 [2.0.0]: https://github.com/joelee/fpr-ff1/compare/v2.0.0rc2...v2.0.0
 [2.0.0rc2]: https://github.com/joelee/fpr-ff1/compare/v2.0.0rc1...v2.0.0rc2
 [2.0.0rc1]: https://github.com/joelee/fpr-ff1/compare/v1.1.0...v2.0.0rc1

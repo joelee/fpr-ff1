@@ -73,13 +73,16 @@ def test_shared_instance_concurrent_encryption_matches_serial(ff1_factory: Any) 
     plaintexts = [[(thread_index * 17 + i) % 10 for i in range(60)] for thread_index in range(8)]
     expected = [ff1.encrypt_numerals(p) for p in plaintexts]
 
-    results: list[list[int]] = [[] for _ in plaintexts]
+    # Every iteration's result is kept: a single wrong ciphertext mid-loop
+    # must fail the test, not be overwritten by a later correct one (review
+    # 00011 LOW-03).
+    results: list[list[list[int]]] = [[] for _ in plaintexts]
     errors: list[BaseException] = []
 
     def worker(index: int) -> None:
         try:
             for _ in range(20):
-                results[index] = ff1.encrypt_numerals(plaintexts[index])
+                results[index].append(ff1.encrypt_numerals(plaintexts[index]))
         except BaseException as exc:
             errors.append(exc)
 
@@ -90,7 +93,12 @@ def test_shared_instance_concurrent_encryption_matches_serial(ff1_factory: Any) 
         thread.join()
 
     assert not errors, f"concurrent encryption raised: {errors}"
-    assert results == expected, "concurrent encryption diverged from serial results"
+    for index, runs in enumerate(results):
+        assert len(runs) == 20
+        for iteration, ciphertext in enumerate(runs):
+            assert ciphertext == expected[index], (
+                f"thread {index} iteration {iteration} diverged from the serial result"
+            )
 
 
 def test_shared_instance_concurrent_mixed_operations(ff1_factory: Any) -> None:
@@ -104,15 +112,16 @@ def test_shared_instance_concurrent_mixed_operations(ff1_factory: Any) -> None:
     plaintexts = [[(thread_index * 13 + i) % 10 for i in range(60)] for thread_index in range(4)]
     ciphertexts = [ff1.encrypt_numerals(p) for p in plaintexts]
 
-    decrypted: list[list[int]] = [[] for _ in plaintexts]
-    encrypted: list[list[int]] = [[] for _ in plaintexts]
+    # Every iteration is kept and checked; see the test above.
+    decrypted: list[list[list[int]]] = [[] for _ in plaintexts]
+    encrypted: list[list[list[int]]] = [[] for _ in plaintexts]
     errors: list[BaseException] = []
 
     def worker(index: int) -> None:
         try:
             for _ in range(20):
-                decrypted[index] = ff1.decrypt_numerals(ciphertexts[index])
-                encrypted[index] = ff1.encrypt_numerals(plaintexts[index])
+                decrypted[index].append(ff1.decrypt_numerals(ciphertexts[index]))
+                encrypted[index].append(ff1.encrypt_numerals(plaintexts[index]))
         except BaseException as exc:
             errors.append(exc)
 
@@ -123,8 +132,9 @@ def test_shared_instance_concurrent_mixed_operations(ff1_factory: Any) -> None:
         thread.join()
 
     assert not errors, f"concurrent mixed operations raised: {errors}"
-    assert decrypted == plaintexts
-    assert encrypted == ciphertexts
+    for index in range(len(plaintexts)):
+        assert decrypted[index] == [plaintexts[index]] * 20, f"thread {index} decrypt diverged"
+        assert encrypted[index] == [ciphertexts[index]] * 20, f"thread {index} encrypt diverged"
 
 
 def test_expansion_path_still_reaches_d_over_16(ff1_factory: Any, encrypt_traced: Any) -> None:

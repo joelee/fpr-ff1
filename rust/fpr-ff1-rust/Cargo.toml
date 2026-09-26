@@ -1,15 +1,15 @@
 [package]
 name = "fpr-ff1-rust"
-# Kept in lock-step with [project].version in pyproject.toml, in semver
-# form: Cargo cannot parse the PEP 440 spelling ("2.0.0rc1" fails with
-# "unexpected character 'r' after patch version number"), so a pre-release
-# is written 2.0.0-rc1 here and 2.0.0rc1 there. packaging.version.Version
-# reads both as the same release, and
+# Kept in lock-step with [project].version in pyproject.toml and with the
+# fpr-ff1 crate, in semver form: Cargo cannot parse the PEP 440 spelling
+# ("2.0.0rc1" fails with "unexpected character 'r' after patch version
+# number"), so a pre-release is written 2.0.0-rc1 here and 2.0.0rc1 there.
+# packaging.version.Version reads both as the same release, and
 # tests/test_contract.py::test_crate_version_matches_project_version
 # enforces the pair on every CI leg.
-version = "2.0.0"
+version = "2.1.0-rc1"
 edition = "2021"
-description = "Opt-in Rust accelerated backend for the fpr-ff1 FF1 library (SP 800-38G Algorithm 7)."
+description = "PyO3 binding of the fpr-ff1 FF1 core, shipped in the fpr-ff1 platform wheels as fpr_ff1._rs."
 license = "MIT"
 publish = false
 
@@ -19,14 +19,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 pyo3 = { version = "0.29", features = ["extension-module"] }
-num-bigint = "0.4"
-num-traits = "0.2"
-num-integer = "0.1"
-# AES core for the Algorithm 6 PRF and the step 6.iii expansion blocks
-# (plan 00003 decision D7, RustCrypto family). Validated against the NIST
-# FIPS 197 Appendix C KAT vectors and the Python path's PRF output in
-# STEP-09 (tests/test_rust_aes_validation.py) before any FF1-level
-# conformance is trusted on it. The CBC-MAC itself is a six-line XOR chain
-# over these single-block primitives -- more spec-literal than the `cbc`
-# wrapper, which would need one concrete instantiation per key size anyway.
-aes = "0.8"
+# The core, with its unvalidated entry points: the Python FF1 class validates
+# every input before calling in (plan 00003 decision D4).
+fpr-ff1 = { path = "../fpr-ff1", features = ["internal"] }

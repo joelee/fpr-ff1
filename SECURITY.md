@@ -10,7 +10,11 @@ Report privately through **GitHub private vulnerability reporting** —
 An email disclosure channel may be added once it has a published PGP key; until then, GitHub
 private reporting is the only accepted channel.
 
-Please include the version, the radix, key size and input length involved, and a reproducer if
+This policy covers both artifacts: the `fpr-ff1` Python package on PyPI and the `fpr-ff1` Rust
+crate on crates.io, which share one FF1 core and one version number.
+
+Please include the version, which artifact (and for the Python package, which backend), the
+radix, key size and input length involved, and a reproducer if
 you have one. A correctness bug that produces wrong ciphertext counts as a security issue here:
 non-conformant output can render data undecryptable by a conformant implementation.
 
@@ -22,6 +26,8 @@ warranted, disclosure will be coordinated with you.
 The latest `2.x` release receives bug and security fixes. The `1.1.x` line receives security
 fixes only, until `2.1.0` ships or until 2027-03-25, whichever is later. `1.0.x`
 is no longer supported: upgrade to `1.1.x` or `2.0.x` (both produce identical ciphertext).
+The Rust crate's first release is `2.1.0`; from then on it follows the same table, version for
+version.
 
 | Version | Supported |
 |---|---|
@@ -54,7 +60,8 @@ Out of scope:
 
 **Key material is not zeroized.** Python `bytes` are immutable and the garbage collector may copy
 them, so a key cannot be reliably erased from process memory. This package makes no attempt to do
-so and no claim that it does. If your threat model includes memory disclosure, keep key material
+so and no claim that it does. The Rust crate makes no zeroization claim either: it keeps the key
+in ordinary heap memory and does not wipe it. If your threat model includes memory disclosure, keep key material
 outside the Python heap.
 
 **No FIPS validation.** Passing the published NIST sample vectors is conformance evidence, not

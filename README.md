@@ -211,6 +211,7 @@ than the ceiling punishing users of new Pythons.
 | **1.0** | **Pure Python.** Conformance, a stable API, and a single runtime dependency (`cryptography`). No compiled extension, no optional backends — one code path, and it is the one the vectors test. |
 | **1.1** | **Pure-Python performance.** Subquadratic base conversion and an O(n) power-of-two fast path; ciphertext bit-identical to 1.0.0. Still one code path, still one dependency. |
 | **2.0** | **Optional accelerated backend.** An opt-in faster path for high-throughput callers, with the pure-Python implementation retained as the reference and the default. Shipped in `2.0.0`. |
+| **2.1** | **The core as a Rust crate.** The same FF1 implementation published on crates.io as `fpr-ff1`, with its own validation, for Rust callers. Version numbers stay in lock-step with PyPI. |
 
 The 2.0 backend is opt-in and additive: the pure-Python path is unchanged and remains the default,
 so existing callers are unaffected. The accelerated path is only worth having once the reference
@@ -297,6 +298,24 @@ and the shape of your data, so measure your own inputs with `just bench` before 
 
 The two backends are complementary, not a replacement: the pure-Python path remains the reference
 and the default, needs no compiled extension, and produces bit-identical ciphertext.
+
+## Rust
+
+The compiled core is also published on crates.io as the
+[`fpr-ff1`](https://crates.io/crates/fpr-ff1) crate, from `2.1.0`, for callers writing Rust:
+
+```rust
+use fpr_ff1::FF1;
+
+let ff1 = FF1::builder(&key, 10).alphabet("0123456789").build()?;
+let ciphertext = ff1.encrypt("0123456789", None)?;
+```
+
+It produces the same ciphertext as this package and validates inputs with the same rules, in the
+same order and with the same messages, proven by a case file both test suites share
+(`tests/vectors/validation_cases.json`). The pure-Python implementation remains the reference. The
+crate's version always matches this package's, so `fpr-ff1` 2.1.0 on crates.io and on PyPI are
+the same release. It needs Rust 1.89 or newer. See [`rust/fpr-ff1/README.md`](rust/fpr-ff1/README.md).
 
 ## API
 
@@ -497,9 +516,13 @@ just secrets  # gitleaks scan (must be installed locally)
 - `docs/backlog.md` — active and completed work
 - `CHANGELOG.md` — release history, including behaviour changes that affect accepted inputs
 - `SECURITY.md` — disclosure process and known limitations
+- `rust/fpr-ff1/README.md` — the Rust crate: usage, limits, and how its tests use the shared fixtures
 - `CONTRIBUTING.md` — how to contribute, including the vector-provenance rules
 - `CODE_OF_CONDUCT.md` — community standards
 
 ## License
 
-MIT
+The Python package is MIT-licensed (`LICENSE`). The Rust crate's sources in `rust/fpr-ff1/` are
+dual-licensed under MIT or Apache-2.0, at your option (`rust/fpr-ff1/LICENSE-MIT`,
+`rust/fpr-ff1/LICENSE-APACHE`), following the Rust ecosystem's convention. Those sources are also
+compiled into this package's platform wheels, where the MIT option applies.

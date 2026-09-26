@@ -34,6 +34,9 @@ just bench           # reproducible timing/throughput tables (benchmarks/timing.
 just rust-test       # Rust core unit tests (cargo test)
 just rust-lint       # cargo fmt --check + cargo clippy --all-targets -- -D warnings
 just backend-dev     # build the compiled backend into src/fpr_ff1/_rs.so (dev loop)
+just crate-test      # the fpr-ff1 crate's tests, plus the exhaustive bijectivity sweeps
+just crate-msrv      # the crate on Rust 1.89 (rustup toolchain install 1.89 --profile minimal)
+just crate-package   # crate docs with warnings denied, package contents, publish dry run
 just ci              # sync + quality + build + secrets
 ```
 
@@ -92,7 +95,7 @@ most radices.
 ### The compiled backend
 
 The optional `backend="rust"` path is a PyO3 extension (`fpr_ff1._rs`) built from
-`rust/fpr-ff1-rust`. The conformance suite is parameterised over both backends via the
+`rust/fpr-ff1-rust`, a thin binding over the core in the `rust/fpr-ff1` crate. The conformance suite is parameterised over both backends via the
 `backend`/`ff1_factory`/`encrypt_traced` fixtures in `tests/conftest.py`; the rust-parameterised
 tests skip locally when the extension is not built and fail hard when
 `FPR_FF1_REQUIRE_RUST_BACKEND=1` (the same contract as the oracle).
@@ -102,7 +105,8 @@ tests skip locally when the extension is not built and fail hard when
   the artifact per platform and CPython requires a per-platform import suffix, so the recipe
   copies `lib_fpr_ff1_rs.so` → `_rs.so` on Linux, `lib_fpr_ff1_rs.dylib` → `_rs.so` on macOS, and
   `_fpr_ff1_rs.dll` → `_rs.pyd` on Windows.
-- `just rust-test` runs the Rust unit tests (`cargo test`).
+- `just rust-test` runs the Rust tests for the whole workspace (`cargo test`), with
+  `FPR_FF1_REQUIRE_FIXTURES=1` so the crate's fixture-backed tests fail rather than skip.
 - `just rust-lint` runs the Rust hygiene gates: `cargo fmt --check` and `cargo clippy
   --all-targets -- -D warnings`. Like `rust-test` it is deliberately outside `just quality`, which
   stays Rust-free; CI's `rust-conformance` job runs both commands on every push.
@@ -224,10 +228,31 @@ sync). The CI pin is authoritative; `just secrets` warns if a locally installed 
 
 Releases follow Semantic Versioning. Any change to accepted inputs or produced outputs is a major version bump.
 
-**Bump the version in two files together:** `pyproject.toml` `[project].version` and
-`rust/fpr-ff1-rust/Cargo.toml` `[package].version`. Cargo cannot parse PEP 440 pre-release
+**Bump the version in three files together:** `pyproject.toml` `[project].version`,
+`rust/fpr-ff1/Cargo.toml` and `rust/fpr-ff1-rust/Cargo.toml` `[package].version`. Cargo cannot parse PEP 440 pre-release
 spellings, so the crate carries the semver equivalent — `2.0.0-rc1` for `2.0.0rc1` — and
 `tests/test_contract.py::test_crate_version_matches_project_version` compares them after
 normalising with `packaging.version.Version`. That test reads both manifests without importing the
 extension, so it runs on every CI leg. The Git tag follows `pyproject.toml` exactly (`v2.0.0rc1`,
 no hyphen); `publish.yml` verifies it before publishing.
+
+### The Rust crate
+
+CI's `crate-test`, `crate-msrv` and `crate-package` jobs gate the `fpr-ff1` crate: its tests on
+Linux, macOS and Windows plus the exhaustive sweeps, its tests on Rust 1.89, and its docs, package
+contents (`.github/scripts/assert_crate_contents.py`), publish dry run and, once a version exists,
+`cargo-semver-checks` against it. `crate-package` uploads the exact `.crate` it built; `cargo
+package` is reproducible, and the digest differs between commits only through the commit hash in
+`.cargo_vcs_info.json`.
+
+Publication differs from PyPI in one way. crates.io Trusted Publishing cannot create a crate, so:
+
+1. **The first publication is manual** (plan 00009 D11): the owner downloads the `.crate` built by
+   CI at the tagged commit, checks its SHA-256, and runs `cargo publish` with a crates.io token
+   scoped to publishing new crates, then revokes the token.
+2. **The owner then adds the Trusted Publisher** on crates.io: owner `joelee`, repository
+   `fpr-ff1`, workflow `publish.yml`, environment `crates-io`.
+3. **Every later final release** is published by `publish.yml`'s `publish-crate` job, after PyPI
+   succeeds, with a short-lived token from `rust-lang/crates-io-auth-action`. Pre-releases skip it.
+
+A published crate version can be yanked but never replaced; recovery is a new patch version.

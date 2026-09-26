@@ -85,7 +85,7 @@ These are the failure modes that produce **plausible but wrong output** — ever
 - The PRF is CBC-MAC with a zero IV over 16-byte-aligned input.
 - Cipher contexts: **never cache any encryptor on the instance** — instances are thread-safe and a live context would be shared mutable state. Create the ECB encryptor locally inside the `d > 16` expansion branch (zero cost when `d <= 16`); the PRF already builds a fresh CBC encryptor per call (it carries chaining state).
 - Cite spec steps in internal docstrings, e.g. "SP 800-38G Algorithm 7, step 6.iii".
-- The Rust core (`rust/fpr-ff1-rust/src/lib.rs`) mirrors `_ff1.py` step for step, with the same spec-step comments. **A change to one core is a change to both**, verified by the dual-backend suite. Every gotcha above applies to the Rust port identically — it has the same `b`-from-`v`, same exact-integer bit length, same padding, same three encrypt/decrypt differences.
+- The Rust core (`rust/fpr-ff1/src/engine.rs`, in the `fpr-ff1` crate; the PyO3 binding is `rust/fpr-ff1-rust/src/lib.rs`) mirrors `_ff1.py` step for step, with the same spec-step comments. **A change to one core is a change to both**, verified by the dual-backend suite. Every gotcha above applies to the Rust port identically — it has the same `b`-from-`v`, same exact-integer bit length, same padding, same three encrypt/decrypt differences.
 
 ## Local development
 
@@ -100,8 +100,9 @@ The optional compiled backend has its own loop, which requires a local Rust tool
 - `just backend-dev` — build the cdylib in release mode and copy it into `src/fpr_ff1/` as the importable `fpr_ff1._rs`.
 - `just rust-test` — `cargo test` for the Rust core's unit tests.
 - `just rust-lint` — `cargo fmt --check` plus `cargo clippy --all-targets -- -D warnings`.
+- `just crate-test`, `just crate-msrv`, `just crate-package` — the `fpr-ff1` crate's CI jobs locally: its tests with the exhaustive sweeps, its tests on Rust 1.89 (the declared `rust-version`), and docs, package contents and a publish dry run.
 
-**`just quality` stays Rust-free, deliberately.** The pure-Python path must never depend on a Rust toolchain being installed, so none of the three recipes above is part of it. CI's `rust-conformance` job is what runs them on every push, along with the full suite under `FPR_FF1_REQUIRE_RUST_BACKEND=1`.
+**`just quality` stays Rust-free, deliberately.** The pure-Python path must never depend on a Rust toolchain being installed, so none of the Rust recipes above is part of it. CI's `rust-conformance` job is what runs them on every push, along with the full suite under `FPR_FF1_REQUIRE_RUST_BACKEND=1`.
 
 `pyproject.toml` enforces a **100% line and branch coverage floor** on the FF1 module (`fail_under = 100`, branch coverage on). Every raise path must be exercised by a test; delete unreachable branches rather than leaving dead code.
 
@@ -123,7 +124,9 @@ Conformance is the product. A change that makes tests pass by weakening them is 
 
 10. **Dual-backend conformance:** every conformance module must construct its instances through the `ff1_factory` fixture (or draw `backend` from `tests.conftest.BACKENDS`) rather than calling `FF1(...)` directly, so each assertion runs unchanged against both backends. A conformance test pinned to one backend silently halves its own coverage. `FPR_FF1_REQUIRE_RUST_BACKEND=1` turns a missing extension into a hard failure, and CI's `rust-conformance` job sets it.
 
-Vector files live in `tests/vectors/` as JSON, never inline literals. Never regenerate NIST fixtures from this implementation.
+11. **Shared validation cases:** `tests/vectors/validation_cases.json` is run by both the Python suite and the Rust crate's suite, which must reach the same outcome and message for every case. A change to a validation rule in either language changes this file in the same commit, and a case goes in for both languages unless it carries `python_only` with the reason.
+
+Vector files live in `tests/vectors/` as JSON, never inline literals. Never regenerate NIST fixtures from this implementation. The Rust crate reads the same files; never copy them into the crate. `FPR_FF1_REQUIRE_FIXTURES=1` turns a missing fixture into a failure for the crate's tests, and every in-repository run and CI job sets it.
 
 ## Never do
 
@@ -139,9 +142,10 @@ Vector files live in `tests/vectors/` as JSON, never inline literals. Never rege
 ## Conventions
 
 - Full type annotations; ship `py.typed`. Runtime dependency: `cryptography` only.
-- Licence: MIT (decided).
+- Licence: MIT (decided) for the Python package; the `fpr-ff1` crate's sources are `MIT OR Apache-2.0` (plan 00008 D3).
 - Semantic versioning; any change to accepted inputs or produced outputs is a major version.
-- The version lives in two files and they are bumped **together**: `pyproject.toml` `[project].version` and `rust/fpr-ff1-rust/Cargo.toml` `[package].version`. Cargo cannot parse PEP 440 pre-release spellings, so the crate carries the semver form (`2.0.0-rc1` for `2.0.0rc1`); `tests/test_contract.py` compares them after normalising with `packaging.version.Version`, on every CI leg. Git tags follow `pyproject.toml` exactly — `publish.yml` compares the tag against it.
+- The version lives in three files and they are bumped **together**: `pyproject.toml` `[project].version`, `rust/fpr-ff1/Cargo.toml` and `rust/fpr-ff1-rust/Cargo.toml` `[package].version` -- the crate on crates.io and the distribution on PyPI are always the same release. Cargo cannot parse PEP 440 pre-release spellings, so the crate carries the semver form (`2.0.0-rc1` for `2.0.0rc1`); `tests/test_contract.py` compares them after normalising with `packaging.version.Version`, on every CI leg. Git tags follow `pyproject.toml` exactly — `publish.yml` compares the tag against it.
+- **The `fpr-ff1` Rust crate** (`rust/fpr-ff1/`) is a third artifact, published to crates.io from `publish.yml` by Trusted Publishing. Its public API is `FF1`, `Builder`, `Error` and `ErrorKind` only: no type from `num-bigint`, `aes`, `cipher` or `pyo3` may appear in a public signature, so their majors never become the crate's. The unvalidated core is reachable only through the hidden, non-default `internal` feature, used by the PyO3 binding and tests and outside the semver contract. The crate validates inputs itself, mirroring the Python rules; the Python `FF1` still validates for both of its backends (plan 00003 D4). The Python package remains the reference. The crate's MSRV is Rust 1.89, set by `aes` 0.9; raising it is a minor version.
 - Migration from `ubiq_security_fpe` is **guide only** (decided 2026-08-21); no compatibility shim ships.
 - CI matrix across all supported Python versions on Linux, macOS and Windows. Publish via PyPI Trusted Publishing; do not commit tokens.
 - README must cover: what FF1 is, why FF3 is excluded, the Rev. 1 constraints applied, the FIPS disclaimer, and a migration section for `ubiq_security_fpe` users. Include `SECURITY.md` with a disclosure contact.

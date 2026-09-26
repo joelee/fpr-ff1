@@ -209,30 +209,56 @@ def test_project_urls_match_the_git_remote() -> None:
         )
 
 
-def test_crate_version_matches_project_version() -> None:
-    """The Rust crate and the distribution must be bumped together.
+#: Both Rust crates, relative to rust/: the published library and the PyO3
+#: binding that ships in the wheels (plan 00009 STEP-04).
+_CRATE_MANIFESTS = ["fpr-ff1/Cargo.toml", "fpr-ff1-rust/Cargo.toml"]
 
-    They are two files, so nothing but a test keeps them in step, and a
-    drifted crate version silently mislabels ``fpr_ff1._rs.__version__`` and
-    the platform wheel's SBOM. This test reads both manifests and never
-    imports the extension, so it runs on every CI leg -- including the ones
-    with no Rust toolchain -- and a release that skips the Rust job still
-    cannot ship a mismatch.
 
-    The two strings are compared after normalisation, not literally: Cargo
+def _load_toml(path: pathlib.Path) -> dict[str, Any]:
+    with path.open("rb") as handle:
+        return tomllib.load(handle)
+
+
+@pytest.mark.parametrize("manifest", _CRATE_MANIFESTS)
+def test_crate_version_matches_project_version(manifest: str) -> None:
+    """Every Rust crate and the distribution must be bumped together.
+
+    They are three files, so nothing but a test keeps them in step. A
+    drifted binding version silently mislabels ``fpr_ff1._rs.__version__``
+    and the platform wheel's SBOM; a drifted library version publishes a
+    crate whose number does not match the PyPI release it shipped with,
+    breaking the lock-step promise (plan 00009 D1). This test reads the
+    manifests and never imports the extension, so it runs on every CI leg --
+    including the ones with no Rust toolchain.
+
+    The strings are compared after normalisation, not literally: Cargo
     rejects PEP 440 pre-release spellings (``version = "2.0.0rc1"`` fails to
-    parse), so the crate carries the semver form ``2.0.0-rc1`` while
+    parse), so a crate carries the semver form ``2.0.0-rc1`` while
     ``pyproject.toml`` carries ``2.0.0rc1``. ``packaging.version.Version``
     reads both as the same release.
     """
-    with (_REPO_ROOT / "pyproject.toml").open("rb") as handle:
-        project_version = tomllib.load(handle)["project"]["version"]
-    crate_manifest = _REPO_ROOT / "rust" / "fpr-ff1-rust" / "Cargo.toml"
-    with crate_manifest.open("rb") as handle:
-        crate_version = tomllib.load(handle)["package"]["version"]
+    project_version = _load_toml(_REPO_ROOT / "pyproject.toml")["project"]["version"]
+    crate_version = _load_toml(_REPO_ROOT / "rust" / manifest)["package"]["version"]
 
     assert Version(crate_version) == Version(project_version), (
-        f"crate version {crate_version!r} and project version "
-        f"{project_version!r} disagree; bump both (Cargo needs the semver "
+        f"{manifest} version {crate_version!r} and project version "
+        f"{project_version!r} disagree; bump all three (Cargo needs the semver "
         f"form, e.g. 2.0.0-rc1 for 2.0.0rc1)"
     )
+
+
+def test_only_the_library_crate_is_publishable() -> None:
+    """``fpr-ff1`` is published to crates.io; the PyO3 binding never is.
+
+    Publishing the binding would ship an unvalidated FF1 core under a crate
+    name users might depend on; failing to mark the library publishable
+    would make the release job fail late. Cargo treats a missing ``publish``
+    key as publishable.
+    """
+    library = _load_toml(_REPO_ROOT / "rust" / "fpr-ff1" / "Cargo.toml")["package"]
+    binding = _load_toml(_REPO_ROOT / "rust" / "fpr-ff1-rust" / "Cargo.toml")["package"]
+
+    assert library["name"] == "fpr-ff1"
+    assert library.get("publish", True) is True, "the fpr-ff1 crate must be publishable"
+    assert binding["name"] == "fpr-ff1-rust"
+    assert binding.get("publish") is False, "the PyO3 binding must set publish = false"

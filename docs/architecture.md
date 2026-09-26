@@ -10,7 +10,10 @@ flowchart LR
     FF1 -->|backend=python (default)| Py["_ff1 pure-Python core"]
     FF1 -->|backend=rust| Rs["fpr_ff1._rs compiled core"]
     Py --> AES["cryptography AES/CBC PRF"]
-    Rs --> RustAES["RustCrypto aes PRF"]
+    Rs --> Core["fpr-ff1 crate core"]
+    RustCaller["Rust caller code"] --> Crate["fpr_ff1::FF1 (crate API, own validation)"]
+    Crate --> Core
+    Core --> RustAES["RustCrypto aes PRF"]
 ```
 
 ## Design Principles
@@ -27,13 +30,18 @@ flowchart LR
 - `fpr_ff1._exceptions`: typed exceptions rooted at `FF1Error`.
 - `fpr_ff1.__init__`: public exports and `py.typed` marker.
 - `fpr_ff1._rs`: the optional compiled backend (a PyO3 extension built from `rust/fpr-ff1-rust`), present only in the platform wheels. The pure-Python path never imports it; `backend="rust"` without it raises `BackendError`.
+- `rust/fpr-ff1` (the `fpr-ff1` crate): the Rust FF1 core (`src/engine.rs`) and, around it, a public API for Rust callers (`src/ff1.rs`) with its own validation (`src/validate.rs`, `src/error.rs`). The PyO3 binding in `rust/fpr-ff1-rust` depends on it through the hidden `internal` feature and calls the core directly, because the Python `FF1` has already validated the input.
+
+## Two validation layers
+
+Python validates for both of its backends (plan 00003 D4); the crate validates for Rust callers. The two are independent implementations of the same rules, in the same order and with the same messages. `tests/vectors/validation_cases.json` holds them in step: both test suites run every case and must agree on the outcome and the message, and the Rust side's mapping from `ErrorKind` to the Python exception class is an exhaustive `match`, so a new kind cannot go unmapped.
 
 ## Numeral conversion
 
 `NUM_radix` and `STR_radix` dominate long inputs, and both cores convert the same way, with the
 same names and the same threshold, so a reviewer can compare them side by side:
 
-| Input | Path | Python (`_ff1.py`) | Rust (`lib.rs`) |
+| Input | Path | Python (`_ff1.py`) | Rust (`engine.rs`) |
 |---|---|---|---|
 | at most 64 numerals | the spec's digit-at-a-time loop | `_num_radix_reference` / `_str_radix_reference` | `num_radix_reference` / `str_radix_reference` |
 | above 64, radix a power of two | O(n) byte packing | `_num_radix_pow2` / `_str_radix_pow2` | `num_radix_pow2` / `str_radix_pow2` |

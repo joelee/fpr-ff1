@@ -11,9 +11,12 @@ This file tracks high-level feature ideas and technical debt for `fpr-ff1`.
 - Raise the `requires-python` floor as new Python versions enter the CI matrix and pass. The
   upper-bound cap policy was retired at 1.0.0 (review 00003 B4): a cap becomes a hard resolution
   failure on future interpreters, so classifiers state the tested versions instead.
-- Publish the Rust core as a crate on crates.io in version lock-step with the distribution
-  (plan 00008, approved and not started; begins after `v2.0.0`). Deferred within it: `no_std`
-  support and key zeroization behind a feature.
+- **Rust crate `fpr-ff1` and release `2.1.0` (plan 00009, in progress; supersedes plan 00008).**
+  The core is split into a publishable crate with its own validation, public API, conformance suite
+  and CI; `aes` 0.9 and `num-bigint` 0.5 taken first as separately gated upgrades. Still to come:
+  `2.1.0rc1` on PyPI and crates.io, soak, re-review, then `2.1.0`.
+- Deferred from the crate's first release (plan 00008 D5, D6): `no_std` support (with `alloc`), and
+  key zeroization behind a feature once there is a claim the crate can defend in `SECURITY.md`.
 
 ## Completed Items
 
