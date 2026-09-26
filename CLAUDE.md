@@ -28,7 +28,7 @@ the source against SP 800-38G line by line and find no gaps.
 Two backends produce **bit-identical** ciphertext:
 
 - `src/fpr_ff1/_ff1.py` — the pure-Python **reference** implementation and the default.
-- `rust/fpr-ff1-rust/src/lib.rs` — an **optional, opt-in** compiled backend
+- `rust/fpr-ff1/src/engine.rs` — an **optional, opt-in** compiled backend
   (`FF1(..., backend="rust")`), exposed as `fpr_ff1._rs` via PyO3.
 
 The Rust core mirrors `_ff1.py` step for step. **A change to one core is a change to

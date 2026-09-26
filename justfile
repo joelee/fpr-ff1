@@ -91,7 +91,9 @@ rust-test:
 # must never depend on a Rust toolchain being installed. CI runs both
 # commands in the `rust-conformance` job (.github/workflows/ci.yml).
 rust-lint:
-    cargo fmt --check --manifest-path rust/Cargo.toml
+    # --all: with more than one workspace member, cargo fmt given a virtual
+    # manifest finds no targets without it ("Failed to find targets").
+    cargo fmt --all --check --manifest-path rust/Cargo.toml
     cargo clippy --manifest-path rust/Cargo.toml --all-targets -- -D warnings
 
 # Build the Rust accelerated backend into the source tree as fpr_ff1._rs

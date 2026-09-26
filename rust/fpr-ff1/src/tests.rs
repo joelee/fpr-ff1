@@ -17,7 +17,7 @@
 use num_bigint::BigUint;
 use num_traits::One;
 
-use crate::{
+use crate::engine::{
     encode_len_u32, ff1, num_radix, num_radix_reference, prf_with_key, str_radix,
     str_radix_reference, D_C_THRESHOLD,
 };

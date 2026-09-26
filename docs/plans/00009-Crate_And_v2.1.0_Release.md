@@ -43,9 +43,9 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1"
 execution_started_at: "2026-09-26T16:28:45Z"
-execution_updated_at: "2026-09-26T17:07:11Z"
+execution_updated_at: "2026-09-26T17:19:01Z"
 execution_completed_at: null
-current_step: "PLAN-00009-STEP-04"
+current_step: "PLAN-00009-STEP-05"
 ---
 
 # Delivery Plan 00009: Crate And v2.1.0 Release
@@ -708,7 +708,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 | PLAN-00009-STEP-01 | completed | 2026-09-26T16:46:28Z | 2026-09-26T16:46:28Z | Commit (this one); checkpoint-163734; cargo audit clean | Closing PR #7 deferred to after STEP-02 (authorization pending) |
 | PLAN-00009-STEP-02 | completed | 2026-09-26T16:57:05Z | 2026-09-26T16:57:05Z | Commit (this one); park rule passed; checkpoint-164751 | No API adaptation needed; performance unchanged |
 | PLAN-00009-STEP-03 | completed | 2026-09-26T17:07:11Z | 2026-09-26T17:07:11Z | Commit (this one); red probes recorded; checkpoint-165857 | No change to accepted inputs or ciphertext; the only behaviour change narrows an already-rejected input to the documented exception |
-| PLAN-00009-STEP-04 | not-started | — | — | — | — |
+| PLAN-00009-STEP-04 | completed | 2026-09-26T17:19:01Z | 2026-09-26T17:19:01Z | Commit (this one); checkpoint-171023; wheel identity check | engine.rs is the former lib.rs; use git log -C --follow / git blame -C for its history |
 | PLAN-00009-STEP-05 | not-started | — | — | — | — |
 | PLAN-00009-STEP-06 | not-started | — | — | — | — |
 | PLAN-00009-STEP-07 | not-started | — | — | — | — |
@@ -738,13 +738,15 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T17:07:10Z | PLAN-00009-STEP-03 | (a) Tests first: released memoryview as key, default tweak, per-call tweak (encrypt and decrypt), both backends, plus a live-view acceptance test. Before the fix: 8 failed with 'ValueError: operation forbidden on released memoryview object'. Fix: _require_bytes catches ValueError around bytes() only (bytes/bytearray cannot raise it) and raises the caller's error class with '<name> memoryview has been released'. After: 16 passed | tests/test_validation.py; src/fpr_ff1/_ff1.py _require_bytes | (b) |
 | 2026-09-26T17:07:10Z | PLAN-00009-STEP-03 | (b) test_tweak_sensitivity now draws four unique tweaks and asserts at least one of three alternatives changes the ciphertext. Red probe (not committed): _prepare patched to return self._default_tweak (tweak ignored) -> new test FAILED 'four distinct tweaks produced identical ciphertext; the tweak is being ignored'; the OLD test against the same broken code: '1 skipped' (could not fail). Probe reverted (grep PROBE = 0); new test passes on the real code | tests/test_properties.py | (c) |
 | 2026-09-26T17:07:11Z | PLAN-00009-STEP-03 | (c) Both concurrency tests keep every iteration's result and check each against the serial expectation. Red probe (not committed): a pytest plugin wrapping FF1.encrypt_numerals to corrupt exactly one mid-run result (call 30) -> new test FAILED 'thread 1 iteration 1 diverged from the serial result'; the OLD test with the same corruption: '1 passed'. Changelog [Unreleased] gains the exception-type fix, the two test fixes, and the STEP-01/02 dependency upgrades | tests/test_thread_safety.py; CHANGELOG.md; probe plugin in the session scratchpad | Checkpoint |
+| 2026-09-26T17:19:01Z | PLAN-00009-STEP-04 | Before-state recorded: maturin wheel fpr_ff1-2.0.0-cp312-abi3-manylinux_2_34_x86_64.whl (10 entries); _rs.__version__ 2.0.0; exports _test_cipher_block, _test_encrypt_traced, _test_prf, decrypt_numerals, encrypt_numerals | scratchpad step04/before-files.txt, before-rs.txt | Split |
+| 2026-09-26T17:19:01Z | PLAN-00009-STEP-04 | Split: git mv rust/fpr-ff1-rust/src/lib.rs -> rust/fpr-ff1/src/engine.rs (PyO3 imports and the #[pymodule] block removed) and src/tests.rs -> rust/fpr-ff1/src/tests.rs; new rust/fpr-ff1 crate (package fpr-ff1, lib fpr_ff1, rlib, MIT OR Apache-2.0, feature 'internal'); engine is a private module, so every item is unreachable outside the crate; #[cfg(feature = "internal")] #[doc(hidden)] pub mod __internal re-exports ff1, ff1_traced, TraceRecord, prf_with_key, cipher_block_with_key; fpr-ff1-rust keeps cdylib, publish = false, _fpr_ff1_rs, and holds only the #[pymodule] block, depending on fpr-ff1 with features = ["internal"]; workspace members [fpr-ff1, fpr-ff1-rust]. Aes enum widened from private to pub(crate) (same reach as before: it was private at the crate root) | Build, clippy -D warnings (workspace and fpr-ff1 alone): no warnings | Checkpoint |
 
 ### Deviations and blockers
 
 | Timestamp (UTC) | Step | Deviation or blocker | Impact | Decision required from |
 |---|---|---|---|---|
 | 2026-09-26T16:46:28Z | PLAN-00009-STEP-01 | Task 4 (close Dependabot PR #7 with a comment) is an outward action; no per-action authorization recorded yet. Deferred until STEP-02 lands so the closing comment can link both commits | None on the code; #7 stays open meanwhile | User: authorize closing PR #7 after STEP-02 |
-
+| 2026-09-26T17:19:01Z | PLAN-00009-STEP-04 | The split broke 'cargo fmt --check --manifest-path rust/Cargo.toml' (just rust-lint and the CI rust-conformance job): with a virtual manifest and more than one package, cargo-fmt selects only packages whose manifest equals the given path, finds none, and exits 1 with 'Failed to find targets'. Fixed with --all in justfile and ci.yml in this commit, ahead of STEP-11, so the tree and CI are never broken. AGENTS.md and CLAUDE.md named the core's old path (rust/fpr-ff1-rust/src/lib.rs); updated here per docs/AGENTS.md (document updated in the change that makes it true). Temporary #[cfg_attr(not(feature = "internal"), allow(dead_code))] on mod engine until STEP-06's public API calls into it | Small scope additions to STEP-04, each forced by the split; broader documentation remains STEP-12 | None |
 
 ### Verification results
 
@@ -756,6 +758,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T16:57:05Z | PLAN-00009-STEP-02 | cargo test (includes every_supported_radix_is_equivalent_above_the_threshold and the power-of-two chunk sweep); full checkpoint | Pass | cargo test 16 passed; dual gate 1688 passed in 257.40s, 100%, -k rust 576; Rust-free 872 passed, 100%; logs checkpoint-164751 |
 | 2026-09-26T16:57:05Z | PLAN-00009-STEP-02 | just bench with num-bigint 0.5.1, 2026-09-26T16:55:51Z, load 1.50; park rule D15 | Pass | r10 n20000 rust 9657.1 µs vs python 26330.7 (rust <= python) and vs ceiling 10.89 ms (plan 00007 9.9 ms + 10%); r256 n20000 rust 4111.6 µs vs python 51802.1 and vs ceiling 4.51 ms. Full table r10: n6 27.8/4.4, n100 108.4/38.1, n1000 916.8/391.8, n5000 5091.8/2103.7; r256: n100 140.2/50.7, n1000 2503.1/202.7, n5000 12915.5/1019.6. Within noise of 0.4.8 on every row, so README performance figures left unchanged |
 | 2026-09-26T17:07:11Z | PLAN-00009-STEP-03 | Full checkpoint | Pass | 1698 passed in 257.63s, TOTAL 345 stmts 120 branches 100% (the new except branch covered), -k rust 581; Rust-free 877 passed, 100%; static clean; logs checkpoint-165857 |
+| 2026-09-26T17:19:01Z | PLAN-00009-STEP-04 | Full checkpoint after the split | Pass | 1698 passed in 258.68s, 100%, -k rust 581; Rust-free 877 passed, 100%; cargo test 16 passed (tests now in the fpr-ff1 crate); just rust-lint green with --all; actionlint clean; logs checkpoint-171023 |
+| 2026-09-26T17:19:01Z | PLAN-00009-STEP-04 | Wheel and extension identity; core dependencies; public API without 'internal' | Pass | maturin wheel after the split: file list identical to the before-state (10 entries); _rs.__version__ and exported names identical. cargo tree -p fpr-ff1 -e normal: aes 0.9.3, num-bigint 0.5.1, num-integer 0.1.47, num-traits 0.2.19; pyo3 count 0. cargo doc -p fpr-ff1 --no-deps: SIDEBAR_ITEMS = {} (no public items, so no third-party type in any public signature) |
 
 ### Completion summary
 

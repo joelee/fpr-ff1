@@ -85,7 +85,7 @@ These are the failure modes that produce **plausible but wrong output** — ever
 - The PRF is CBC-MAC with a zero IV over 16-byte-aligned input.
 - Cipher contexts: **never cache any encryptor on the instance** — instances are thread-safe and a live context would be shared mutable state. Create the ECB encryptor locally inside the `d > 16` expansion branch (zero cost when `d <= 16`); the PRF already builds a fresh CBC encryptor per call (it carries chaining state).
 - Cite spec steps in internal docstrings, e.g. "SP 800-38G Algorithm 7, step 6.iii".
-- The Rust core (`rust/fpr-ff1-rust/src/lib.rs`) mirrors `_ff1.py` step for step, with the same spec-step comments. **A change to one core is a change to both**, verified by the dual-backend suite. Every gotcha above applies to the Rust port identically — it has the same `b`-from-`v`, same exact-integer bit length, same padding, same three encrypt/decrypt differences.
+- The Rust core (`rust/fpr-ff1/src/engine.rs`, in the `fpr-ff1` crate; the PyO3 binding is `rust/fpr-ff1-rust/src/lib.rs`) mirrors `_ff1.py` step for step, with the same spec-step comments. **A change to one core is a change to both**, verified by the dual-backend suite. Every gotcha above applies to the Rust port identically — it has the same `b`-from-`v`, same exact-integer bit length, same padding, same three encrypt/decrypt differences.
 
 ## Local development
 

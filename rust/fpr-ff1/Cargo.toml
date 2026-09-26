@@ -1,0 +1,35 @@
+[package]
+name = "fpr-ff1"
+# Kept in lock-step with [project].version in pyproject.toml and with the
+# binding crate, in semver form: Cargo cannot parse the PEP 440 spelling
+# ("2.0.0rc1"), so a pre-release is written 2.0.0-rc1 here.
+# tests/test_contract.py enforces the versions on every CI leg.
+version = "2.0.0"
+edition = "2021"
+description = "NIST SP 800-38G FF1 format-preserving encryption, exact integer arithmetic, conformance-tested."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/joelee/fpr-ff1"
+
+[lib]
+name = "fpr_ff1"
+crate-type = ["rlib"]
+
+[features]
+# Exposes the unvalidated core, the PRF and block-cipher seams and the
+# per-round trace hook as `fpr_ff1::__internal`, for the PyO3 binding and
+# the conformance tests only. Not part of the public API and outside the
+# semver contract (plan 00009 D10): never enable it in a downstream crate.
+internal = []
+
+[dependencies]
+num-bigint = "0.5"
+num-traits = "0.2"
+num-integer = "0.1"
+# AES core for the Algorithm 6 PRF and the step 6.iii expansion blocks
+# (plan 00003 decision D7, RustCrypto family). Validated against the NIST
+# FIPS 197 Appendix C KAT vectors and the Python path's PRF output
+# (tests/test_rust_aes_validation.py) before any FF1-level conformance is
+# trusted on it. The CBC-MAC itself is a six-line XOR chain over these
+# single-block primitives -- more spec-literal than the `cbc` wrapper,
+# which would need one concrete instantiation per key size anyway.
+aes = "0.9"

@@ -1,9 +1,13 @@
 [workspace]
 resolver = "2"
-members = ["fpr-ff1-rust"]
+members = ["fpr-ff1", "fpr-ff1-rust"]
 
-# Rust workspace for the fpr-ff1 optional accelerated backend (plan 00003
-# E2, idea 00001 r02). The pure-Python implementation in src/fpr_ff1/_ff1.py
-# remains the reference and the default; this crate is the opt-in
-# backend="rust" path. Cargo.lock is committed for supply-chain pinning,
-# mirroring uv.lock.
+# Rust workspace for fpr-ff1 (plan 00003 E2; split by plan 00009 STEP-04).
+# The pure-Python implementation in src/fpr_ff1/_ff1.py remains the
+# reference and the default.
+#
+#   fpr-ff1       the FF1 core as a Rust library, published to crates.io
+#   fpr-ff1-rust  the PyO3 binding that ships inside the platform wheels as
+#                 fpr_ff1._rs (backend="rust"); never published
+#
+# Cargo.lock is committed for supply-chain pinning, mirroring uv.lock.
