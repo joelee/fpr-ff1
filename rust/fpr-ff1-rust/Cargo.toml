@@ -29,4 +29,4 @@ num-integer = "0.1"
 # conformance is trusted on it. The CBC-MAC itself is a six-line XOR chain
 # over these single-block primitives -- more spec-literal than the `cbc`
 # wrapper, which would need one concrete instantiation per key size anyway.
-aes = "0.8"
+aes = "0.9"

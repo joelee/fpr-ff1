@@ -38,14 +38,14 @@ confidence: medium
 
 # Builder-maintained front matter. Builder may update only these keys after
 # explicit user approval; Delivery Planner initializes them.
-implementation_status: not-started
-builder_agent: null
-builder_model: null
-execution_branch: null
-execution_started_at: null
-execution_updated_at: null
+implementation_status: in-progress
+builder_agent: claude-code
+builder_model: "anthropic/claude-opus-5-5"
+execution_branch: "release/v2.1"
+execution_started_at: "2026-09-26T16:28:45Z"
+execution_updated_at: "2026-09-26T16:46:28Z"
 execution_completed_at: null
-current_step: null
+current_step: "PLAN-00009-STEP-02"
 ---
 
 # Delivery Plan 00009: Crate And v2.1.0 Release
@@ -705,7 +705,7 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 
 | Step | Status | Started (UTC) | Completed (UTC) | Evidence | Builder notes |
 |---|---|---|---|---|---|
-| PLAN-00009-STEP-01 | not-started | — | — | — | — |
+| PLAN-00009-STEP-01 | completed | 2026-09-26T16:46:28Z | 2026-09-26T16:46:28Z | Commit (this one); checkpoint-163734; cargo audit clean | Closing PR #7 deferred to after STEP-02 (authorization pending) |
 | PLAN-00009-STEP-02 | not-started | — | — | — | — |
 | PLAN-00009-STEP-03 | not-started | — | — | — | — |
 | PLAN-00009-STEP-04 | not-started | — | — | — | — |
@@ -730,18 +730,24 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 
 | Timestamp (UTC) | Step | Event | Evidence or reference | Next action |
 |---|---|---|---|---|
+| 2026-09-26T16:28:46Z | — | Builder started on approved plan 00009 (approval commit ab95fd6) on release/v2.1, branched from main 62c6115 | git status clean; plan 00007 closeout (PR #13) and Dependabot #10, #11 merged into main | Baseline, then STEP-01 |
+| 2026-09-26T16:46:28Z | PLAN-00009-STEP-01 | Evidence first at baseline: tests/test_rust_aes_validation.py (FIPS 197 KAT + PRF equality) 19 passed with aes 0.8.4 | Baseline checkpoint-162846 green | Upgrade |
+| 2026-09-26T16:46:28Z | PLAN-00009-STEP-01 | aes 0.8 -> 0.9 in rust/fpr-ff1-rust/Cargo.toml; cargo update -p aes; applied PR #7's two API migrations only: BlockEncrypt -> BlockCipherEncrypt, Block::clone_from_slice -> Block::from (in prf and cipher_block) | Lock diff limited to the AES stack: aes 0.8.4->0.9.3, cipher 0.4.4->0.5.2, crypto-common 0.1.7->0.2.2, inout 0.1.4->0.2.2, cpufeatures 0.2.17->0.3.1; added cpubits 0.1.1, hybrid-array 0.4.15; removed generic-array 0.14.7, cfg-if 1.0.4, version_check 0.9.5 (build dependency of generic-array). Build: no warnings | Checkpoint |
 
 ### Deviations and blockers
 
 | Timestamp (UTC) | Step | Deviation or blocker | Impact | Decision required from |
 |---|---|---|---|---|
+| 2026-09-26T16:46:28Z | PLAN-00009-STEP-01 | Task 4 (close Dependabot PR #7 with a comment) is an outward action; no per-action authorization recorded yet. Deferred until STEP-02 lands so the closing comment can link both commits | None on the code; #7 stays open meanwhile | User: authorize closing PR #7 after STEP-02 |
 
-None
 
 ### Verification results
 
 | Timestamp (UTC) | Step | Command or check | Result | Evidence |
 |---|---|---|---|---|
+| 2026-09-26T16:37:02Z | Baseline | Checkpoint at 88bd449+work log: static; just backend-dev; just rust-test; just rust-lint; full dual-backend gate; just quality Rust-free | Pass | pyright 1.1.414 (Dependabot #11) 0 errors; 1688 passed in 259.28s, 100%, -k rust 576/1688; Rust-free 872 passed, 245 skipped, 100%; rustc 1.98.1; logs checkpoint-162846 |
+| 2026-09-26T16:46:28Z | PLAN-00009-STEP-01 | Full checkpoint with aes 0.9.3; then tests/test_rust_aes_validation.py, test_intermediates.py, test_nist_vectors.py, test_frozen_kat.py, test_backend_agreement.py with FPR_FF1_REQUIRE_RUST_BACKEND=1 | Pass (bit-exact) | 1688 passed in 266.27s, 100%, -k rust 576; Rust-free 872 passed, 100%; cargo test and clippy -D warnings green; AES/conformance modules 336 passed (FIPS 197 KAT, PRF equality with the Python path, per-round intermediates, NIST, frozen KAT incl. d > 16, backend agreement); logs checkpoint-163734 |
+| 2026-09-26T16:46:28Z | PLAN-00009-STEP-01 | cargo-audit 0.22.2 (CI pin) on rust/Cargo.lock | Pass | exit 0, 27 crate dependencies, no advisories |
 
 ### Completion summary
 

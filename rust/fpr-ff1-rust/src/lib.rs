@@ -29,7 +29,7 @@
 
 use std::collections::HashMap;
 
-use aes::cipher::{BlockEncrypt, KeyInit};
+use aes::cipher::{BlockCipherEncrypt, KeyInit};
 use aes::{Aes128, Aes192, Aes256, Block};
 use num_bigint::BigUint;
 use num_integer::Integer;
@@ -113,7 +113,7 @@ pub(crate) fn prf(cipher: &Aes, data: &[u8]) -> Result<Vec<u8>, String> {
         for (slot, byte) in chain.iter_mut().zip(block) {
             *slot ^= byte;
         }
-        let mut b = Block::clone_from_slice(&chain);
+        let mut b = Block::from(chain);
         cipher.encrypt_block(&mut b);
         chain.copy_from_slice(&b);
     }
@@ -135,7 +135,7 @@ pub(crate) fn prf(cipher: &Aes, data: &[u8]) -> Result<Vec<u8>, String> {
 ///
 /// Takes the expanded key schedule, for the reason given on `prf`.
 pub(crate) fn cipher_block(cipher: &Aes, block: &[u8; 16]) -> Result<[u8; 16], String> {
-    let mut b = Block::clone_from_slice(block);
+    let mut b = Block::from(*block);
     cipher.encrypt_block(&mut b);
     let mut out = [0u8; 16];
     out.copy_from_slice(&b);
