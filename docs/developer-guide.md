@@ -263,7 +263,11 @@ Publication differs from PyPI in one way. crates.io Trusted Publishing cannot cr
    scoped to publishing new crates, then revokes the token.
 2. **The owner then adds the Trusted Publisher** on crates.io: owner `joelee`, repository
    `fpr-ff1`, workflow `publish.yml`, environment `crates-io`.
-3. **Every later final release** is published by `publish.yml`'s `publish-crate` job, after PyPI
-   succeeds, with a short-lived token from `rust-lang/crates-io-auth-action`. Pre-releases skip it.
+3. **Every later release, release candidates included** (plan 00010 D1), is published by
+   `publish.yml`'s `publish-crate` job, after PyPI succeeds, with a short-lived token from
+   `rust-lang/crates-io-auth-action`. The job's tag check maps the crate's semver pre-release
+   suffix (`-rc2`) to the tag's PEP 440 spelling (`rc2`) and refuses any other mismatch. If the job
+   fails after PyPI has published, the owner can publish that run's CI-built `.crate` by hand, as
+   in step 1, so the two registries still hold the same release.
 
 A published crate version can be yanked but never replaced; recovery is a new patch version.

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "fpr-ff1"
 version = "2.1.0rc1"
-description = "Format-preserving encryption: NIST SP 800-38G FF1 for Python."
+description = "NIST SP 800-38G FF1 format-preserving encryption, with an optional Rust backend."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -52,6 +52,7 @@ Repository = "https://github.com/joelee/fpr-ff1"
 Issues = "https://github.com/joelee/fpr-ff1/issues"
 Changelog = "https://github.com/joelee/fpr-ff1/blob/main/CHANGELOG.md"
 Security = "https://github.com/joelee/fpr-ff1/blob/main/SECURITY.md"
+"Rust crate" = "https://crates.io/crates/fpr-ff1"
 
 [dependency-groups]
 dev = [
