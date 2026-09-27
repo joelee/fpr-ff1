@@ -203,7 +203,18 @@ def test_project_urls_match_the_git_remote() -> None:
         urls: dict[str, str] = tomllib.load(handle)["project"]["urls"]
 
     assert urls, "pyproject declares no project URLs"
+    # The one URL that is not the repository: the crate's crates.io page
+    # (plan 00010 REQ-10). It must name the crate this repository publishes,
+    # exactly, so a renamed or mistyped crate link fails just as a stale
+    # repository slug does.
+    crate = _load_toml(_REPO_ROOT / "rust" / "fpr-ff1" / "Cargo.toml")["package"]["name"]
+    registry_urls = {"Rust crate": f"https://crates.io/crates/{crate}"}
     for label, url in urls.items():
+        if label in registry_urls:
+            assert url == registry_urls[label], (
+                f"project URL {label}={url!r} is not the crate's page {registry_urls[label]!r}"
+            )
+            continue
         assert f"github.com/{slug}" in url, (
             f"project URL {label}={url!r} does not match the git remote {slug!r}"
         )

@@ -38,14 +38,14 @@ confidence: medium
 
 # Builder-maintained front matter. Builder may update only these keys after
 # explicit user approval; Delivery Planner initializes them.
-implementation_status: blocked
+implementation_status: completed
 builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1"
 execution_started_at: "2026-09-26T16:28:45Z"
-execution_updated_at: "2026-09-26T21:41:28Z"
-execution_completed_at: null
-current_step: "PLAN-00009-STEP-14"
+execution_updated_at: "2026-09-27T11:24:04Z"
+execution_completed_at: "2026-09-27T11:24:04Z"
+current_step: null
 ---
 
 # Delivery Plan 00009: Crate And v2.1.0 Release
@@ -718,10 +718,10 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 | PLAN-00009-STEP-11 | completed | 2026-09-26T18:30:21Z | 2026-09-26T20:37:39Z | f3301e3; CI run 36269172052 green 41/41; .crate reproducible | The pre-release skip of publish-crate is evidenced at STEP-14 (release event only) |
 | PLAN-00009-STEP-12 | completed | 2026-09-26T20:39:40Z | 2026-09-26T20:39:40Z | Commit (this one) | No document implies the crate is the reference or carries stronger claims |
 | PLAN-00009-STEP-13 | completed | 2026-09-26T20:49:15Z | 2026-09-26T21:41:28Z | c06cc3f; local gate; CI run 36272767880 green 41/41 | Tag goes on the PR merge commit on main; the bootstrap digest is checked at that commit (see Deviations) |
-| PLAN-00009-STEP-14 | blocked | 2026-09-26T21:41:28Z | — | Hand-off recorded | Waiting on owner: PR merge, tag, pre-release, crate bootstrap, Trusted Publisher |
-| PLAN-00009-STEP-15 | not-started | — | — | — | — |
-| PLAN-00009-STEP-16 | not-started | — | — | — | — |
-| PLAN-00009-STEP-17 | not-started | — | — | — | — |
+| PLAN-00009-STEP-14 | completed | 2026-09-26T21:41:28Z | 2026-09-27T00:16:02Z | PR #14 merge d3f1f97 tagged v2.1.0rc1; publish run 36280228842; crate 3e3b832f bootstrapped; both registries verified; soak waived | Token revocation and Trusted Publisher on the owner's statement; Trusted Publishing proven at STEP-17 |
+| PLAN-00009-STEP-15 | skipped | 2026-09-27T00:17:54Z | — | Superseded by PLAN-00010, approved in 74977911 (the user's approval of 00010 is the approval this skip requires) | Carried forward as PLAN-00010 STEP-09 (re-review, now of v2.0.0..v2.1.0rc2), STEP-10 and STEP-11 |
+| PLAN-00009-STEP-16 | skipped | — | — | Superseded by PLAN-00010, approved in 74977911 (the user's approval of 00010 is the approval this skip requires) | Carried forward as PLAN-00010 STEP-09 (re-review, now of v2.0.0..v2.1.0rc2), STEP-10 and STEP-11 |
+| PLAN-00009-STEP-17 | skipped | — | — | Superseded by PLAN-00010, approved in 74977911 (the user's approval of 00010 is the approval this skip requires) | Carried forward as PLAN-00010 STEP-09 (re-review, now of v2.0.0..v2.1.0rc2), STEP-10 and STEP-11 |
 
 Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 `skipped`. A skipped step requires explicit user approval recorded in Evidence.
@@ -758,6 +758,11 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T20:49:15Z | PLAN-00009-STEP-13 | Contract test red after bumping pyproject.toml alone (both crate manifests '2.0.0' vs '2.1.0rc1'), green after both crates moved to 2.1.0-rc1 (3 passed). uv lock and cargo build moved only the three project version lines; uv lock --check clean; Cargo.lock stable under --locked. CHANGELOG [2.1.0rc1] dated 2026-09-26 (Added: the crate, its conformance evidence, shared validation cases, crate CI; Changed: aes and num-bigint; Fixed: review 00011 Lows; Unchanged), links [Unreleased] -> v2.1.0rc1...HEAD and [2.1.0rc1] -> v2.0.0...v2.1.0rc1. Committed as c06cc3f | Red/green output recorded above | Gate the candidate |
 | 2026-09-26T21:23:52Z | PLAN-00009-STEP-13 | User authorized the push ('Push authorised.'). Builder pushed release/v2.1 (5a6ca38..0294db7) and dispatched ci.yml | origin/release/v2.1 = 0294db75cca154b9d9e5f0ebcd6b21a96678d34d; run https://github.com/joelee/fpr-ff1/actions/runs/36272767880 | Record the run; hand off for STEP-14 |
 | 2026-09-26T21:41:28Z | PLAN-00009-STEP-14 | Hand-off to owner. (1) PR release/v2.1 -> main, merged with a MERGE COMMIT. (2) Tag exactly v2.1.0rc1 on that merge commit; publish a GitHub PRE-RELEASE; publish.yml publishes to PyPI, and publish-crate must show as skipped. (3) Crate bootstrap from a clean checkout of the tag: cargo package --locked -p fpr-ff1, confirm its sha256 equals the 'crate' artifact of the release's publish run; create a crates.io token scoped to publish-new for crate fpr-ff1 with a short expiry; CARGO_REGISTRY_TOKEN=<token> cargo publish --locked -p fpr-ff1 --manifest-path rust/Cargo.toml (repackages identically, since cargo package is reproducible); revoke the token and say so. (4) Add the crates.io Trusted Publisher: joelee / fpr-ff1 / publish.yml / crates-io. Then Builder verifies PyPI, crates.io (checksum vs the CI artifact), docs.rs and a scratch project; owner states the soak | Frozen candidate: origin/release/v2.1 at 0294db7 | Owner release actions |
+| 2026-09-26T23:59:33Z | PLAN-00009-STEP-14 | Owner merged PR #14 (release/v2.1 -> main) as merge commit d3f1f97, tagged v2.1.0rc1 on it, and published a GitHub pre-release (2026-09-26T23:41:29Z) with the Builder's notes | tag v2.1.0rc1 -> d3f1f97 = origin/main head; pyproject version 2.1.0rc1 at the tag | Verify publish run; crate bootstrap |
+| 2026-09-27T00:12:22Z | PLAN-00009-STEP-14 | Owner stated: 'Crate published to crates.io and token revoked. Truster Publisher created.' The owner bootstrapped fpr-ff1 2.1.0-rc1 on crates.io with a scoped token, revoked the token, and configured the crates.io Trusted Publisher (joelee/fpr-ff1, publish.yml, environment crates-io). Token revocation and the Trusted Publisher configuration rest on the owner's statement: neither is visible through crates.io's unauthenticated API. The Trusted Publisher is proven in use at STEP-17, when publish-crate publishes 2.1.0 | crates.io: fpr-ff1 2.1.0-rc1 published_by joelee, trustpub_data null (a token publish, as expected for the bootstrap) | Builder verification of both registries |
+| 2026-09-27T00:16:02Z | PLAN-00009-STEP-14 | Owner's D14 statement for 2.1.0rc1: 'soak waived' | Stated after the Builder reported both registries verified (99f3357) | STEP-15: evidence bundle for v2.0.0..v2.1.0rc1 |
+| 2026-09-27T00:17:54Z | PLAN-00009-STEP-15 | Task 1: evidence bundle for v2.0.0..v2.1.0rc1 (0ac0877..d3f1f97) prepared in the session scratchpad (v2.1.0rc1-review-evidence-bundle.md), as for plan 00007 STEP-12. Contents: scope and gate; the per-step commit table; the code diffstat; engine.rs vs the former core (aes 0.9 API, pub(crate) Aes, cfg gates, PyO3 module removed; nothing else); review 00011 LOW-01/02/03 with their red probes; five focus areas (validation parity, the expect in ff1.rs run(), public surface and the internal feature, wheel identity after the split, crate supply chain); the evidence table (CI 36269172052 and 36272767880, publish run 36280228842, local gate, park rule, red probes, registry verification); nine deviations and open observations; reproduction commands; out-of-scope items. Predecessor: review 00014 (approve) | Bundle claims spot-checked against the tree: ErrorKind #[non_exhaustive]; FF1 Debug omits the key; validation_cases.json 53 cases, 1 python_only; __internal #[doc(hidden)] | Owner: commission the independent review (task 2) |
+| 2026-09-27T11:24:04Z | PLAN-00009-STEP-15 | Plan superseded for its remaining steps by docs/plans/00010-Docs_Landing_Pages_And_v2.1.0rc2.md (approved 74977911, user: 'D1-D4 as recommended. Commited and Approved.'). STEP-15 to STEP-17 skipped; REQ-12 (2.1.0 publication) and REQ-14 (re-review and 2.1.0) carried into PLAN-00010 REQ-12 and REQ-13. The v2.0.0..v2.1.0rc1 evidence bundle is extended by PLAN-00010 STEP-09 | PLAN-00010 STEP-01 | None in this plan |
 
 ### Deviations and blockers
 
@@ -805,14 +810,22 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-26T20:39:40Z | PLAN-00009-STEP-12 | ruff format --check; ruff check; tests/test_contract.py; grep for overclaims (crate as reference, FIPS validated, constant-time, zeroization) across README, SECURITY, crate README, AGENTS, architecture, developer guide | Pass | 60 files formatted; All checks passed; 63 passed; the only match is SECURITY.md's out-of-scope 'Key zeroization' bullet; every 'reference' statement names the pure-Python implementation |
 | 2026-09-26T20:49:15Z | PLAN-00009-STEP-13 | Local gate at c06cc3f: full checkpoint; just crate-test; just crate-msrv; just crate-package; installed versions | Pass | dual gate 1808 passed in 256.25s, 100%, -k rust 635; Rust-free 934 passed, 100%; crate-test 43 + 9 + 3 and sweeps 2 passed; crate-msrv (1.89) 43 + 9 + 3; crate-package: docs clean, 19 entries 0 problems, dry run aborted before upload; fpr-ff1-2.1.0-rc1.crate sha256 4f722d998f0013d30017ffd7efb6de2d11cb9b034dae426177545ccfd3fd84dc at c06cc3f; fpr_ff1.__version__ 2.1.0rc1, _rs.__version__ 2.1.0-rc1; logs checkpoint-204032 |
 | 2026-09-26T21:41:28Z | PLAN-00009-STEP-13 | CI run 36272767880 at 0294db7 (candidate c06cc3f + work-log commit) https://github.com/joelee/fpr-ff1/actions/runs/36272767880 | Pass | completed/success, 41/41 jobs; crate-package 'crate package: 19 entries, 0 problems', fpr-ff1-2.1.0-rc1.crate sha256 d6b9fa405509132296d269df2ee441b61ecd3830a1b73174142abcf4757707e3 at 0294db7 (differs from c06cc3f's only through the embedded commit hash) |
+| 2026-09-26T23:59:33Z | PLAN-00009-STEP-14 | publish.yml run 36280228842 on v2.1.0rc1 (d3f1f97) https://github.com/joelee/fpr-ff1/actions/runs/36280228842 | Pass | completed/success, 43 jobs: 42 success, 1 skipped; publish (PyPI): success; publish-crate: skipped, as designed for a pre-release (AC-11's pre-release evidence). PyPI shows 2.1.0rc1 with 7 files |
+| 2026-09-26T23:59:33Z | PLAN-00009-STEP-14 | Crate for the bootstrap: the 'crate' artifact of run 36280228842 vs cargo package --locked in a clean worktree at v2.1.0rc1 | Pass | Both fpr-ff1-2.1.0-rc1.crate sha256 3e3b832fe6dcfc5d90ed6def91d6b4362752fb54c3786b75c0e4a03fe0f84d25; artifact .cargo_vcs_info.json sha1 d3f1f97b7198c11d4b2a676dc984f194246deb1e (the tag). This is the digest the owner's bootstrap must reproduce and crates.io's checksum must equal |
+| 2026-09-27T00:12:22Z | PLAN-00009-STEP-14 | crates.io: fpr-ff1 2.1.0-rc1 metadata and .crate digest | Pass | API checksum 3e3b832fe6dcfc5d90ed6def91d6b4362752fb54c3786b75c0e4a03fe0f84d25 = the 'crate' artifact of run 36280228842 = cargo package --locked at the tag; the .crate downloaded from static.crates.io hashes the same. license 'MIT OR Apache-2.0', rust_version 1.89, keywords, categories [cryptography], repository and documentation links as in Cargo.toml |
+| 2026-09-27T00:12:22Z | PLAN-00009-STEP-14 | docs.rs build of fpr-ff1 2.1.0-rc1 | Pass | status.json {doc_status: true, version: 2.1.0-rc1}; fpr_ff1/index.html, struct.FF1.html and enum.ErrorKind.html return 200; fpr_ff1/__internal/index.html returns 404 (the internal feature is off on docs.rs, as configured) |
+| 2026-09-27T00:12:22Z | PLAN-00009-STEP-14 | Scratch Cargo project outside the repository depending on fpr-ff1 = '=2.1.0-rc1' from crates.io (public API only) | Pass | Cargo.lock source registry+crates.io-index; the registry-cache .crate sha256 3e3b832f...0f84d25. NIST SP 800-38G sample 1 (numerals, no tweak) -> 2433477484 and sample 2 (Builder with alphabet and tweak) -> '6124200773'; a radix-10 n=60 input (d > 16) under a 32-byte key and tweak 'cross-check' -> 363405670682792558537082293754099735584196068294081152677333, identical to PyPI fpr-ff1 2.1.0rc1 on both backends; a 15-byte key -> ErrorKind::KeyLength |
+| 2026-09-27T00:12:22Z | PLAN-00009-STEP-14 | PyPI: the 7 files of fpr-ff1 2.1.0rc1 vs the artifacts of publish run 36280228842 | Pass | 7/7 SHA-256 match: sdist, py3-none-any, and cp312-abi3 wheels for manylinux_2_34 x86_64 and aarch64, macosx 10_12 x86_64 and 11_0 arm64, and win_amd64 |
+| 2026-09-27T00:12:22Z | PLAN-00009-STEP-14 | PyPI attestations: pypi-attestations verify pypi --repository https://github.com/joelee/fpr-ff1 for each file | Pass | OK for all 7 files |
+| 2026-09-27T00:12:23Z | PLAN-00009-STEP-14 | Clean installs of fpr-ff1==2.1.0rc1 from PyPI, NIST sample 2 plus the d > 16 case above on each available backend | Pass | 3.12.13: abi3 manylinux x86_64 wheel, python and rust agree. 3.14.7 (GIL): the same abi3 wheel, python and rust agree. 3.14.3 free-threaded: resolver chose py3-none-any (abi3 does not apply), rust backend reports BackendError and python passes. --no-binary (sdist build) on 3.12 and 3.14: py3-none-any, no _rs module, BackendError for rust, python passes |
 
 ### Completion summary
 
-- **Implementation status:** `blocked`
-- **Completed requirements:** PLAN-00009-REQ-01 to REQ-11, REQ-13; REQ-09 and REQ-14 candidate gated
-- **Incomplete requirements:** REQ-12 publication; REQ-14 release, soak, re-review, 2.1.0
-- **Outstanding blockers:** Owner actions for STEP-14
-- **Review request:** Not ready
+- **Implementation status:** `completed`
+- **Completed requirements:** PLAN-00009-REQ-01 to REQ-11, REQ-13; REQ-12 for 2.1.0rc1 (both registries, verified); REQ-09 candidate gated
+- **Incomplete requirements:** None here: REQ-12 for 2.1.0 and REQ-14 are carried into PLAN-00010 REQ-12 and REQ-13
+- **Outstanding blockers:** None
+- **Review request:** Superseded: the re-review is PLAN-00010 STEP-09
 <!-- BUILDER_WORK_LOG_END -->
 
 ## 18. Planning change log

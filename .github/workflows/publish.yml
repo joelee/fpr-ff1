@@ -76,12 +76,12 @@ jobs:
   # crates.io, by Trusted Publishing (plan 00009 STEP-11, REQ-12): an OIDC
   # token exchanged for a short-lived crates.io token, never a stored secret.
   # Runs after PyPI succeeds, so the two registries only ever hold the same
-  # release, and only for final releases: Trusted Publishing cannot create a
-  # crate, so the first publication -- a pre-release -- is the owner's
-  # manual bootstrap from the CI-built .crate (plan 00009 D11).
+  # release. Pre-releases publish too (plan 00010 D1): the crate's first
+  # version was the owner's manual bootstrap (plan 00009 D11), and every
+  # version since, release candidates included, goes through this job, so the
+  # Trusted Publishing path is exercised before a final release depends on it.
   publish-crate:
     needs: [quality, publish]
-    if: ${{ !github.event.release.prerelease }}
     runs-on: ubuntu-latest
     environment:
       name: crates-io
@@ -96,11 +96,17 @@ jobs:
         with:
           toolchain: stable
 
+      # Tags follow pyproject.toml's PEP 440 spelling (v2.1.0rc2) while the
+      # crate carries the semver spelling (2.1.0-rc2). Map exactly one
+      # pre-release suffix, -aN, -bN or -rcN, and nothing else, so any other
+      # shape fails closed rather than publishing a version the tag does not
+      # name.
       - name: Verify tag matches crate version
         run: |
           crate_version="$(grep -m1 '^version = ' rust/fpr-ff1/Cargo.toml | cut -d'"' -f2)"
-          if [ "${GITHUB_REF_NAME}" != "v${crate_version}" ]; then
-            echo "release tag ${GITHUB_REF_NAME} does not match crate version ${crate_version}" >&2
+          expected_tag="v$(printf '%s' "${crate_version}" | sed -E 's/-(a|b|rc)([0-9]+)$/\1\2/')"
+          if [ "${GITHUB_REF_NAME}" != "${expected_tag}" ]; then
+            echo "release tag ${GITHUB_REF_NAME} does not match crate version ${crate_version} (expected ${expected_tag})" >&2
             exit 1
           fi
 

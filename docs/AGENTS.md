@@ -4,9 +4,11 @@ Documentation is part of the product. Update docs in the same change that makes 
 
 ## Maintained Documents
 
-- `README.md`: project overview, quick start, common commands, and links to deeper docs.
+- `README.md`: project overview, quick start, common commands, and links to deeper docs. It is also the PyPI page, and `rust/fpr-ff1/README.md` is the crates.io page and docs.rs crate root; `tests/test_docs.py` holds both to what those sites can render.
 - `docs/architecture.md`: system context, major modules, boundaries, key design decisions, and diagrams.
 - `docs/configuration.md`: all non-secret config keys, defaults, lookup order, and secret handling rules.
+- `docs/python-api.md`: the full Python API reference (constructor, numeral and string interfaces, exceptions, thread safety); the README keeps only a summary.
+- `docs/migrating-from-ubiq.md`: the `ubiq_security_fpe` migration guide; `tests/test_interoperability.py` builds its recipe.
 - `docs/directory-structure.md`: repository layout and what belongs in each directory.
 - `docs/developer-guide.md`: setup, development workflow, testing, linting, type checking, debugging, and release notes.
 - `docs/backlog.md`: high-level feature backlog and links to feature directories.

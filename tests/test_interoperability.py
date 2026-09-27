@@ -25,7 +25,7 @@ The mapping between the two APIs::
     from fpr_ff1 import FF1
     ctx = FF1(key, radix, alphabet=alphabet, tweak=tweak,
               min_tweak_len=twk_min_len,
-              # legacy 0 meant "no maximum"; here that is None (README note 5)
+              # legacy 0 meant "no maximum"; here that is None (migration guide note 5)
               max_tweak_len=twk_max_len or None)
     ct  = ctx.encrypt(pt)
     pt  = ctx.decrypt(ct)
@@ -33,7 +33,7 @@ The mapping between the two APIs::
 Note that `fpr-ff1` enforces the SP 800-38G Rev. 1 minimum domain
 (``radix ** minlen >= 1_000_000``), which is stricter than the 2016 text.
 Inputs shorter than :attr:`FF1.min_length` were accepted by some older
-libraries and are rejected here; see the README migration section.
+libraries and are rejected here; see docs/migrating-from-ubiq.md.
 """
 
 import string
@@ -115,7 +115,7 @@ def _migrated_by_the_documented_recipe(
     twk_max_len: int,
     ff1_factory: Any,
 ) -> FF1:
-    """Build the new context exactly as the README migration recipe says to.
+    """Build the new context exactly as docs/migrating-from-ubiq.md says to.
 
     The only translation the recipe performs is the maximum-tweak sentinel:
     ``ubiq_security_fpe`` applied ``twk_max_len`` only when positive, so ``0``
@@ -141,7 +141,7 @@ def _migrated_by_the_documented_recipe(
 def test_documented_migration_recipe_accepts_what_the_legacy_context_accepted(
     ff1_factory: Any, twk_min_len: int, twk_max_len: int
 ) -> None:
-    """Following the README recipe must not narrow the accepted tweak set.
+    """Following the migration recipe must not narrow the accepted tweak set.
 
     The legacy ``(0, 0)`` configuration -- the usual way to say "any tweak" --
     is the case that matters: with a non-empty tweak it must still construct,

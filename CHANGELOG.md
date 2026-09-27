@@ -9,6 +9,43 @@ expanding the accepted domain without changing existing behaviour is a minor ver
 
 ## [Unreleased]
 
+## [2.1.0rc2] — 2026-09-27
+
+Second release candidate for 2.1.0: **documentation, package metadata and release automation
+only**. No change to accepted inputs, produced ciphertext or the public API of either the Python
+package or the Rust crate, whose code is identical to 2.1.0rc1.
+
+### Changed
+
+- **The README is a landing page for both languages.** It opens with the PyPI package and the
+  crates.io crate side by side, says what format-preserving encryption is for, and gives the install
+  line and quick start in Python and in Rust, plus a check against NIST sample 2 in both. The
+  security notes and the table of known FF1 failure modes are unchanged; the three overlapping
+  disclaimer sections are now one. At 260 lines it is under half its former length.
+- **Reference material moved to `docs/`:** the full Python API reference to `docs/python-api.md`,
+  the `ubiq_security_fpe` migration guide to `docs/migrating-from-ubiq.md`, and the domain-limits
+  rationale and wheel table to `docs/configuration.md`. Their content is unchanged, and the README
+  links to each.
+- **The crate README is written for Rust users**: what FF1 is for, `cargo add`, the MSRV, a docs.rs
+  link, complete examples, the conformance evidence, and what the crate is not.
+- **One performance table**, from a fresh `just bench` run on one machine, replaces the two tables
+  from different machines and releases. The docs' thread-parallelism figure is re-measured in the
+  same run: 2.17× on four threads (previously published as 2.9×).
+- **PyPI metadata** names the optional Rust backend in the summary and links the crate.
+- **Release candidates of the crate are published by CI**, through crates.io Trusted Publishing,
+  like final releases. The release tag check now maps the crate's `-rcN` spelling to the tag's
+  `rcN`; it previously rejected every pre-release tag.
+
+### Fixed
+
+- **Broken rendering on the registries.** On PyPI, two README links were relative and dead. On
+  crates.io, the crate page showed rustdoc's hidden example lines (`# Ok::<(), fpr_ff1::Error>(())`)
+  and a literal `[Error]`. The Python quick start called an undefined function. The architecture
+  diagram failed to render on GitHub.
+- `tests/test_docs.py` now guards both READMEs: links must be absolute, the crate README may use no
+  rustdoc-only syntax, every README Python example runs, and every README Rust example is a
+  verbatim copy of a doctested crate example.
+
 ## [2.1.0rc1] — 2026-09-26
 
 Release candidate for **the FF1 core as a Rust crate**, `fpr-ff1` on crates.io, published in
@@ -478,7 +515,8 @@ requiring a major version.
 
 <!-- Keep a Changelog link reference definitions (review 00003 B7): without
      these, the bracketed version headings render as literal brackets. -->
-[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v2.1.0rc1...HEAD
+[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v2.1.0rc2...HEAD
+[2.1.0rc2]: https://github.com/joelee/fpr-ff1/compare/v2.1.0rc1...v2.1.0rc2
 [2.1.0rc1]: https://github.com/joelee/fpr-ff1/compare/v2.0.0...v2.1.0rc1
 [2.0.0]: https://github.com/joelee/fpr-ff1/compare/v2.0.0rc2...v2.0.0
 [2.0.0rc2]: https://github.com/joelee/fpr-ff1/compare/v2.0.0rc1...v2.0.0rc2

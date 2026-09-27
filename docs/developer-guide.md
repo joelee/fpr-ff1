@@ -2,7 +2,9 @@
 
 ## Requirements
 
-- Python 3.12.x
+- Python 3.12.x. The package supports CPython 3.12, 3.13 and 3.14, the versions CI exercises and
+  the trove classifiers state. `requires-python` is `>=3.12` with no upper bound: a cap would be a
+  hard resolution failure on future interpreters, so the floor rises as the CI matrix grows instead.
 - `uv`
 - `just`
 - `gitleaks` (for `just secrets`)
@@ -78,6 +80,15 @@ just quality     # before pushing
 - `tests/test_contract.py` holds whole-surface assertions — that every rejection is typed, and that
   required files are tracked by git. Add new malformed-input cases to the sweep there rather than
   only as one-off tests; a case-by-case suite passes happily while an untested input escapes.
+- `tests/test_docs.py` guards the two READMEs as they are rendered and copied. `README.md` (the
+  PyPI page) and `rust/fpr-ff1/README.md` (the crates.io page and docs.rs crate root) may link only
+  to absolute `https://` URLs or same-page anchors. The crate README may not use rustdoc's hidden
+  `# ` doctest lines or intra-doc links, both of which crates.io shows verbatim: write complete
+  examples with `fn main() -> Result<(), fpr_ff1::Error>` and docs.rs URLs instead. Every Python
+  block in `README.md` runs, in order, in one namespace, and every Rust block in it must be a
+  verbatim copy of text in the crate README, whose blocks `cargo test --doc` runs. A Python block
+  that cannot run (for example, one importing a legacy library) is preceded by
+  `<!-- docs-test: skip (reason) -->`. The reason is required, and the test warns with it.
 - Register long-running tests with `@pytest.mark.slow` so `just test-fast` can exclude them. They
   still run in `just test`, `just quality` and CI.
 
@@ -252,7 +263,11 @@ Publication differs from PyPI in one way. crates.io Trusted Publishing cannot cr
    scoped to publishing new crates, then revokes the token.
 2. **The owner then adds the Trusted Publisher** on crates.io: owner `joelee`, repository
    `fpr-ff1`, workflow `publish.yml`, environment `crates-io`.
-3. **Every later final release** is published by `publish.yml`'s `publish-crate` job, after PyPI
-   succeeds, with a short-lived token from `rust-lang/crates-io-auth-action`. Pre-releases skip it.
+3. **Every later release, release candidates included** (plan 00010 D1), is published by
+   `publish.yml`'s `publish-crate` job, after PyPI succeeds, with a short-lived token from
+   `rust-lang/crates-io-auth-action`. The job's tag check maps the crate's semver pre-release
+   suffix (`-rc2`) to the tag's PEP 440 spelling (`rc2`) and refuses any other mismatch. If the job
+   fails after PyPI has published, the owner can publish that run's CI-built `.crate` by hand, as
+   in step 1, so the two registries still hold the same release.
 
 A published crate version can be yanked but never replaced; recovery is a new patch version.

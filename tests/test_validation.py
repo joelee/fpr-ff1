@@ -186,9 +186,10 @@ def test_max_tweak_len_zero_means_empty_tweaks_only(ff1_factory: Any) -> None:
     """A literal zero maximum is a bound, not a "no maximum" sentinel.
 
     ``ubiq_security_fpe`` applied its maximum only when positive, so ``0``
-    meant unbounded there.  This API reads bounds literally, and the README
-    migration recipe translates the legacy sentinel to ``None``.  Pin the
-    literal meaning so that translation stays necessary and correct
+    meant unbounded there.  This API reads bounds literally, and the
+    migration recipe (docs/migrating-from-ubiq.md) translates the legacy
+    sentinel to ``None``.  Pin the literal meaning so that translation stays
+    necessary and correct
     (review 00011 MED-01).
     """
     ff1 = ff1_factory(key=_VALID_KEY, radix=10, max_tweak_len=0)
@@ -424,7 +425,7 @@ def test_odd_and_even_lengths(n: int) -> None:
 #
 # Comparison alone is not a type gate: `1.0 < 10` is True, so a float numeral
 # used to pass validation and then crash in `_encode_uint` with AttributeError
-# -- outside the FF1Error hierarchy the contract and README both promise.
+# -- outside the FF1Error hierarchy the contract and the API reference promise.
 
 
 class _Comparable:

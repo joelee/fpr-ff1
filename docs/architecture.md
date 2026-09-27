@@ -7,7 +7,7 @@
 ```mermaid
 flowchart LR
     Caller["Caller code"] --> FF1["fpr_ff1.FF1"]
-    FF1 -->|backend=python (default)| Py["_ff1 pure-Python core"]
+    FF1 -->|"backend=python (default)"| Py["_ff1 pure-Python core"]
     FF1 -->|backend=rust| Rs["fpr_ff1._rs compiled core"]
     Py --> AES["cryptography AES/CBC PRF"]
     Rs --> Core["fpr-ff1 crate core"]

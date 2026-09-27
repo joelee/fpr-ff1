@@ -3,41 +3,100 @@
 [![CI](https://github.com/joelee/fpr-ff1/actions/workflows/ci.yml/badge.svg)](https://github.com/joelee/fpr-ff1/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/fpr-ff1.svg)](https://pypi.org/project/fpr-ff1/)
 [![Python](https://img.shields.io/pypi/pyversions/fpr-ff1.svg)](https://pypi.org/project/fpr-ff1/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![crates.io](https://img.shields.io/crates/v/fpr-ff1.svg)](https://crates.io/crates/fpr-ff1)
+[![docs.rs](https://img.shields.io/docsrs/fpr-ff1)](https://docs.rs/fpr-ff1)
+[![License: Python MIT, Rust MIT OR Apache-2.0](https://img.shields.io/badge/license-Python%3A%20MIT%20%C2%B7%20Rust%3A%20MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/joelee/fpr-ff1/blob/main/LICENSE)
 
-A small, correct Python implementation of **FF1**, the format-preserving encryption mode from NIST SP 800-38G.
+**FF1 format-preserving encryption (NIST SP 800-38G) for Python and Rust, conformance-tested round
+by round against the published NIST vectors.**
 
-This package is intentionally just the algorithm: no accounts, no network, no key management, and no FF3/FF3-1 modes.
+- **Python** ([PyPI](https://pypi.org/project/fpr-ff1/)): pure Python with one dependency,
+  `cryptography`, plus an optional compiled backend that is faster and bit-identical.
+- **Rust** ([crates.io](https://crates.io/crates/fpr-ff1)): the same FF1 core as a native crate
+  with a small, stable API, validating inputs exactly as the Python package does.
+
+Both are built from this repository, share one conformance suite, and are released together under
+one version number.
+
+## What FF1 is for
+
+Format-preserving encryption turns a value into ciphertext of the same shape: a 16-digit card
+number encrypts to 16 digits, and a code over `A-Z0-9` stays over `A-Z0-9`. Encrypted values still
+fit the columns, fixed-width files, validators and APIs built for the plaintext, so you can protect:
+
+- card and account numbers in legacy schemas;
+- national and customer identifiers passed between services;
+- production data copied into test and analytics environments, still valid for the code that
+  reads it.
+
+FF1 is reversible encryption, not hashing or vault tokenisation: anyone holding the key can decrypt.
+It provides confidentiality only, so read the [security notes](#security-notes--read-before-use).
 
 ## Install
 
 ```bash
-pip install fpr-ff1
+pip install fpr-ff1       # Python 3.12 or newer
+cargo add fpr-ff1         # Rust 1.89 or newer
 ```
 
 ## Quick start
 
 ```python
+import secrets
+
 from fpr_ff1 import FF1
 
-# The all-zero key here is for the example only. Never use it (or any other
-# published key) for real data: load key material from your secret store.
-key = load_key_from_your_secret_store()  # 16, 24, or 32 bytes
+key = secrets.token_bytes(32)  # for real data, load the key from your secret store
 
 ff1 = FF1(
     key=key,
     radix=10,
     alphabet="0123456789",
-    # A tweak separates ciphertexts across contexts: two records with the
-    # same plaintext encrypt to the same ciphertext under the same tweak,
-    # so derive the tweak from stable record context (an account ID, a
-    # table name) rather than leaving it empty.
+    # Derive the tweak from stable record context (an account ID, a table name):
+    # equal plaintexts under the same key and tweak give equal ciphertexts.
     tweak=b"customer-pans",
 )
 
 encrypted = ff1.encrypt("123456")
-decrypted = ff1.decrypt(encrypted)
-assert decrypted == "123456"
+assert ff1.decrypt(encrypted) == "123456"
+```
+
+In Rust, with NIST's published sample 2 values, so the output can be checked:
+
+```rust
+use fpr_ff1::FF1;
+
+fn main() -> Result<(), fpr_ff1::Error> {
+    // NIST SP 800-38G sample 2: AES-128, radix 10, a ten-byte tweak. The key is a
+    // published test key; load real keys from your secret store.
+    let key: [u8; 16] = [
+        0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6,
+        0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C,
+    ];
+    let ff1 = FF1::builder(&key, 10)
+        .alphabet("0123456789")
+        .tweak(b"9876543210")
+        .build()?;
+
+    let ciphertext = ff1.encrypt("0123456789", None)?;
+    assert_eq!(ciphertext, "6124200773");
+    assert_eq!(ff1.decrypt(&ciphertext, None)?, "0123456789");
+    Ok(())
+}
+```
+
+### Check it against NIST
+
+The same NIST sample 2 check in Python. Its key is a published test key, for checking only:
+
+```python
+nist = FF1(
+    key=bytes.fromhex("2B7E151628AED2A6ABF7158809CF4F3C"),
+    radix=10,
+    alphabet="0123456789",
+    tweak=b"9876543210",
+)
+assert nist.encrypt("0123456789") == "6124200773"
 ```
 
 ## Security notes — read before use
@@ -61,73 +120,25 @@ FF1 is a deterministic permutation for a fixed key and tweak. That has operation
 5. **Validation exceptions never echo your data.** Rejected values are located by index, not
    repeated in the message, so a malformed record does not leak plaintext into your logs.
 
-## Features
-
-- Pure Python with a single runtime dependency: `cryptography`.
-- An optional compiled backend (`backend="rust"`) for high-throughput callers, with the
-  pure-Python implementation retained as the reference and the default.
-- Conformance-tested against the NIST SP 800-38G sample vectors.
-- No floating-point arithmetic in the FF1 core.
-- Tightened domain limits from the SP 800-38G Rev. 1 second public draft:
-  - radix range `2 <= radix < 2**16` (a deliberate supported subset of the spec's inclusive
-    `[2..2**16]` — see [Domain limits](#domain-limits-are-stricter-than-the-2016-text))
-  - minimum domain `radix ** minlen >= 1_000_000`
-  - maximum length `2 ** 32 - 1` (SP 800-38G specifies `maxlen < 2 ** 32`)
-  - AES keys of 128, 192, or 256 bits only
-- Strongly typed public API with typed exceptions rooted at `FF1Error`.
-
 ## Why you can trust this implementation
 
-Format-preserving encryption is unusually easy to get *almost* right. A subtly wrong FF1 still
-round-trips perfectly — `decrypt(encrypt(x)) == x` — while producing ciphertext no conformant
-implementation can read. By the time anyone notices, the data is written. So conformance here is
-not a checkbox; it is the entire product, and it is evidenced rather than asserted.
+A subtly wrong FF1 still round-trips perfectly while producing ciphertext no conformant
+implementation can read, and by the time anyone notices, the data is written. So conformance is the
+product here, and it is evidenced rather than asserted:
 
-**The full suite — NIST sample vectors, per-round intermediate-value conformance for every round of every sample, differential tests against an independent implementation, exhaustive bijectivity sweeps, and a malformed-input sweep — runs in CI with 100% line and branch coverage enforced. The build fails below it.**
+- **All nine NIST sample vectors** in both directions, and **every per-round intermediate value**
+  NIST publishes, for every round of every sample. Compensating bugs can pass an output test; they
+  cannot pass this one.
+- **Differential tests against an independent implementation** across radices 2, 10, 16, 32, 36,
+  62, 256 and 65535, at every length where FF1's block structure changes. NIST publishes vectors
+  for radix 10 and 36 only. The oracle is checked against NIST first, and its outputs are frozen
+  into the repository.
+- **Exhaustive bijectivity** over two whole domains: radix 2 at length 20 and radix 10 at length 6.
+- **Vectors transcribed from the NIST document**, never regenerated from this code.
+- **100% line and branch coverage** of the Python package, enforced in CI. The Rust core passes the
+  whole Python conformance suite bit for bit, and its own tests of the same fixtures.
 
-That coverage figure measures the Python package. The compiled backend's Rust core is not
-line-coverage measured: it is held to the same bar by running the entire conformance suite,
-bit-exact, against it as well, plus its own `cargo test` unit tests.
-
-This is strong conformance evidence, not proof. It has not received an independent cryptographic
-audit or NIST validation; see [What this is *not*](#what-this-is-not) below.
-
-### Conformance is verified at the round level, not just the output level
-
-All nine published NIST sample vectors pass in both directions. That alone is a weak statement:
-nine input/output pairs can be satisfied by two bugs that cancel out.
-
-So this package also asserts the **per-round intermediate values** the NIST sample document
-publishes — `P`, `Q`, `R`, `S`, `y`, `m`, `c` and `C`, plus the derived `u`, `v`, `b` and `d` — for
-**every round of every sample**, 90 rounds in total. Compensating bugs survive an output test. They
-do not survive this one.
-
-The vectors are transcribed from the NIST document and stored as data files. They are never
-regenerated from this implementation, which would make them a record of whatever the code does
-rather than of what the standard requires.
-
-### Radices without published vectors are verified against an independent implementation
-
-NIST publishes vectors for radix 10 and 36 only. Every other radix has none, so agreement with an
-independent implementation is the only correctness evidence available — expected values authored
-from this code would test nothing and lock in any bug permanently.
-
-`fpr-ff1` is therefore differential-tested against `ubiq_security_fpe` across radices **2, 10, 16,
-32, 36, 62, 256 and 65535**, including every length where the algorithm's internal block structure
-changes. The oracle is itself validated against all nine NIST vectors before a single comparison is
-trusted. Oracle-derived known-answer vectors are also frozen into the repository, so this evidence
-survives even if the (deprecated, unmaintained) oracle package one day stops installing.
-
-### Bijectivity is tested exhaustively for these two domains
-
-For two domains small enough to enumerate completely — radix 2 at length 20 (1,048,576 values) and
-radix 10 at length 6 (1,000,000 values) — every point is encrypted and the image checked to be the
-full domain, with no gaps and no collisions. That is the strongest correctness statement available
-for a permutation, and it is run in CI rather than kept as a manual check.
-
-### The known failure modes are tested for by name
-
-Published FF1 bugs cluster in a few places. Each has a dedicated test:
+Each known way FF1 implementations go wrong has a dedicated test:
 
 | Known failure mode | How it is prevented |
 |---|---|
@@ -137,392 +148,113 @@ Published FF1 bugs cluster in a few places. Each has a dedicated test:
 | Mirrored parity rule in decrypt | Encrypt and decrypt share one code path for it |
 | Silent coercion of bad input | Every rejection raises a typed exception; a 50-case sweep asserts nothing escapes as a bare `AttributeError` or `KeyError` |
 
-### Migration is safe by construction
-
-Output is byte-identical to `ubiq_security_fpe`, verified in **both** directions — old ciphertext
-decrypts with this library, and new ciphertext decrypts with the old one. Existing encrypted data
-stays readable, and a rollback strands nothing. See [Migrating](#migrating-from-ubiq_security_fpe).
-
-### What this is *not*
-
-Passing the published sample vectors is **conformance evidence, not FIPS validation**. This package
-is not FIPS 140 validated and makes no such claim. It also does not attempt key zeroization, and
-offers no constant-time guarantee — see [`SECURITY.md`](https://github.com/joelee/fpr-ff1/blob/main/SECURITY.md) for the full statement of
-limitations.
+This is strong conformance evidence, not proof: see [what this is not](#what-this-is-not).
 
 ## Why FF1 only — and why FF3 is excluded
 
-SP 800-38G originally specified two modes, FF1 and FF3. FF3 was revised to FF3-1 after an attack
-on the original construction, but Beyne subsequently demonstrated a weakness in the **tweak
-schedule** that affects FF3 and FF3-1 alike — the repair did not address the underlying problem.
+SP 800-38G originally specified FF1 and FF3. FF3 was revised to FF3-1 after an attack, but Beyne
+then showed a weakness in the **tweak schedule** that affects FF3 and FF3-1 alike, and the
+**February 2025 second public draft of SP 800-38G Rev. 1 removes FF3 entirely**. FF1 is the only
+format-preserving mode left standing, so this project will never implement FF3 or FF3-1: no flag,
+no opt-in, no plan to add one.
 
-The **February 2025 second public draft of SP 800-38G Rev. 1 removes FF3 entirely**, leaving FF1
-as the only approved format-preserving mode.
+## Limits
 
-`fpr-ff1` will therefore never implement FF3 or FF3-1. This is a deliberate feature, not an
-omission: there is no configuration flag, no opt-in, and no plan to add one. If you need FF3 you
-need a different library, and you should first satisfy yourself that you actually need a mode
-NIST has withdrawn.
+SP 800-38G, with the tighter limits of its Rev. 1 second public draft. Inputs below the minimum
+domain fail closed with `LengthError`, even where older libraries accept them.
 
-## Domain limits are stricter than the 2016 text
-
-This package implements SP 800-38G (2016, updated 2019) as the normative algorithm, but enforces
-the **tightened constraints from the Rev. 1 second public draft**:
-
-| Constraint | This package | SP 800-38G (2016) |
-|---|---|---|
-| Minimum domain | `radix ** minlen >= 1_000_000` | `radix ** minlen >= 100` |
-| Maximum length | `2 ** 32 - 1` | `2 ** 32 - 1` |
-| Key sizes | 128, 192, 256 bits | same |
-| Radix | `2 <= radix < 2**16` — a deliberate supported **subset** of the spec's inclusive `[2..2**16]` | `2 <= radix <= 2**16` |
-| Rounds | exactly 10 | same |
-
-The radix bound is an implementation limit, not a spec deviation: NIST permits an implementation
-to support a subset of radices, and this package supports `2..65535`. Radix 65536 is excluded
-deliberately (its numerals do not fit in `uint16`-sized values, and no practical alphabet reaches
-it); if that ever changes, widening the accepted domain without changing existing behaviour will
-be a minor version, not a major one.
-
-The minimum-domain rule is the one that will bite. A domain of only 100 values is trivially
-enumerable, so this package **fails closed** and rejects it. Concretely, `min_length` is 6 for
-radix 10 and 4 for radix 36 — inputs shorter than that raise `LengthError`, even though some
-older libraries (including `ubiq_security_fpe`) accept them.
-
-Rev. 1 is still a draft. If it is finalised with different limits, that will be a breaking change
-and a major version.
-
-## Scope
-
-- **In scope:** FF1 encryption and decryption, numeral and string interfaces, alphabet handling, parameter validation, tests, documentation.
-- **Out of scope, permanently:** FF3/FF3-1, identifier generation, persistence, checksums, key generation/storage/derivation, application-specific defaults or alphabets.
-
-## Supported Python versions
-
-**3.12, 3.13 and 3.14** are the versions exercised in CI on Linux, macOS and Windows (stated in
-the trove classifiers). `requires-python` is `>=3.12` with no upper bound: a capped
-`requires-python` becomes a hard resolution failure on future interpreters — a claim that they
-*don't* work, which cannot be known in advance — so the floor rises as the CI matrix grows rather
-than the ceiling punishing users of new Pythons.
-
-## Roadmap
-
-| Version | Focus |
+| Constraint | Value |
 |---|---|
-| **1.0** | **Pure Python.** Conformance, a stable API, and a single runtime dependency (`cryptography`). No compiled extension, no optional backends — one code path, and it is the one the vectors test. |
-| **1.1** | **Pure-Python performance.** Subquadratic base conversion and an O(n) power-of-two fast path; ciphertext bit-identical to 1.0.0. Still one code path, still one dependency. |
-| **2.0** | **Optional accelerated backend.** An opt-in faster path for high-throughput callers, with the pure-Python implementation retained as the reference and the default. Shipped in `2.0.0`. |
-| **2.1** | **The core as a Rust crate.** The same FF1 implementation published on crates.io as `fpr-ff1`, with its own validation, for Rust callers. Version numbers stay in lock-step with PyPI. |
+| Minimum domain | `radix ** minlen >= 1_000_000`: 6 numerals at radix 10, 4 at radix 36 |
+| Maximum length | `2 ** 32 - 1` numerals; tweaks up to `2 ** 32 - 1` bytes |
+| Key sizes | AES-128, AES-192, AES-256 |
+| Radix | `2 <= radix < 2**16`, a deliberate subset of the specification's range |
 
-The 2.0 backend is opt-in and additive: the pure-Python path is unchanged and remains the default,
-so existing callers are unaffected. The accelerated path is only worth having once the reference
-implementation is settled and there is a conformance suite strong enough to prove the two agree
-bit for bit — which is the point of the differential and interoperability tests, and which the
-2.0 suite runs against *both* backends. The compiled backend removes the per-call overhead that
-dominates short inputs and shares 1.1's subquadratic conversion for long ones; see
-[Backends](#backends) for the measured numbers.
+Why each limit is where it is: [`docs/configuration.md`](https://github.com/joelee/fpr-ff1/blob/main/docs/configuration.md#domain-limits-are-stricter-than-the-2016-text).
 
-Nothing in the roadmap changes the scope boundary above. FF3 and FF3-1 remain permanently out of
-scope, and no release will add key management.
+## Backends and platforms
+
+In Python, `FF1(..., backend="rust")` opts in to the compiled backend. `backend="python"` is the
+default and the reference implementation. Both produce bit-identical ciphertext and raise identical
+exceptions, because validation runs in Python for both.
+
+Native wheels carry the compiled backend for Linux x86_64 and aarch64 (glibc 2.34 or newer), macOS
+on Intel and Apple silicon, and Windows x64, on CPython 3.12 to 3.14 ([wheel list](https://github.com/joelee/fpr-ff1/blob/main/docs/configuration.md#distribution-and-backend-availability)).
+Elsewhere, including musl, older glibc and free-threaded builds, `pip` installs the pure-Python
+wheel, and `backend="rust"` raises `BackendError` rather than falling back silently.
 
 ## Performance
 
-Measured on one core, CPython 3.12.13, macOS (Apple Silicon) — reproduce on your own hardware
-with `just bench` (`benchmarks/timing.py` is the harness):
-
-| Input | Throughput | Per numeral |
-|---|---|---|
-| 6 numerals, radix 10 | ~34,000 ops/s | 29.1 µs/op |
-| Instance construction | ~770,000 /s | 1.3 µs |
-| n = 100, radix 10 | — | 1.1 µs |
-| n = 1,000, radix 10 | — | 1.0 µs |
-| n = 5,000, radix 10 | — | 1.1 µs |
-| n = 20,000, radix 10 | — | 1.4 µs |
-
-The per-numeral cost is now flat across input lengths. Before 1.1.0 the internal conversion
-between a numeral sequence and a big integer was a digit-at-a-time loop, which is quadratic in
-the number of numerals — that was an implementation choice, not an algorithmic invariant, and
-1.1.0 replaced it with subquadratic divide-and-conquer conversion plus an O(n) fast path for
-power-of-two radices (about 19× faster at n=20,000 radix 10, 25× at radix 256), with ciphertext
-bit-identical to 1.0.0 for every valid input. If you are sizing a nightly job over millions of
-rows, measure with `just bench` against production-representative hardware.
-
-## Backends
-
-`FF1` accepts a keyword-only `backend` parameter: `"python"` (the default, and the reference
-implementation) or `"rust"` (the opt-in compiled backend). Both produce bit-identical ciphertext
-and raise identical exceptions — validation runs in Python for both, so the typed errors and
-messages are the same. The compiled backend ships as `fpr_ff1._rs` inside the platform wheels; the
-pure-Python wheel and the sdist omit it, and requesting `backend="rust"` there raises a clear
-`BackendError` rather than an opaque `ImportError`.
-
-**Where the compiled backend is available.** Native wheels are published for these platforms,
-each built once for the stable ABI (`abi3`) and so installable on CPython 3.12, 3.13 and 3.14:
-
-| Platform | Wheel tag | Requires |
-|---|---|---|
-| Linux x86_64 | `manylinux_2_34_x86_64` | glibc 2.34 or newer |
-| Linux aarch64 | `manylinux_2_34_aarch64` | glibc 2.34 or newer |
-| macOS x86_64 (Intel) | `macosx_10_12_x86_64` | macOS 10.12 or newer |
-| macOS arm64 (Apple silicon) | `macosx_11_0_arm64` | macOS 11 or newer |
-| Windows x64 | `win_amd64` | — |
-
-Every one of these wheels is installed and tested on its own platform, on all three Python
-versions, before release. Everywhere else, including Linux with a glibc older than 2.34, musl
-distributions such as Alpine, other architectures, and free-threaded CPython builds, `pip` installs
-the pure-Python wheel instead. The default backend then works unchanged, and only `backend="rust"`
-raises `BackendError`. No native support is implied beyond the table.
-
-Measured on one core, CPython 3.12.13, Linux x86_64 (AMD Ryzen AI Max+ PRO 395), extension built
-in release mode with rustc 1.98.1 — reproduce with `just bench`:
+`just bench` on 2026-09-27: one core, Linux x86_64 (AMD Ryzen AI Max+ PRO 395), CPython 3.12.13,
+extension built in release mode with rustc 1.98.1. Microseconds per encryption:
 
 | Input | `backend="python"` | `backend="rust"` | Speedup |
 |---|---:|---:|---:|
-| 6 numerals, radix 10 | 29.5 µs/op | 4.1 µs/op | ~7.3× |
-| n = 100, radix 10 | 110.6 µs/op | 38.8 µs/op | ~2.9× |
-| n = 1,000, radix 10 | 966.0 µs/op | 399.5 µs/op | ~2.4× |
-| n = 5,000, radix 10 | 5.3 ms/op | 2.2 ms/op | ~2.5× |
-| n = 20,000, radix 10 | 27.9 ms/op | 9.9 ms/op | ~2.8× |
-| n = 100, radix 256 | 145.6 µs/op | 50.2 µs/op | ~2.9× |
-| n = 1,000, radix 256 | 2.2 ms/op | 0.2 ms/op | ~11× |
-| n = 5,000, radix 256 | 11.2 ms/op | 1.0 ms/op | ~11× |
-| n = 20,000, radix 256 | 45.7 ms/op | 4.1 ms/op | ~11× |
+| 6 numerals, radix 10 | 28.2 | 4.6 | 6.20× |
+| n = 100, radix 10 | 108.7 | 39.0 | 2.79× |
+| n = 1,000, radix 10 | 937.8 | 397.5 | 2.36× |
+| n = 5,000, radix 10 | 5,212.3 | 2,117.5 | 2.46× |
+| n = 20,000, radix 10 | 26,770.3 | 9,774.2 | 2.74× |
+| n = 100, radix 256 | 141.0 | 51.3 | 2.75× |
+| n = 1,000, radix 256 | 2,542.9 | 211.4 | 12.03× |
+| n = 5,000, radix 256 | 13,105.2 | 1,046.2 | 12.53× |
+| n = 20,000, radix 256 | 52,585.5 | 4,167.8 | 12.62× |
 
-**On every shape measured here, the compiled backend is faster.** At short inputs it eliminates the
-per-call cipher-context construction that dominates the pure-Python path (about 55% of an n=6
-call). At long inputs both cores use the same subquadratic numeral conversion — divide and conquer,
-plus an O(n) byte-packing path for power-of-two radices, which is why radix 256 gains most — so the
-compiled core keeps its lead instead of being overtaken, as it was in `2.0.0rc1`.
+The compiled backend releases the GIL: in the same run, four threads sharing one instance did the
+same work 2.17× faster than one thread (n = 5,000, radix 10), against 0.86× for pure Python. These
+are one machine's numbers; measure your own data with `just bench`.
 
-These are one machine's numbers, not a guarantee: the ratio depends on the interpreter, the CPU
-and the shape of your data, so measure your own inputs with `just bench` before choosing.
-
-The two backends are complementary, not a replacement: the pure-Python path remains the reference
-and the default, needs no compiled extension, and produces bit-identical ciphertext.
-
-## Rust
-
-The compiled core is also published on crates.io as the
-[`fpr-ff1`](https://crates.io/crates/fpr-ff1) crate, from `2.1.0`, for callers writing Rust:
-
-```rust
-use fpr_ff1::FF1;
-
-let ff1 = FF1::builder(&key, 10).alphabet("0123456789").build()?;
-let ciphertext = ff1.encrypt("0123456789", None)?;
-```
-
-It produces the same ciphertext as this package and validates inputs with the same rules, in the
-same order and with the same messages, proven by a case file both test suites share
-(`tests/vectors/validation_cases.json`). The pure-Python implementation remains the reference. The
-crate's version always matches this package's, so `fpr-ff1` 2.1.0 on crates.io and on PyPI are
-the same release. It needs Rust 1.89 or newer. See [`rust/fpr-ff1/README.md`](rust/fpr-ff1/README.md).
-
-## API
-
-### `FF1(key, radix, *, alphabet=None, tweak=b"", min_tweak_len=None, max_tweak_len=None, backend="python")`
-
-| Parameter | Description |
-|---|---|
-| `key` | 16, 24, or 32 bytes. |
-| `radix` | Integer base of the numeral system. |
-| `alphabet` | Optional string of exactly `radix` unique characters; enables `encrypt`/`decrypt`. |
-| `tweak` | Default tweak used when not supplied per call. At most `2**32 - 1` bytes, the limit of FF1's four-byte tweak-length field. |
-| `min_tweak_len` / `max_tweak_len` | Optional per-instance tweak length bounds, each at most `2**32 - 1`; a larger bound raises `TweakLengthError` rather than being clamped. |
-| `backend` | `"python"` (default, the reference) or `"rust"` (the opt-in compiled backend). See [Backends](#backends). |
-
-The package exports `fpr_ff1.__version__` — the version of the installed distribution. Callers
-recording which build produced a dataset should capture it alongside their data.
-
-Instances are picklable and deep-copyable (the cipher objects are rebuilt on the far side), so an
-`FF1` can be passed to `multiprocessing` workers or broadcast by PySpark. Note that pickling an
-instance serialises the key — see [`SECURITY.md`](https://github.com/joelee/fpr-ff1/blob/main/SECURITY.md).
-
-### Numeral interface
-
-The primitive interface works on integers in `[0, radix)`.
+## Python API at a glance
 
 ```python
-ciphertext = ff1.encrypt_numerals([1, 2, 3, 4, 5, 6])
-plaintext = ff1.decrypt_numerals(ciphertext)
+assert ff1.decrypt_numerals(ff1.encrypt_numerals([1, 2, 3, 4, 5, 6])) == [1, 2, 3, 4, 5, 6]
+assert ff1.decrypt(ff1.encrypt("123456", b"per-call"), b"per-call") == "123456"  # per-call tweak
+assert ff1.min_length == 6
 ```
 
-**Accepted numeral types.** Anything losslessly integral — `int`, `IntEnum`, and integers from
-other numeric libraries such as NumPy, which are normalised to Python `int` so fixed-width values
-cannot overflow in the internal big-integer arithmetic.
-
-`float`, `Decimal`, `Fraction` and `str` are **rejected** with `ValueRangeError`, even when they
-compare equal to a valid numeral: `1.0 < 10` is `True`, so comparison alone is not a type check.
-
-`bool` is **rejected deliberately**. `True` would otherwise encrypt silently as `1`, and a list of
-booleans arriving here is a caller mistake, not an intent to encrypt ones and zeros.
-
-The input must be a `Sequence` — something with a known length. A generator raises `TypeError`
-(not `FF1Error`), because that is misuse of the API rather than bad data; wrap it in `list(...)`.
-The `Sequence` contract is enforced: mappings and sets are rejected, and a `Sequence` whose
-`__len__` disagrees with the values it yields raises `LengthError` rather than encrypting a
-domain smaller than the enforced minimum.
-
-### String interface
-
-When `alphabet` is provided, the string interface maps characters to numerals and back.
-
-```python
-ff1.encrypt("123456")
-ff1.decrypt("654321")
-```
-
-**Alphabet uniqueness is by Unicode code point.** FF1 operates on code points, so normalisation is
-the caller's responsibility. Precomposed `é` (U+00E9) and decomposed `é` (U+0065 U+0301) are
-visually identical but count as two distinct symbols, and an alphabet containing both is accepted.
-If your alphabet comes from user input or an external source, normalise it first:
-
-```python
-import unicodedata
-
-alphabet = unicodedata.normalize("NFC", alphabet)
-```
-
-### Exceptions
-
-Every rejection raises a typed exception derived from `FF1Error`. Nothing is silently truncated,
-padded, coerced or clamped.
-
-| Exception | Raised when |
-|---|---|
-| `KeyLengthError` | key is not 16, 24 or 32 bytes |
-| `RadixError` | radix outside `2 <= radix < 2**16` |
-| `LengthError` | input length outside `[min_length, max_length]` |
-| `ValueRangeError` | a numeral outside `[0, radix)`, or a character absent from the alphabet |
-| `TweakLengthError` | tweak outside the configured bounds |
-| `AlphabetError` | alphabet length mismatched to radix, or containing duplicates |
-| `BackendError` | `backend` is not a known name, or is `"rust"` and the compiled extension is not installed |
-
-`AlphabetError` signals malformed *configuration* (caught at construction); `ValueRangeError`
-signals malformed *data* (caught per call). They are deliberately distinct so callers can handle
-a programming error differently from a bad input record.
-
-### Thread safety
-
-`FF1` instances **are thread-safe**. No mutable state is shared between calls — every cipher
-context is created locally to the call that uses it — so separate calls on one instance may run
-concurrently and produce exactly the single-threaded results. There is no module-level or global
-state either, so any number of instances may be used concurrently. A web service may freely share
-one `FF1` across request threads.
-
-Thread-safe is not the same as parallel. The pure-Python backend holds the GIL throughout, so
-concurrent calls interleave rather than overlap. The compiled backend releases the GIL for the
-duration of the FF1 computation, so concurrent calls on one instance genuinely run in parallel —
-measured 2.9× on four threads (n = 5,000, radix 10) against 0.96× for the pure-Python control.
-Releasing the GIL also means a long call no longer stalls unrelated threads in the process.
-Reproduce both rows with `just bench`.
+Numerals need no alphabet. Every rejection raises a typed exception derived from `FF1Error` that
+never echoes your data. Instances are thread-safe and picklable (pickling serialises the key).
+Full reference: [`docs/python-api.md`](https://github.com/joelee/fpr-ff1/blob/main/docs/python-api.md).
+Rust API: [docs.rs](https://docs.rs/fpr-ff1).
 
 ## Migrating from `ubiq_security_fpe`
 
-`fpr-ff1` exists to replace `ubiq_security_fpe`, which was deprecated in favour of a SaaS client
-and is no longer maintained. **The two produce identical ciphertext for identical inputs**, so
-existing encrypted data stays readable — no re-encryption, no migration window, no rollback risk.
+`fpr-ff1` replaces the deprecated, unmaintained `ubiq_security_fpe`. **The two produce identical
+ciphertext** in both directions, enforced by `tests/test_interoperability.py`, so existing data
+stays readable without re-encryption. One trap: the legacy `twk_max_len=0` meant "no maximum",
+which here is `max_tweak_len=None`; a literal `0` means empty tweaks only. The
+[migration guide](https://github.com/joelee/fpr-ff1/blob/main/docs/migrating-from-ubiq.md) has the API mapping and every behaviour change.
 
-That claim is enforced by `tests/test_interoperability.py`, which checks both directions (old
-ciphertext decrypts with the new library and vice versa) across all three key sizes, tweaked and
-untweaked. Migration safety is treated as a correctness obligation, not a promise.
+## What this is not
 
-**No compatibility shim ships, deliberately.** A `Context(...)` / `.Encrypt()` drop-in would mean
-maintaining a permanent second API, in a naming style this project does not use, mirroring a
-library that is itself deprecated. The migration below is three mechanical edits per call site,
-and the part that would actually be hard — identical ciphertext — is already done.
+- **Not FIPS validated.** Passing the published NIST sample vectors is conformance evidence, not
+  FIPS 140 validation, and no such claim is made.
+- **Not independently audited**, and **not constant-time**; see [`SECURITY.md`](https://github.com/joelee/fpr-ff1/blob/main/SECURITY.md).
+- **No key zeroization.** Python `bytes` are immutable and the interpreter may copy them; the Rust
+  crate holds keys in ordinary heap memory and does not wipe them.
+- **Not a key-management or tokenisation toolkit, permanently.** No key generation, storage or
+  derivation, identifier generation, persistence, checksums or application-specific alphabets.
 
-### API mapping
+## Documentation
 
-```python
-# before
-from ubiq_security_fpe import ff1
-
-ctx = ff1.Context(key, tweak, twk_min_len, twk_max_len, radix, alphabet)
-ciphertext = ctx.Encrypt(plaintext, None)
-plaintext = ctx.Decrypt(ciphertext, None)
-
-# after
-from fpr_ff1 import FF1
-
-ctx = FF1(
-    key,
-    radix,
-    alphabet=alphabet,
-    tweak=tweak,
-    min_tweak_len=twk_min_len,
-    # `twk_max_len=0` meant "no maximum" in the legacy library; here that is
-    # `None`. A positive bound copies across unchanged. See note 5 below.
-    max_tweak_len=twk_max_len or None,
-)
-ciphertext = ctx.encrypt(plaintext)
-plaintext = ctx.decrypt(ciphertext)
-```
-
-| `ubiq_security_fpe` | `fpr-ff1` |
-|---|---|
-| `ff1.Context(key, twk, twk_min_len, twk_max_len, radix, alpha)` | `FF1(key, radix, alphabet=..., tweak=..., min_tweak_len=..., max_tweak_len=...)` |
-| `twk_max_len=0` (means *no maximum*) | `max_tweak_len=None` — **not** `0`, which means *empty tweaks only* |
-| `ctx.Encrypt(pt, twk)` | `ctx.encrypt(pt, twk)` |
-| `ctx.Decrypt(ct, twk)` | `ctx.decrypt(ct, twk)` |
-| — | `ctx.encrypt_numerals(...)` / `ctx.decrypt_numerals(...)` (no alphabet needed) |
-| `RuntimeError` for every rejection | typed exceptions under `FF1Error` |
-
-### Behaviour changes to check before you switch
-
-1. **Shorter inputs are rejected.** `fpr-ff1` enforces the Rev. 1 draft's `radix ** minlen >=
-   1_000_000`; `ubiq_security_fpe` enforced the same rule, so ciphertext produced by the legacy
-   library decrypts unchanged. But if your data contains values that only ever passed under the
-   2016 text's weaker `>= 100` bound — through another library or a manual path — those inputs
-   now raise `LengthError`. Before switching, check your shortest values against
-   `ctx.min_length` for your radix (6 for radix 10, 4 for radix 36, 3 for radix 256).
-2. **Errors are typed.** Rejections raise `KeyLengthError`, `RadixError`, `LengthError`,
-   `ValueRangeError`, `TweakLengthError` or `AlphabetError` — all subclasses of `FF1Error` —
-   rather than bare `RuntimeError`. Catch `FF1Error` if you want the old catch-all behaviour.
-3. **No `M2Crypto` dependency.** `fpr-ff1` depends only on `cryptography`.
-4. **Alphabet is validated at construction.** A wrong-length alphabet or one with duplicate
-   characters raises `AlphabetError` immediately rather than misbehaving later.
-5. **A zero maximum tweak length means the opposite of what it did.** `ubiq_security_fpe`
-   applied `twk_max_len` only when it was positive, so `0` meant "no maximum" — and `(0, 0)` was
-   the usual way to say "any tweak". In `fpr-ff1` the bounds are literal: `max_tweak_len=0`
-   accepts only an empty tweak, and `None` means unbounded. Translate a legacy `0` to `None`, as
-   the recipe above does; copy positive bounds unchanged. Copying a literal `0` makes the
-   constructor raise `TweakLengthError` for any non-empty tweak.
-
-## FIPS disclaimer
-
-Passing the published NIST sample vectors is evidence of conformance. It is **not** FIPS validation. This package makes no claims of FIPS 140 conformance.
-
-## Key material
-
-`fpr-ff1` does not attempt to zeroize key material. Python `bytes` are immutable and the interpreter may copy them during garbage collection.
+- [Python API reference](https://github.com/joelee/fpr-ff1/blob/main/docs/python-api.md) ·
+  [Migrating from `ubiq_security_fpe`](https://github.com/joelee/fpr-ff1/blob/main/docs/migrating-from-ubiq.md) ·
+  [Configuration and limits](https://github.com/joelee/fpr-ff1/blob/main/docs/configuration.md)
+- [Rust crate](https://github.com/joelee/fpr-ff1/blob/main/rust/fpr-ff1/README.md) · [Rust API on docs.rs](https://docs.rs/fpr-ff1)
+- [Architecture](https://github.com/joelee/fpr-ff1/blob/main/docs/architecture.md) · [Developer guide](https://github.com/joelee/fpr-ff1/blob/main/docs/developer-guide.md) ·
+  [Changelog](https://github.com/joelee/fpr-ff1/blob/main/CHANGELOG.md) · [Security policy](https://github.com/joelee/fpr-ff1/blob/main/SECURITY.md) ·
+  [Contributing](https://github.com/joelee/fpr-ff1/blob/main/CONTRIBUTING.md) · [Code of conduct](https://github.com/joelee/fpr-ff1/blob/main/CODE_OF_CONDUCT.md)
 
 ## Development
 
-Requires Python 3.12, `uv`, and `just`.
+Requires Python 3.12, `uv` and `just`; the compiled backend and the crate also need Rust.
 
 ```bash
 just setup    # create venv and install deps
 just quality  # format check, lint, typecheck, tests
-just build    # quality gate + uv build
-just secrets  # gitleaks scan (must be installed locally)
 ```
-
-## Documentation
-
-- `docs/architecture.md` — design and module overview
-- `docs/developer-guide.md` — setup, commands, testing, and CI
-- `docs/directory-structure.md` — repository layout
-- `docs/configuration.md` — `FF1` constructor parameters and runtime constraints
-- `docs/backlog.md` — active and completed work
-- `CHANGELOG.md` — release history, including behaviour changes that affect accepted inputs
-- `SECURITY.md` — disclosure process and known limitations
-- `rust/fpr-ff1/README.md` — the Rust crate: usage, limits, and how its tests use the shared fixtures
-- `CONTRIBUTING.md` — how to contribute, including the vector-provenance rules
-- `CODE_OF_CONDUCT.md` — community standards
 
 ## License
 
-The Python package is MIT-licensed (`LICENSE`). The Rust crate's sources in `rust/fpr-ff1/` are
-dual-licensed under MIT or Apache-2.0, at your option (`rust/fpr-ff1/LICENSE-MIT`,
-`rust/fpr-ff1/LICENSE-APACHE`), following the Rust ecosystem's convention. Those sources are also
-compiled into this package's platform wheels, where the MIT option applies.
+The Python package is [MIT](https://github.com/joelee/fpr-ff1/blob/main/LICENSE). The Rust crate is MIT OR Apache-2.0, at your option; its
+sources are also compiled into the Python platform wheels, where the MIT option applies.
