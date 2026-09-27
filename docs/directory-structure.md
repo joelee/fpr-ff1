@@ -16,7 +16,9 @@
 │   ├── AGENTS.md          # Documentation maintenance rules
 │   ├── architecture.md    # System context, modules, and design decisions
 │   ├── backlog.md          # High-level feature backlog, decisions, and dropped items
-│   ├── configuration.md    # FF1 constructor parameters, runtime constraints, thread safety
+│   ├── configuration.md    # FF1 constructor parameters, domain limits, runtime constraints
+│   ├── migrating-from-ubiq.md # Migration guide from ubiq_security_fpe
+│   ├── python-api.md       # Full Python API reference
 │   ├── developer-guide.md  # Setup, workflow, testing, and release notes
 │   ├── directory-structure.md # This file
 │   ├── ideas/             # Immutable idea reports (see ideas/AGENTS.md)
@@ -75,6 +77,8 @@
 │   │                       # the pyproject/Cargo version lock-step)
 │   ├── test_conversion_equivalence.py # Divide-and-conquer NUM/STR_radix vs the
 │   │                       # spec-reference implementations
+│   ├── test_docs.py        # Both READMEs as PyPI and crates.io render them; README
+│   │                       # examples executed or matched to the crate's doctests
 │   └── vectors/            # External test fixtures (never regenerated from this code)
 │       ├── nist_ff1_samples.json
 │       ├── nist_ff1_intermediates.json

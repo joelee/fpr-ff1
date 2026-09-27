@@ -88,6 +88,8 @@ include = [
     "/docs/configuration.md",
     "/docs/developer-guide.md",
     "/docs/directory-structure.md",
+    "/docs/migrating-from-ubiq.md",
+    "/docs/python-api.md",
     "/CHANGELOG.md",
     "/SECURITY.md",
     "/justfile",

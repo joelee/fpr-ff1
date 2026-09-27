@@ -2,7 +2,9 @@
 
 ## Requirements
 
-- Python 3.12.x
+- Python 3.12.x. The package supports CPython 3.12, 3.13 and 3.14, the versions CI exercises and
+  the trove classifiers state. `requires-python` is `>=3.12` with no upper bound: a cap would be a
+  hard resolution failure on future interpreters, so the floor rises as the CI matrix grows instead.
 - `uv`
 - `just`
 - `gitleaks` (for `just secrets`)

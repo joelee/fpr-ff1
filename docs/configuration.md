@@ -12,7 +12,7 @@
 | `tweak` | `bytes` | No | Default tweak used when not provided per call. |
 | `min_tweak_len` | `int \| None` | No | Inclusive minimum tweak length; at most `2 ** 32 - 1`. |
 | `max_tweak_len` | `int \| None` | No | Inclusive maximum tweak length; at most `2 ** 32 - 1`. |
-| `backend` | `str` | No | `"python"` (default, the reference) or `"rust"` (the opt-in compiled backend). Both produce identical ciphertext and exceptions; see the README Backends section for when to use each. |
+| `backend` | `str` | No | `"python"` (default, the reference) or `"rust"` (the opt-in compiled backend). Both produce identical ciphertext and exceptions; see the README's [backends section](https://github.com/joelee/fpr-ff1/blob/main/README.md#backends-and-platforms) for when to use each. |
 
 ## Runtime Constraints
 
@@ -32,6 +32,33 @@
 - Exactly 10 Feistel rounds
 - No floating-point arithmetic in the FF1 core
 
+## Domain limits are stricter than the 2016 text
+
+This package implements SP 800-38G (2016, updated 2019) as the normative algorithm, but enforces
+the **tightened constraints from the Rev. 1 second public draft**:
+
+| Constraint | This package | SP 800-38G (2016) |
+|---|---|---|
+| Minimum domain | `radix ** minlen >= 1_000_000` | `radix ** minlen >= 100` |
+| Maximum length | `2 ** 32 - 1` | `2 ** 32 - 1` |
+| Key sizes | 128, 192, 256 bits | same |
+| Radix | `2 <= radix < 2**16` — a deliberate supported **subset** of the spec's inclusive `[2..2**16]` | `2 <= radix <= 2**16` |
+| Rounds | exactly 10 | same |
+
+The radix bound is an implementation limit, not a spec deviation: NIST permits an implementation
+to support a subset of radices, and this package supports `2..65535`. Radix 65536 is excluded
+deliberately (its numerals do not fit in `uint16`-sized values, and no practical alphabet reaches
+it); if that ever changes, widening the accepted domain without changing existing behaviour will
+be a minor version, not a major one.
+
+The minimum-domain rule is the one that will bite. A domain of only 100 values is trivially
+enumerable, so this package **fails closed** and rejects it. Concretely, `min_length` is 6 for
+radix 10 and 4 for radix 36 — inputs shorter than that raise `LengthError`, even though some
+older libraries (including `ubiq_security_fpe`) accept them.
+
+Rev. 1 is still a draft. If it is finalised with different limits, that will be a breaking change
+and a major version.
+
 ## Length Properties
 
 The effective input-length domain is exposed per instance:
@@ -44,6 +71,17 @@ The effective input-length domain is exposed per instance:
 Check `min_length` before migrating data from a library using the 2016 `>= 100` bound.
 
 ## Distribution and backend availability
+
+Native wheels, each built once for the stable ABI (`abi3`) and installed and tested on its own
+platform on CPython 3.12, 3.13 and 3.14 before release:
+
+| Platform | Wheel tag | Requires |
+|---|---|---|
+| Linux x86_64 | `manylinux_2_34_x86_64` | glibc 2.34 or newer |
+| Linux aarch64 | `manylinux_2_34_aarch64` | glibc 2.34 or newer |
+| macOS x86_64 (Intel) | `macosx_10_12_x86_64` | macOS 10.12 or newer |
+| macOS arm64 (Apple silicon) | `macosx_11_0_arm64` | macOS 11 or newer |
+| Windows x64 | `win_amd64` | — |
 
 `backend="rust"` needs the compiled extension, which ships only in the native wheels: Linux x86_64
 and aarch64 (`manylinux_2_34`, glibc 2.34 or newer), macOS x86_64 (10.12 or newer) and arm64 (11 or
