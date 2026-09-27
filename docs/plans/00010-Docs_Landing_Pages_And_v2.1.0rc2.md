@@ -38,7 +38,7 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1"
 execution_started_at: "2026-09-27T11:24:04Z"
-execution_updated_at: "2026-09-27T22:59:30Z"
+execution_updated_at: "2026-09-27T23:00:50Z"
 execution_completed_at: null
 current_step: "PLAN-00010-STEP-09"
 ---
@@ -838,7 +838,7 @@ and STEP-10. `just crate-test` runs after every step that touches the crate READ
 | PLAN-00010-STEP-06 | completed | 2026-09-27T11:57:11Z | 2026-09-27T12:07:11Z | Commit (this one); checkpoint-115849 | publish-crate's first CI run will be rc2 (STEP-08) |
 | PLAN-00010-STEP-07 | completed | 2026-09-27T12:07:18Z | 2026-09-27T16:00:25Z | 0345b0d; local gate checkpoint-120805; CI run 36330546176 green 41/41 | Semver step vacuous across pre-releases (see Deviations); left for the re-review, the user not having chosen to amend ci.yml |
 | PLAN-00010-STEP-08 | completed | 2026-09-27T16:00:25Z | 2026-09-27T22:59:30Z | PR #15 merge 6379af8 tagged v2.1.0rc2; publish run 36355953834 43/43; crate by Trusted Publishing; both registries and rendered pages verified; soak waived | Soak statement given with the release, before verification (recorded as given) |
-| PLAN-00010-STEP-09 | not-started | — | — | — | — |
+| PLAN-00010-STEP-09 | blocked | 2026-09-27T22:59:40Z | — | Evidence bundle prepared | Waiting on owner: commission the review, then disposition its findings |
 | PLAN-00010-STEP-10 | not-started | — | — | — | — |
 | PLAN-00010-STEP-11 | not-started | — | — | — | — |
 
@@ -864,6 +864,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-27T16:00:25Z | PLAN-00010-STEP-08 | Hand-off to owner. (1) Push the work-log commits on release/v2.1 (or authorize the Builder to), open a PR release/v2.1 -> main and merge it with a MERGE COMMIT. (2) Tag exactly v2.1.0rc2 on that merge commit; publish a GitHub PRE-RELEASE (notes: session scratchpad v2.1.0rc2-release-notes.md). (3) publish.yml then publishes PyPI and, for the first time, runs publish-crate for a pre-release through Trusted Publishing (environment crates-io). No token is needed. If publish-crate fails after PyPI succeeds, do not retry blindly: report it; the fallback is a manual publish of that run's 'crate' artifact after checking its digest, as in plan 00009 STEP-14. Then the Builder verifies PyPI, crates.io (checksum vs the run's artifact, Trusted Publishing data present), docs.rs, a scratch project, and the rendered pages; owner states the D5 soak | Frozen candidate: origin/release/v2.1 at 3ab241e | Owner release actions |
 | 2026-09-27T22:40:00Z | PLAN-00010-STEP-08 | Owner merged PR #15 (release/v2.1 -> main) as merge commit 6379af8, tagged v2.1.0rc2 on it, and published a GitHub pre-release (2026-09-27T22:37:52Z). publish.yml run 36355953834 started on the release event | tag v2.1.0rc2 -> 6379af82bce8de54ac0ac02c065594e4ace92c1b = origin/main head; run https://github.com/joelee/fpr-ff1/actions/runs/36355953834 | Watch the publish run; verify |
 | 2026-09-27T22:40:00Z | PLAN-00010-STEP-08 | Owner's D5 statement for 2.1.0rc2: 'soak waived'. Given with the release announcement, before the Builder's registry verification rather than after it as the plan's task order puts it; the statement is recorded as given, and the verification below still gates STEP-09 | User message: 'Released, CI publish is running. Soak waived.' | Verification |
+| 2026-09-27T23:00:50Z | PLAN-00010-STEP-09 | Task 1 (D2 A): evidence bundle for v2.0.0..v2.1.0rc2 (0ac0877..6379af8) in the session scratchpad, v2.1.0rc2-review-evidence-bundle.md (321 lines). Part 1 is the v2.0.0..v2.1.0rc1 bundle prepared at plan 00009 STEP-14 (recovered from the session transcript after the scratchpad loss), unchanged apart from headings. Part 2 covers v2.1.0rc1..v2.1.0rc2: the README review (plan 00010 §1 R1-R13) and its resolution; the per-step commit table; five focus areas (claims against evidence, completeness of the moves, soundness of the guards, the publish-crate change, the contract-test refinement); the evidence (CI 36330546176, publish 36355953834, Trusted Publishing data, rendered-page checks, PyPI, installs, scratch consumer, bench); eight deviations and open observations (contract-test refinement; semver-checks vacuous across pre-releases; parallelism 2.17x vs 2.9x; SECURITY.md timing row; two work-log corrections; scratchpad loss; both soaks waived, rc2's before verification; plan 00003's frozen diagram). Predecessor: review 00014 | Session scratchpad v2.1.0rc2-review-evidence-bundle.md | Owner: commission the independent review (task 2) |
 
 ### Deviations and blockers
 
@@ -898,9 +899,9 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 ### Completion summary
 
 - **Implementation status:** `blocked`
-- **Completed requirements:** PLAN-00010-REQ-01 to REQ-11; REQ-12 candidate cut, gated locally and in CI
-- **Incomplete requirements:** REQ-12 publication of 2.1.0rc2 and rendered-page verification; REQ-13 re-review and 2.1.0
-- **Outstanding blockers:** Owner actions for STEP-08
+- **Completed requirements:** PLAN-00010-REQ-01 to REQ-12 (2.1.0rc2 published on both registries by CI and verified, rendered pages included)
+- **Incomplete requirements:** REQ-13: re-review, 2.1.0
+- **Outstanding blockers:** Owner: commission the STEP-09 independent re-review of v2.0.0..v2.1.0rc2
 - **Review request:** Not ready
 <!-- BUILDER_WORK_LOG_END -->
 
