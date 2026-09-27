@@ -857,7 +857,9 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 
 ### Deviations and blockers
 
-None
+| Timestamp (UTC) | Step | Deviation or blocker | Impact | Decision required from |
+|---|---|---|---|---|
+| 2026-09-27T11:40:22Z | PLAN-00010-STEP-03 | Correction (applied in ff5f258): the Builder first entered STEP-03's start as 2026-09-27T11:38:30Z, typed rather than taken from date -u, which the plan rules forbid. Replaced by 2026-09-27T11:37:47Z, the recorded completion of STEP-02, after which STEP-03 began; the completion time came from date -u | Timestamp provenance only; no effect on the work | None |
 
 ### Verification results
 
