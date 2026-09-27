@@ -101,7 +101,8 @@ one `FF1` across request threads.
 Thread-safe is not the same as parallel. The pure-Python backend holds the GIL throughout, so
 concurrent calls interleave rather than overlap. The compiled backend releases the GIL for the
 duration of the FF1 computation, so concurrent calls on one instance genuinely run in parallel —
-measured 2.9× on four threads (n = 5,000, radix 10) against 0.96× for the pure-Python control.
+measured 2.17× on four threads (n = 5,000, radix 10) against 0.86× for the pure-Python control
+(`just bench`, 2026-09-27).
 Releasing the GIL also means a long call no longer stalls unrelated threads in the process.
 Reproduce both rows with `just bench`.
 

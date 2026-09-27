@@ -4,10 +4,10 @@ Run manually via `just bench`; never imported by the test suite.
 
 SECURITY.md publishes a value-dependent timing table (all-zero vs all-max
 plaintext, median of batches) as a falsifiable empirical claim, and the
-README publishes a throughput baseline to size batch jobs against and to
-justify the 2.0 accelerated-backend roadmap.  This harness is how those
-numbers are produced and reproduced: re-run it on your interpreter and
-hardware instead of trusting one machine's measurements.
+README publishes the backend comparison.  The throughput table sizes batch
+jobs and the GIL probe backs the thread-parallelism figure in the docs.  This
+harness is how those numbers are produced and reproduced: re-run it on your
+interpreter and hardware instead of trusting one machine's measurements.
 
 Methodology matches SECURITY.md: median of 25 batches, all-zero vs all-max
 plaintext at the same length, delta as a percentage of the all-zero time.
@@ -36,14 +36,12 @@ _VALUE_CASES = [
     (2**16 - 1, 12),
 ]
 
-#: Throughput/per-numeral cases from the README performance table.
+#: Throughput/per-numeral cases, for sizing batch jobs.
 _LENGTH_CASES = [100, 1_000, 5_000, 20_000]
 
-#: Backend-comparison cases behind the README crossover claim. Two radices,
-#: because the crossover is not radix-independent: the conversion work that
-#: dominates long inputs scales with the numeral count *and* the radix. The
-#: n = 1,000 / 5,000 pair brackets the crossover on this hardware, so the
-#: README can state a band rather than a point.
+#: Backend-comparison cases behind the README performance table. Two radices,
+#: because the conversion work that dominates long inputs scales with the
+#: numeral count *and* the radix, and power-of-two radices take a faster path.
 _BACKEND_CASES = [
     (10, (6, 100, 1_000, 5_000, 20_000)),
     (256, (100, 1_000, 5_000, 20_000)),
@@ -105,7 +103,7 @@ def value_dependent_table() -> None:
 
 
 def throughput_table() -> None:
-    """The README performance table: small-input ops/s, construction, per-numeral cost."""
+    """Small-input ops/s, construction and per-numeral cost, for sizing batch jobs."""
     print("\n## Throughput\n")
     print("| Input | Throughput | Per numeral |")
     print("|---|---|---|")
@@ -134,11 +132,9 @@ def backend_comparison_table() -> None:
     10): a measured speedup below 2x on the small-input cases means the
     backend is not worth shipping and the plan escalates.
 
-    Two radices and five lengths, because the crossover -- the length past
-    which the pure-Python path catches up -- is what the README quotes, and
-    review 00006 found the published figure roughly 10x too low. Quoting a
-    band bracketed by measured rows is honest in a way a single remembered
-    number is not.
+    Two radices and several lengths, because the ratio varies with both; the
+    README publishes every row rather than one remembered number (review
+    00006 found an earlier published crossover roughly 10x too low).
     """
     if not _rust_built():
         print("\n## Backend comparison\n")

@@ -185,24 +185,24 @@ wheel, and `backend="rust"` raises `BackendError` rather than falling back silen
 
 ## Performance
 
-Measured on one core, CPython 3.12.13, Linux x86_64 (AMD Ryzen AI Max+ PRO 395), extension built
-in release mode with rustc 1.98.1 — reproduce with `just bench`:
+`just bench` on 2026-09-27: one core, Linux x86_64 (AMD Ryzen AI Max+ PRO 395), CPython 3.12.13,
+extension built in release mode with rustc 1.98.1. Microseconds per encryption:
 
 | Input | `backend="python"` | `backend="rust"` | Speedup |
 |---|---:|---:|---:|
-| 6 numerals, radix 10 | 29.5 µs/op | 4.1 µs/op | ~7.3× |
-| n = 100, radix 10 | 110.6 µs/op | 38.8 µs/op | ~2.9× |
-| n = 1,000, radix 10 | 966.0 µs/op | 399.5 µs/op | ~2.4× |
-| n = 5,000, radix 10 | 5.3 ms/op | 2.2 ms/op | ~2.5× |
-| n = 20,000, radix 10 | 27.9 ms/op | 9.9 ms/op | ~2.8× |
-| n = 100, radix 256 | 145.6 µs/op | 50.2 µs/op | ~2.9× |
-| n = 1,000, radix 256 | 2.2 ms/op | 0.2 ms/op | ~11× |
-| n = 5,000, radix 256 | 11.2 ms/op | 1.0 ms/op | ~11× |
-| n = 20,000, radix 256 | 45.7 ms/op | 4.1 ms/op | ~11× |
+| 6 numerals, radix 10 | 28.2 | 4.6 | 6.20× |
+| n = 100, radix 10 | 108.7 | 39.0 | 2.79× |
+| n = 1,000, radix 10 | 937.8 | 397.5 | 2.36× |
+| n = 5,000, radix 10 | 5,212.3 | 2,117.5 | 2.46× |
+| n = 20,000, radix 10 | 26,770.3 | 9,774.2 | 2.74× |
+| n = 100, radix 256 | 141.0 | 51.3 | 2.75× |
+| n = 1,000, radix 256 | 2,542.9 | 211.4 | 12.03× |
+| n = 5,000, radix 256 | 13,105.2 | 1,046.2 | 12.53× |
+| n = 20,000, radix 256 | 52,585.5 | 4,167.8 | 12.62× |
 
-The compiled backend is faster on every shape measured: at short inputs it avoids the per-call
-cipher setup that dominates pure Python, and at long inputs both use subquadratic numeral
-conversion. These are one machine's numbers; measure your own data with `just bench`.
+The compiled backend releases the GIL: in the same run, four threads sharing one instance did the
+same work 2.17× faster than one thread (n = 5,000, radix 10), against 0.86× for pure Python. These
+are one machine's numbers; measure your own data with `just bench`.
 
 ## Python API at a glance
 
@@ -213,9 +213,9 @@ assert ff1.min_length == 6
 ```
 
 Numerals need no alphabet. Every rejection raises a typed exception derived from `FF1Error` that
-never echoes your data. Instances are thread-safe and picklable (pickling serialises the key), and
-the compiled backend releases the GIL. Full reference:
-[`docs/python-api.md`](https://github.com/joelee/fpr-ff1/blob/main/docs/python-api.md). Rust API: [docs.rs](https://docs.rs/fpr-ff1).
+never echoes your data. Instances are thread-safe and picklable (pickling serialises the key).
+Full reference: [`docs/python-api.md`](https://github.com/joelee/fpr-ff1/blob/main/docs/python-api.md).
+Rust API: [docs.rs](https://docs.rs/fpr-ff1).
 
 ## Migrating from `ubiq_security_fpe`
 
