@@ -9,10 +9,10 @@ tags:
   - release
 type: delivery-plan
 plan_id: "PLAN-00010"
-plan_status: draft
+plan_status: approved
 plan_kind: superseding
 created_at: "2026-09-27T11:05:41Z"
-approved_at: null
+approved_at: "2026-09-27T11:14:29Z"
 planner_agent: claude-code
 planner_model: "anthropic/claude-opus-5-5"
 triggered_by: user
@@ -26,8 +26,8 @@ previous_plan: "docs/plans/00009-Crate_And_v2.1.0_Release.md"
 requirements_count: 13
 steps_count: 11
 acceptance_criteria_count: 14
-blocking_decisions: 4
-build_ready: false
+blocking_decisions: 0
+build_ready: true
 web_research_used: false
 confidence: high
 
@@ -45,12 +45,12 @@ current_step: null
 
 # Delivery Plan 00010: Docs Landing Pages And v2.1.0rc2
 
-> [!abstract] Plan status: `draft`
+> [!abstract] Plan status: `approved`
 > `README.md` becomes a landing page that makes the case for the library in both Python and
 > Rust. The crate README becomes a landing page for Rust users. Both render correctly on
 > GitHub, PyPI, crates.io and docs.rs, and are held there by tests. These changes ship as
 > `2.1.0rc2` on both registries, followed by one re-review and `2.1.0`. This plan supersedes
-> plan 00009's STEP-15 to STEP-17. Four decisions (D1 to D4) block approval.
+> plan 00009's STEP-15 to STEP-17. Decisions D1 to D4 are resolved (A in each); Builder-ready.
 
 ## 1. Objective and outcome
 
@@ -202,10 +202,10 @@ None. Unresolved matters are recorded as decisions and block approval when mater
 
 | ID | Decision or blocker | Resolution | Owner | Status |
 |---|---|---|---|---|
-| D1 | How `fpr-ff1` `2.1.0-rc2` reaches crates.io | **Recommended A:** `publish-crate` also publishes pre-releases through Trusted Publishing. Its tag check compares versions after PEP 440 normalisation; today it compares `v2.1.0rc2` with `v2.1.0-rc2` and would fail. This exercises Trusted Publishing on rc2 instead of for the first time on `2.1.0`. **B:** keep the pre-release skip and bootstrap rc2 by hand with another short-lived token. **C:** PyPI-only rc2, with the crate left at rc1. This breaks the stated lock-step ("the crate's version always matches this package's"). | User | Open |
-| D2 | Scope of the independent re-review | **Recommended A:** one review of `v2.0.0..v2.1.0rc2`, replacing plan 00009 STEP-15's `v2.0.0..v2.1.0rc1`. The prepared bundle is extended with the rc2 delta. **B:** commission the rc1 review now, and review the rc1-to-rc2 delta separately. | User | Open |
-| D3 | README shape | **Recommended A:** a landing page of about 200–250 lines. The full Python API reference moves to `docs/python-api.md`, the migration guide to `docs/migrating-from-ubiq.md`, the domain-limits rationale into `docs/configuration.md`, and version history to `CHANGELOG.md`. The README keeps short sections that link to each, by absolute URL. **B:** keep all content in the README and only reorder it, add the Rust material and fix the defects. PyPI then shows the full reference, but the page stays at 500+ lines. | User | Open |
-| D4 | Comparison with other FF1 libraries | **Recommended A:** no named-competitor table. State differentiators as verifiable facts about this library, each linked to its evidence. **B:** a dated comparison table with named Python and Rust libraries, each claim sourced. It would need re-checking every release, and could be unfair to projects that change. | User | Open |
+| D1 | How `fpr-ff1` `2.1.0-rc2` reaches crates.io | **Chosen, A:** `publish-crate` also publishes pre-releases through Trusted Publishing. Its tag check compares versions after PEP 440 normalisation; today it compares `v2.1.0rc2` with `v2.1.0-rc2` and would fail. This exercises Trusted Publishing on rc2 instead of for the first time on `2.1.0`. **B:** keep the pre-release skip and bootstrap rc2 by hand with another short-lived token. **C:** PyPI-only rc2, with the crate left at rc1. This breaks the stated lock-step ("the crate's version always matches this package's"). | User | Resolved: A ("D1-D4 as recommended", 2026-09-27) |
+| D2 | Scope of the independent re-review | **Chosen, A:** one review of `v2.0.0..v2.1.0rc2`, replacing plan 00009 STEP-15's `v2.0.0..v2.1.0rc1`. The prepared bundle is extended with the rc2 delta. **B:** commission the rc1 review now, and review the rc1-to-rc2 delta separately. | User | Resolved: A ("D1-D4 as recommended", 2026-09-27) |
+| D3 | README shape | **Chosen, A:** a landing page of about 200–250 lines. The full Python API reference moves to `docs/python-api.md`, the migration guide to `docs/migrating-from-ubiq.md`, the domain-limits rationale into `docs/configuration.md`, and version history to `CHANGELOG.md`. The README keeps short sections that link to each, by absolute URL. **B:** keep all content in the README and only reorder it, add the Rust material and fix the defects. PyPI then shows the full reference, but the page stays at 500+ lines. | User | Resolved: A ("D1-D4 as recommended", 2026-09-27) |
+| D4 | Comparison with other FF1 libraries | **Chosen, A:** no named-competitor table. State differentiators as verifiable facts about this library, each linked to its evidence. **B:** a dated comparison table with named Python and Rust libraries, each claim sourced. It would need re-checking every release, and could be unfair to projects that change. | User | Resolved: A ("D1-D4 as recommended", 2026-09-27) |
 | D5 | Soak for `2.1.0rc2` | The owner states "soak until <date>" or "soak waived" in the work log after STEP-08's verification, as for `2.1.0rc1` | User (at STEP-08) | Resolved |
 
 ## 8. Affected architecture and components
@@ -803,8 +803,8 @@ and STEP-10. `just crate-test` runs after every step that touches the crate READ
 
 ## 16. Builder hand-off
 
-- **Start condition:** User approval with D1 to D4 resolved, and a clean repository on
-  `release/v2.1`.
+- **Start condition:** User approval (given) with D1 to D4 resolved (A in each), and a clean
+  repository on `release/v2.1`.
 - **First step:** STEP-01.
 - **Required sequence:** STEP-01 → STEP-02 → STEP-03 → STEP-04 → STEP-05 → STEP-06 → STEP-07 →
   STEP-08 → STEP-09 → STEP-10 → STEP-11.
@@ -864,7 +864,7 @@ None
 - **Implementation status:** `not-started`
 - **Completed requirements:** None
 - **Incomplete requirements:** All
-- **Outstanding blockers:** D1 to D4 await the user
+- **Outstanding blockers:** None
 - **Review request:** Not ready
 <!-- BUILDER_WORK_LOG_END -->
 
@@ -872,6 +872,7 @@ None
 
 | Timestamp (UTC) | Plan status | Change | Reason | Requested/approved by |
 |---|---|---|---|---|
+| 2026-09-27T11:14:29Z | approved | D1 to D4 resolved as recommended (A in each: CI publishes pre-release crates through Trusted Publishing with a normalised tag check; one re-review of `v2.0.0..v2.1.0rc2`; README as a landing page with reference material in `docs/`; no named-competitor table). Plan approved: `plan_status: approved`, `build_ready: true`, `blocking_decisions: 0`, `approved_at` set. Planning content frozen. | Explicit user decision and approval ("D1-D4 as recommended. Commited and Approved.") after the draft was committed in 9b05d7f | User |
 | 2026-09-27T11:05:41Z | draft | Initial draft superseding plan 00009 STEP-15 to STEP-17. Adds a documentation release, `2.1.0rc2`, before the re-review and `2.1.0`. It is based on a README review (§1, R1 to R13), which included the PyPI and crates.io rendered pages. | User request of 2026-09-27 to plan an RC2 that improves the documentation, reviewing `README.md` as a landing page covering both implementations | User |
 
 ## 19. External references
