@@ -17,20 +17,23 @@ values and independent-oracle vectors as the Python package.
 ```rust
 use fpr_ff1::FF1;
 
-// NIST SP 800-38G sample 2: AES-128, radix 10, a ten-byte tweak.
-let key = [
-    0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6,
-    0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C,
-];
-let ff1 = FF1::builder(&key, 10)
-    .alphabet("0123456789")
-    .tweak(b"9876543210")
-    .build()?;
+fn main() -> Result<(), fpr_ff1::Error> {
+    // NIST SP 800-38G sample 2: AES-128, radix 10, a ten-byte tweak. The key is a
+    // published test key; load real keys from your secret store.
+    let key: [u8; 16] = [
+        0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6,
+        0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C,
+    ];
+    let ff1 = FF1::builder(&key, 10)
+        .alphabet("0123456789")
+        .tweak(b"9876543210")
+        .build()?;
 
-let ciphertext = ff1.encrypt("0123456789", None)?;
-assert_eq!(ciphertext, "6124200773");
-assert_eq!(ff1.decrypt(&ciphertext, None)?, "0123456789");
-# Ok::<(), fpr_ff1::Error>(())
+    let ciphertext = ff1.encrypt("0123456789", None)?;
+    assert_eq!(ciphertext, "6124200773");
+    assert_eq!(ff1.decrypt(&ciphertext, None)?, "0123456789");
+    Ok(())
+}
 ```
 
 The numeral interface is the primitive and needs no alphabet:
@@ -38,27 +41,35 @@ The numeral interface is the primitive and needs no alphabet:
 ```rust
 use fpr_ff1::FF1;
 
-# let key = [0x2Bu8, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6,
-#            0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C];
-// NIST SP 800-38G sample 1: no tweak.
-let ff1 = FF1::new(&key, 10)?;
-let ciphertext = ff1.encrypt_numerals(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], None)?;
-assert_eq!(ciphertext, [2, 4, 3, 3, 4, 7, 7, 4, 8, 4]);
-# Ok::<(), fpr_ff1::Error>(())
+fn main() -> Result<(), fpr_ff1::Error> {
+    // NIST SP 800-38G sample 1: the same published test key, no tweak.
+    let key: [u8; 16] = [
+        0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6,
+        0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C,
+    ];
+    let ff1 = FF1::new(&key, 10)?;
+    let ciphertext = ff1.encrypt_numerals(&[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], None)?;
+    assert_eq!(ciphertext, [2, 4, 3, 3, 4, 7, 7, 4, 8, 4]);
+    Ok(())
+}
 ```
 
-Every rejection is an [`Error`] whose [`kind`](Error::kind) says what was wrong. Messages name the
-position or length at fault, never key material or plaintext:
+Every rejection is an
+[`Error`](https://docs.rs/fpr-ff1/latest/fpr_ff1/struct.Error.html) whose
+[`kind()`](https://docs.rs/fpr-ff1/latest/fpr_ff1/struct.Error.html#method.kind) says what was
+wrong. Messages name the position or length at fault, never key material or plaintext:
 
 ```rust
 use fpr_ff1::{ErrorKind, FF1};
 
-# let key = [0u8; 16];
-let ff1 = FF1::new(&key, 10)?;
-let err = ff1.encrypt_numerals(&[1, 2, 3], None).unwrap_err();
-assert_eq!(err.kind(), ErrorKind::Length);
-assert_eq!(err.to_string(), "plaintext length 3 below minimum 6 for radix 10");
-# Ok::<(), fpr_ff1::Error>(())
+fn main() -> Result<(), fpr_ff1::Error> {
+    let key = [0u8; 16]; // for the example only
+    let ff1 = FF1::new(&key, 10)?;
+    let err = ff1.encrypt_numerals(&[1, 2, 3], None).unwrap_err();
+    assert_eq!(err.kind(), ErrorKind::Length);
+    assert_eq!(err.to_string(), "plaintext length 3 below minimum 6 for radix 10");
+    Ok(())
+}
 ```
 
 ## Limits

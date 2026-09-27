@@ -3,7 +3,7 @@
 [![CI](https://github.com/joelee/fpr-ff1/actions/workflows/ci.yml/badge.svg)](https://github.com/joelee/fpr-ff1/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/fpr-ff1.svg)](https://pypi.org/project/fpr-ff1/)
 [![Python](https://img.shields.io/pypi/pyversions/fpr-ff1.svg)](https://pypi.org/project/fpr-ff1/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/joelee/fpr-ff1/blob/main/LICENSE)
 
 A small, correct Python implementation of **FF1**, the format-preserving encryption mode from NIST SP 800-38G.
 
@@ -18,11 +18,13 @@ pip install fpr-ff1
 ## Quick start
 
 ```python
+import secrets
+
 from fpr_ff1 import FF1
 
-# The all-zero key here is for the example only. Never use it (or any other
-# published key) for real data: load key material from your secret store.
-key = load_key_from_your_secret_store()  # 16, 24, or 32 bytes
+# A fresh random key keeps this example runnable. For real data, load a 16-,
+# 24- or 32-byte key from your secret store: never hard-code one.
+key = secrets.token_bytes(32)
 
 ff1 = FF1(
     key=key,
@@ -38,6 +40,23 @@ ff1 = FF1(
 encrypted = ff1.encrypt("123456")
 decrypted = ff1.decrypt(encrypted)
 assert decrypted == "123456"
+```
+
+### Check it against NIST
+
+NIST SP 800-38G publishes sample vectors. Sample 2 uses a published test key, so it is for checking
+only, never for real data:
+
+```python
+from fpr_ff1 import FF1
+
+nist = FF1(
+    key=bytes.fromhex("2B7E151628AED2A6ABF7158809CF4F3C"),
+    radix=10,
+    alphabet="0123456789",
+    tweak=b"9876543210",
+)
+assert nist.encrypt("0123456789") == "6124200773"
 ```
 
 ## Security notes — read before use
@@ -307,15 +326,30 @@ The compiled core is also published on crates.io as the
 ```rust
 use fpr_ff1::FF1;
 
-let ff1 = FF1::builder(&key, 10).alphabet("0123456789").build()?;
-let ciphertext = ff1.encrypt("0123456789", None)?;
+fn main() -> Result<(), fpr_ff1::Error> {
+    // NIST SP 800-38G sample 2: AES-128, radix 10, a ten-byte tweak. The key is a
+    // published test key; load real keys from your secret store.
+    let key: [u8; 16] = [
+        0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6,
+        0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C,
+    ];
+    let ff1 = FF1::builder(&key, 10)
+        .alphabet("0123456789")
+        .tweak(b"9876543210")
+        .build()?;
+
+    let ciphertext = ff1.encrypt("0123456789", None)?;
+    assert_eq!(ciphertext, "6124200773");
+    assert_eq!(ff1.decrypt(&ciphertext, None)?, "0123456789");
+    Ok(())
+}
 ```
 
 It produces the same ciphertext as this package and validates inputs with the same rules, in the
 same order and with the same messages, proven by a case file both test suites share
 (`tests/vectors/validation_cases.json`). The pure-Python implementation remains the reference. The
 crate's version always matches this package's, so `fpr-ff1` 2.1.0 on crates.io and on PyPI are
-the same release. It needs Rust 1.89 or newer. See [`rust/fpr-ff1/README.md`](rust/fpr-ff1/README.md).
+the same release. It needs Rust 1.89 or newer. See [`rust/fpr-ff1/README.md`](https://github.com/joelee/fpr-ff1/blob/main/rust/fpr-ff1/README.md).
 
 ## API
 
@@ -379,7 +413,9 @@ If your alphabet comes from user input or an external source, normalise it first
 ```python
 import unicodedata
 
-alphabet = unicodedata.normalize("NFC", alphabet)
+alphabet = "0123456789abcde\u0301"  # 16 code points, as read from configuration
+alphabet = unicodedata.normalize("NFC", alphabet)  # 15: "é" is now one symbol
+assert len(alphabet) == 15
 ```
 
 ### Exceptions
@@ -433,6 +469,7 @@ and the part that would actually be hard — identical ciphertext — is already
 
 ### API mapping
 
+<!-- docs-test: skip (imports the legacy ubiq_security_fpe; tests/test_interoperability.py builds the recipe) -->
 ```python
 # before
 from ubiq_security_fpe import ff1

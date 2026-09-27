@@ -38,9 +38,9 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1"
 execution_started_at: "2026-09-27T11:24:04Z"
-execution_updated_at: "2026-09-27T11:24:30Z"
+execution_updated_at: "2026-09-27T11:37:47Z"
 execution_completed_at: null
-current_step: "PLAN-00010-STEP-02"
+current_step: "PLAN-00010-STEP-03"
 ---
 
 # Delivery Plan 00010: Docs Landing Pages And v2.1.0rc2
@@ -831,7 +831,7 @@ and STEP-10. `just crate-test` runs after every step that touches the crate READ
 | Step | Status | Started (UTC) | Completed (UTC) | Evidence | Builder notes |
 |---|---|---|---|---|---|
 | PLAN-00010-STEP-01 | completed | 2026-09-27T11:24:04Z | 2026-09-27T11:24:30Z | acc02bd (diagram fix); plan 00009 closed as superseded; mermaid-cli render | fix/architecture-mermaid (153aa22, unpushed) is now redundant; keep or delete at the owner's choice |
-| PLAN-00010-STEP-02 | not-started | — | — | — | — |
+| PLAN-00010-STEP-02 | completed | 2026-09-27T11:26:19Z | 2026-09-27T11:37:47Z | Commit (this one); red run, 9 probes, checkpoint-112806 | Guards run Rust-free and from the sdist (README.md and rust/ ship in it) |
 | PLAN-00010-STEP-03 | not-started | — | — | — | — |
 | PLAN-00010-STEP-04 | not-started | — | — | — | — |
 | PLAN-00010-STEP-05 | not-started | — | — | — | — |
@@ -851,6 +851,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 |---|---|---|---|---|
 | 2026-09-27T11:24:04Z | — | Builder started on approved plan 00010 (approval commit 74977911) on release/v2.1 | git status clean at 74977911b83f28a278fded41b92a56b1d3a231b8; D1-D4 resolved A | STEP-01 |
 | 2026-09-27T11:24:30Z | PLAN-00010-STEP-01 | Evidence first: mermaid-cli on docs/architecture.md's block before the fix failed 'Parse error on line 3' at the unquoted label \|backend=python (default)\| (reproduced 2026-09-27 on fix/architecture-mermaid). Cherry-picked 153aa22 with -x as acc02bd. Plan 00009: STEP-15 to STEP-17 marked skipped (superseded, approval 74977911), implementation_status completed, completion summary names the carried requirements | acc02bd; docs/plans/00009 work log | Verify every Mermaid block |
+| 2026-09-27T11:26:19Z | PLAN-00010-STEP-02 | Evidence first: tests/test_docs.py written against the 2.1.0rc1 pages. Red run: 7 failed, 1 passed (the skip-marker reason check, vacuous with no markers). Failures: README.md:6 link target 'LICENSE' and the rust/fpr-ff1/README.md link; crate README:50 link target 'Error::kind'; 6 hidden doctest lines in the crate README (first: line 33 '# Ok::<(), fpr_ff1::Error>(())'); crate README:50 intra-doc link [`Error`]; the quick start's NameError 'load_key_from_your_secret_store' (README.md:20); README.md:307's Rust block not in the crate README; no NIST sample 2 check in either language. One guard defect found and fixed while writing: the empty-bracket check matched a backticked inline link ([`fpr-ff1`](https://...)); it now excludes brackets followed by a link target | tests/test_docs.py | Smallest fixes to turn the guards green |
+| 2026-09-27T11:37:47Z | PLAN-00010-STEP-02 | Smallest fixes. README.md: LICENSE and the crate README link made absolute; the quick start takes its key from secrets.token_bytes(32) with a comment that real keys come from a secret store (the stale 'all-zero key' comment is gone); a 'Check it against NIST' subsection reproduces sample 2 ('6124200773') with the published key labelled for checking only; the Rust section's example is replaced by the crate README's sample 2 program verbatim; the Unicode normalisation example defines its alphabet (16 code points NFC-normalised to 15); the migration example carries '<!-- docs-test: skip (...) -->' (it imports the legacy library; tests/test_interoperability.py builds the recipe). rust/fpr-ff1/README.md: three examples rewritten as complete fn main() -> Result<(), fpr_ff1::Error> programs with no hidden lines; [`Error`] and [`kind`](Error::kind) replaced by docs.rs URLs. docs/developer-guide.md: Testing Standards names tests/test_docs.py and the skip marker | README.md; rust/fpr-ff1/README.md; docs/developer-guide.md | Probes, then checkpoint |
 
 ### Deviations and blockers
 
@@ -861,6 +863,8 @@ None
 | Timestamp (UTC) | Step | Command or check | Result | Evidence |
 |---|---|---|---|---|
 | 2026-09-27T11:24:30Z | PLAN-00010-STEP-01 | mermaid-cli (npx @mermaid-js/mermaid-cli mmdc) over every Mermaid block in README.md, SECURITY.md, CHANGELOG.md, CONTRIBUTING.md, docs/*.md and rust/fpr-ff1/README.md | Pass | One block exists outside docs/plans and docs/reviews (docs/architecture.md); it renders to SVG with no parse error |
+| 2026-09-27T11:37:47Z | PLAN-00010-STEP-02 | Guard probes (each re-introduced, run, restored; cmp confirmed byte-identical) | Pass | 9/9 caught, each naming file and line: relative link in README (README.md:12 'docs/developer-guide.md'); relative link in crate README (README.md:75 'LICENSE-MIT'); hidden line (README.md:37 '# fn hidden() {}'); [`ErrorKind`] (README.md:75 intra-doc link); [ErrorKind] (README.md:75 '[ErrorKind]'); broken Python example (NameError 'undefined_helper'); empty skip reason ([' ']); README Rust block drifted from the crate README (README.md:326); NIST assertion removed ({'python','rust'} <= {'rust'}). After restore: 8 passed |
+| 2026-09-27T11:37:47Z | PLAN-00010-STEP-02 | ruff format/check; pyright; cargo test --doc; just crate-test; full checkpoint | Pass | ruff clean; pyright 0 errors (after annotating empty containers); doctests 3 passed; crate-test 43 + 9 + 3, sweeps 2 passed; dual gate 1816 passed in 320.31s, TOTAL 345 stmts 120 branches 100%, -k rust 638; Rust-free 942 passed, 245 skipped, 100%; the one warning is test_docs naming the skipped migration example; logs checkpoint-112806 |
 
 ### Completion summary
 

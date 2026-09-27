@@ -78,6 +78,15 @@ just quality     # before pushing
 - `tests/test_contract.py` holds whole-surface assertions — that every rejection is typed, and that
   required files are tracked by git. Add new malformed-input cases to the sweep there rather than
   only as one-off tests; a case-by-case suite passes happily while an untested input escapes.
+- `tests/test_docs.py` guards the two READMEs as they are rendered and copied. `README.md` (the
+  PyPI page) and `rust/fpr-ff1/README.md` (the crates.io page and docs.rs crate root) may link only
+  to absolute `https://` URLs or same-page anchors. The crate README may not use rustdoc's hidden
+  `# ` doctest lines or intra-doc links, both of which crates.io shows verbatim: write complete
+  examples with `fn main() -> Result<(), fpr_ff1::Error>` and docs.rs URLs instead. Every Python
+  block in `README.md` runs, in order, in one namespace, and every Rust block in it must be a
+  verbatim copy of text in the crate README, whose blocks `cargo test --doc` runs. A Python block
+  that cannot run (for example, one importing a legacy library) is preceded by
+  `<!-- docs-test: skip (reason) -->`. The reason is required, and the test warns with it.
 - Register long-running tests with `@pytest.mark.slow` so `just test-fast` can exclude them. They
   still run in `just test`, `just quality` and CI.
 
