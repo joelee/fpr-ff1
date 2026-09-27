@@ -67,7 +67,7 @@ dependencies = [
 
 [[package]]
 name = "fpr-ff1"
-version = "2.1.0-rc1"
+version = "2.1.0-rc2"
 dependencies = [
  "aes",
  "num-bigint",
@@ -79,7 +79,7 @@ dependencies = [
 
 [[package]]
 name = "fpr-ff1-rust"
-version = "2.1.0-rc1"
+version = "2.1.0-rc2"
 dependencies = [
  "fpr-ff1",
  "pyo3",

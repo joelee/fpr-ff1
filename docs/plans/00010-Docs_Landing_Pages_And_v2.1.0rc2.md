@@ -836,7 +836,7 @@ and STEP-10. `just crate-test` runs after every step that touches the crate READ
 | PLAN-00010-STEP-04 | completed | 2026-09-27T11:40:22Z | 2026-09-27T11:54:32Z | Commit (this one); checkpoint-114550 | README 565 -> 260 lines; interim performance table is the 2.0.0 Linux run until STEP-05 |
 | PLAN-00010-STEP-05 | completed | 2026-09-27T11:54:41Z | 2026-09-27T11:57:02Z | Commit (this one); bench-10.txt | SECURITY.md value-timing row flagged for the re-review |
 | PLAN-00010-STEP-06 | completed | 2026-09-27T11:57:11Z | 2026-09-27T12:07:11Z | Commit (this one); checkpoint-115849 | publish-crate's first CI run will be rc2 (STEP-08) |
-| PLAN-00010-STEP-07 | not-started | — | — | — | — |
+| PLAN-00010-STEP-07 | in-progress | 2026-09-27T12:07:18Z | — | — | — |
 | PLAN-00010-STEP-08 | not-started | — | — | — | — |
 | PLAN-00010-STEP-09 | not-started | — | — | — | — |
 | PLAN-00010-STEP-10 | not-started | — | — | — | — |
