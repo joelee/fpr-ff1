@@ -33,14 +33,14 @@ confidence: high
 
 # Builder-maintained front matter. Builder may update only these keys after
 # explicit user approval; Delivery Planner initializes them.
-implementation_status: not-started
-builder_agent: null
-builder_model: null
-execution_branch: null
-execution_started_at: null
-execution_updated_at: null
+implementation_status: in-progress
+builder_agent: claude-code
+builder_model: "anthropic/claude-opus-5-5"
+execution_branch: "release/v2.1"
+execution_started_at: "2026-09-27T11:24:04Z"
+execution_updated_at: "2026-09-27T11:24:30Z"
 execution_completed_at: null
-current_step: null
+current_step: "PLAN-00010-STEP-02"
 ---
 
 # Delivery Plan 00010: Docs Landing Pages And v2.1.0rc2
@@ -830,7 +830,7 @@ and STEP-10. `just crate-test` runs after every step that touches the crate READ
 
 | Step | Status | Started (UTC) | Completed (UTC) | Evidence | Builder notes |
 |---|---|---|---|---|---|
-| PLAN-00010-STEP-01 | not-started | — | — | — | — |
+| PLAN-00010-STEP-01 | completed | 2026-09-27T11:24:04Z | 2026-09-27T11:24:30Z | acc02bd (diagram fix); plan 00009 closed as superseded; mermaid-cli render | fix/architecture-mermaid (153aa22, unpushed) is now redundant; keep or delete at the owner's choice |
 | PLAN-00010-STEP-02 | not-started | — | — | — | — |
 | PLAN-00010-STEP-03 | not-started | — | — | — | — |
 | PLAN-00010-STEP-04 | not-started | — | — | — | — |
@@ -849,6 +849,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 
 | Timestamp (UTC) | Step | Event | Evidence or reference | Next action |
 |---|---|---|---|---|
+| 2026-09-27T11:24:04Z | — | Builder started on approved plan 00010 (approval commit 74977911) on release/v2.1 | git status clean at 74977911b83f28a278fded41b92a56b1d3a231b8; D1-D4 resolved A | STEP-01 |
+| 2026-09-27T11:24:30Z | PLAN-00010-STEP-01 | Evidence first: mermaid-cli on docs/architecture.md's block before the fix failed 'Parse error on line 3' at the unquoted label \|backend=python (default)\| (reproduced 2026-09-27 on fix/architecture-mermaid). Cherry-picked 153aa22 with -x as acc02bd. Plan 00009: STEP-15 to STEP-17 marked skipped (superseded, approval 74977911), implementation_status completed, completion summary names the carried requirements | acc02bd; docs/plans/00009 work log | Verify every Mermaid block |
 
 ### Deviations and blockers
 
@@ -858,6 +860,7 @@ None
 
 | Timestamp (UTC) | Step | Command or check | Result | Evidence |
 |---|---|---|---|---|
+| 2026-09-27T11:24:30Z | PLAN-00010-STEP-01 | mermaid-cli (npx @mermaid-js/mermaid-cli mmdc) over every Mermaid block in README.md, SECURITY.md, CHANGELOG.md, CONTRIBUTING.md, docs/*.md and rust/fpr-ff1/README.md | Pass | One block exists outside docs/plans and docs/reviews (docs/architecture.md); it renders to SVG with no parse error |
 
 ### Completion summary
 

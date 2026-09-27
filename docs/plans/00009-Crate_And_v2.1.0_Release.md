@@ -38,14 +38,14 @@ confidence: medium
 
 # Builder-maintained front matter. Builder may update only these keys after
 # explicit user approval; Delivery Planner initializes them.
-implementation_status: blocked
+implementation_status: completed
 builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1"
 execution_started_at: "2026-09-26T16:28:45Z"
-execution_updated_at: "2026-09-27T00:17:54Z"
-execution_completed_at: null
-current_step: "PLAN-00009-STEP-15"
+execution_updated_at: "2026-09-27T11:24:04Z"
+execution_completed_at: "2026-09-27T11:24:04Z"
+current_step: null
 ---
 
 # Delivery Plan 00009: Crate And v2.1.0 Release
@@ -719,9 +719,9 @@ Checkpoint after every code step: `just quality` (Rust-free), the full dual-back
 | PLAN-00009-STEP-12 | completed | 2026-09-26T20:39:40Z | 2026-09-26T20:39:40Z | Commit (this one) | No document implies the crate is the reference or carries stronger claims |
 | PLAN-00009-STEP-13 | completed | 2026-09-26T20:49:15Z | 2026-09-26T21:41:28Z | c06cc3f; local gate; CI run 36272767880 green 41/41 | Tag goes on the PR merge commit on main; the bootstrap digest is checked at that commit (see Deviations) |
 | PLAN-00009-STEP-14 | completed | 2026-09-26T21:41:28Z | 2026-09-27T00:16:02Z | PR #14 merge d3f1f97 tagged v2.1.0rc1; publish run 36280228842; crate 3e3b832f bootstrapped; both registries verified; soak waived | Token revocation and Trusted Publisher on the owner's statement; Trusted Publishing proven at STEP-17 |
-| PLAN-00009-STEP-15 | blocked | 2026-09-27T00:17:54Z | — | Evidence bundle prepared | Waiting on owner: commission the review, then disposition its findings |
-| PLAN-00009-STEP-16 | not-started | — | — | — | — |
-| PLAN-00009-STEP-17 | not-started | — | — | — | — |
+| PLAN-00009-STEP-15 | skipped | 2026-09-27T00:17:54Z | — | Superseded by PLAN-00010, approved in 74977911 (the user's approval of 00010 is the approval this skip requires) | Carried forward as PLAN-00010 STEP-09 (re-review, now of v2.0.0..v2.1.0rc2), STEP-10 and STEP-11 |
+| PLAN-00009-STEP-16 | skipped | — | — | Superseded by PLAN-00010, approved in 74977911 (the user's approval of 00010 is the approval this skip requires) | Carried forward as PLAN-00010 STEP-09 (re-review, now of v2.0.0..v2.1.0rc2), STEP-10 and STEP-11 |
+| PLAN-00009-STEP-17 | skipped | — | — | Superseded by PLAN-00010, approved in 74977911 (the user's approval of 00010 is the approval this skip requires) | Carried forward as PLAN-00010 STEP-09 (re-review, now of v2.0.0..v2.1.0rc2), STEP-10 and STEP-11 |
 
 Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 `skipped`. A skipped step requires explicit user approval recorded in Evidence.
@@ -762,6 +762,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-27T00:12:22Z | PLAN-00009-STEP-14 | Owner stated: 'Crate published to crates.io and token revoked. Truster Publisher created.' The owner bootstrapped fpr-ff1 2.1.0-rc1 on crates.io with a scoped token, revoked the token, and configured the crates.io Trusted Publisher (joelee/fpr-ff1, publish.yml, environment crates-io). Token revocation and the Trusted Publisher configuration rest on the owner's statement: neither is visible through crates.io's unauthenticated API. The Trusted Publisher is proven in use at STEP-17, when publish-crate publishes 2.1.0 | crates.io: fpr-ff1 2.1.0-rc1 published_by joelee, trustpub_data null (a token publish, as expected for the bootstrap) | Builder verification of both registries |
 | 2026-09-27T00:16:02Z | PLAN-00009-STEP-14 | Owner's D14 statement for 2.1.0rc1: 'soak waived' | Stated after the Builder reported both registries verified (99f3357) | STEP-15: evidence bundle for v2.0.0..v2.1.0rc1 |
 | 2026-09-27T00:17:54Z | PLAN-00009-STEP-15 | Task 1: evidence bundle for v2.0.0..v2.1.0rc1 (0ac0877..d3f1f97) prepared in the session scratchpad (v2.1.0rc1-review-evidence-bundle.md), as for plan 00007 STEP-12. Contents: scope and gate; the per-step commit table; the code diffstat; engine.rs vs the former core (aes 0.9 API, pub(crate) Aes, cfg gates, PyO3 module removed; nothing else); review 00011 LOW-01/02/03 with their red probes; five focus areas (validation parity, the expect in ff1.rs run(), public surface and the internal feature, wheel identity after the split, crate supply chain); the evidence table (CI 36269172052 and 36272767880, publish run 36280228842, local gate, park rule, red probes, registry verification); nine deviations and open observations; reproduction commands; out-of-scope items. Predecessor: review 00014 (approve) | Bundle claims spot-checked against the tree: ErrorKind #[non_exhaustive]; FF1 Debug omits the key; validation_cases.json 53 cases, 1 python_only; __internal #[doc(hidden)] | Owner: commission the independent review (task 2) |
+| 2026-09-27T11:24:04Z | PLAN-00009-STEP-15 | Plan superseded for its remaining steps by docs/plans/00010-Docs_Landing_Pages_And_v2.1.0rc2.md (approved 74977911, user: 'D1-D4 as recommended. Commited and Approved.'). STEP-15 to STEP-17 skipped; REQ-12 (2.1.0 publication) and REQ-14 (re-review and 2.1.0) carried into PLAN-00010 REQ-12 and REQ-13. The v2.0.0..v2.1.0rc1 evidence bundle is extended by PLAN-00010 STEP-09 | PLAN-00010 STEP-01 | None in this plan |
 
 ### Deviations and blockers
 
@@ -820,11 +821,11 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 
 ### Completion summary
 
-- **Implementation status:** `blocked`
-- **Completed requirements:** PLAN-00009-REQ-01 to REQ-11, REQ-13; REQ-12 2.1.0rc1 published and verified on both registries; REQ-09 and REQ-14 candidate gated, soak waived
-- **Incomplete requirements:** REQ-12 publication of 2.1.0 by Trusted Publishing; REQ-14 re-review, 2.1.0
-- **Outstanding blockers:** Owner: commission the STEP-15 independent re-review of v2.0.0..v2.1.0rc1
-- **Review request:** Not ready
+- **Implementation status:** `completed`
+- **Completed requirements:** PLAN-00009-REQ-01 to REQ-11, REQ-13; REQ-12 for 2.1.0rc1 (both registries, verified); REQ-09 candidate gated
+- **Incomplete requirements:** None here: REQ-12 for 2.1.0 and REQ-14 are carried into PLAN-00010 REQ-12 and REQ-13
+- **Outstanding blockers:** None
+- **Review request:** Superseded: the re-review is PLAN-00010 STEP-09
 <!-- BUILDER_WORK_LOG_END -->
 
 ## 18. Planning change log
