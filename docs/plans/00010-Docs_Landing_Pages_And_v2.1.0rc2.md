@@ -832,7 +832,7 @@ and STEP-10. `just crate-test` runs after every step that touches the crate READ
 |---|---|---|---|---|---|
 | PLAN-00010-STEP-01 | completed | 2026-09-27T11:24:04Z | 2026-09-27T11:24:30Z | acc02bd (diagram fix); plan 00009 closed as superseded; mermaid-cli render | fix/architecture-mermaid (153aa22, unpushed) is now redundant; keep or delete at the owner's choice |
 | PLAN-00010-STEP-02 | completed | 2026-09-27T11:26:19Z | 2026-09-27T11:37:47Z | Commit (this one); red run, 9 probes, checkpoint-112806 | Guards run Rust-free and from the sdist (README.md and rust/ ship in it) |
-| PLAN-00010-STEP-03 | completed | 2026-09-27T11:38:30Z | 2026-09-27T11:39:59Z | Commit (this one) | 168 lines; examples untouched since STEP-02, so the README's copy still matches |
+| PLAN-00010-STEP-03 | completed | 2026-09-27T11:37:47Z | 2026-09-27T11:39:59Z | Commit (this one) | 168 lines; examples untouched since STEP-02, so the README's copy still matches |
 | PLAN-00010-STEP-04 | not-started | — | — | — | — |
 | PLAN-00010-STEP-05 | not-started | — | — | — | — |
 | PLAN-00010-STEP-06 | not-started | — | — | — | — |
