@@ -38,9 +38,9 @@ builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1"
 execution_started_at: "2026-09-27T11:24:04Z"
-execution_updated_at: "2026-09-28T12:15:17Z"
+execution_updated_at: "2026-09-28T12:35:45Z"
 execution_completed_at: null
-current_step: "PLAN-00010-STEP-10"
+current_step: "PLAN-00010-STEP-11"
 ---
 
 # Delivery Plan 00010: Docs Landing Pages And v2.1.0rc2
@@ -839,8 +839,8 @@ and STEP-10. `just crate-test` runs after every step that touches the crate READ
 | PLAN-00010-STEP-07 | completed | 2026-09-27T12:07:18Z | 2026-09-27T16:00:25Z | 0345b0d; local gate checkpoint-120805; CI run 36330546176 green 41/41 | Semver step vacuous across pre-releases (see Deviations); left for the re-review, the user not having chosen to amend ci.yml |
 | PLAN-00010-STEP-08 | completed | 2026-09-27T16:00:25Z | 2026-09-27T22:59:30Z | PR #15 merge 6379af8 tagged v2.1.0rc2; publish run 36355953834 43/43; crate by Trusted Publishing; both registries and rendered pages verified; soak waived | Soak statement given with the release, before verification (recorded as given) |
 | PLAN-00010-STEP-09 | completed | 2026-09-27T22:59:40Z | 2026-09-28T12:02:10Z | Review 00015 (approve); bundle; dispositions | Review covered part 2 lightly; the owner chose to proceed |
-| PLAN-00010-STEP-10 | blocked | 2026-09-28T12:02:10Z | — | 3600eac; local gate checkpoint-120312 | Waiting on owner: review 00015 commit and push authorization |
-| PLAN-00010-STEP-11 | not-started | — | — | — | — |
+| PLAN-00010-STEP-10 | completed | 2026-09-28T12:02:10Z | 2026-09-28T12:35:45Z | 3600eac; local gate checkpoint-120312; CI run 36420870504 green 41/41 | Semver step vacuous (rc2 -> 2.1.0 'major change') |
+| PLAN-00010-STEP-11 | blocked | 2026-09-28T12:35:45Z | — | Hand-off recorded | Waiting on owner: merge, tag and release, not yet visible on GitHub |
 
 Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 `skipped`. A skipped step requires explicit user approval recorded in Evidence.
@@ -870,6 +870,9 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-28T12:02:10Z | PLAN-00010-STEP-09 | Owner dispositions (user: 'Defer LOW-01 to backlog, proceed to STEP-10'). REV-00015-LOW-01: accepted, deferred to docs/backlog.md (recorded at STEP-10); the real fix changes crate source, so it follows 2.1.0. Open questions 1 and 2: closed on the Builder's evidence (question 1's premise disproved by execution; question 2 answered by CI run 36330546176), with no separate owner statement. Part 2 coverage: the owner chose to proceed on review 00015 as it stands. The semver --release-type minor question was not answered; ci.yml stays unchanged. Review 00015 remains untracked in the worktree for the owner to commit | User message | STEP-10 |
 | 2026-09-28T12:15:17Z | PLAN-00010-STEP-10 | Release commit 3600eac: pyproject.toml, rust/fpr-ff1 and rust/fpr-ff1-rust at 2.1.0; rust/Cargo.lock (workspace members) and uv.lock (project) updated; CHANGELOG [2.1.0] — 2026-09-28 summarising both candidates, with compare link; SECURITY.md support table: 2.1.x bug and security fixes, 2.0.x superseded (upgrade to 2.1.x), 1.1.x security fixes until 2027-03-25 (the 'until 2.1.0 ships or 2027-03-25, whichever is later' window resolves to the date), 1.0.x unsupported, crate's first stable release 2.1.0 after two pre-releases; docs/backlog.md: the plan 00009/00010 item updated to rc1, rc2 and review 00015 with 2.1.0 still to come, and REV-00015-LOW-01 deferred as a backlog item. No other text still describes 2.1.0 as future (grep) | 3600eac | Local gate |
 | 2026-09-28T12:15:42Z | PLAN-00010-STEP-10 | Correction to the blocker above: the owner had already committed review 00015 as 38f0407 ('Code Review 00015 for v2.1.0rc2') and pushed it to origin/release/v2.1; the release commit 3600eac is its child, so the local gate at 3600eac ran with the review in the tree. The only remaining blocker is push authorization for 3600eac and c27745b | git log --graph: 457d408 -> 38f0407 (origin) -> 3600eac -> c27745b | User: authorize the push |
+| 2026-09-28T12:17:37Z | PLAN-00010-STEP-10 | User authorized the push ('push authorised'). Builder pushed release/v2.1 (38f0407..85b83a5) and dispatched ci.yml | origin/release/v2.1 = 85b83a5389058f0ed844d36dc4a3a0fc7b0b9a99; run https://github.com/joelee/fpr-ff1/actions/runs/36420870504 | Watch the run |
+| 2026-09-28T12:35:45Z | PLAN-00010-STEP-10 | At 2026-09-28T12:28:18Z the user reported 'Merged, tagged and released v2.1.0' while this CI run was still in progress. GitHub showed none of it: no PR after #15, origin/main still 6379af8, no v2.1.0 tag (only v2.1.0rc1 and rc2), no v2.1.0 release, no new publish run. The Builder reported the discrepancy and asked the owner to hold until CI finished; it has now finished green, and main and the tags are still unchanged | gh pr list, gh api matching-refs/tags/v2.1, gh release list, git ls-remote (main 6379af8, no refs/tags/v2.1.0) | Owner: locate or redo the merge, tag and release (STEP-11) |
+| 2026-09-28T12:35:45Z | PLAN-00010-STEP-11 | Hand-off to owner. (1) PR release/v2.1 -> main, merged with a MERGE COMMIT. (2) Tag exactly v2.1.0 on that merge commit; publish a GitHub RELEASE, not a pre-release (notes: session scratchpad v2.1.0-release-notes.md). (3) publish.yml publishes PyPI, then publish-crate by Trusted Publishing. Then the Builder verifies both registries as at STEP-08 and that pip install fpr-ff1 and cargo add fpr-ff1 resolve to 2.1.0 without pre-release flags | Frozen release: origin/release/v2.1 at 85b83a5 | Owner release actions |
 
 ### Deviations and blockers
 
@@ -903,13 +906,14 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-27T22:59:29Z | PLAN-00010-STEP-08 | Scratch Cargo project outside the repository on fpr-ff1 = '=2.1.0-rc2' from crates.io (public API only) | Pass | Cargo.lock source registry+crates.io-index, registry-cache .crate sha256 36a2724a...593d22; NIST sample 1 (numerals) and sample 2 (builder, alphabet, tweak -> 6124200773); the same d > 16 case equals PyPI; a 15-byte key -> ErrorKind::KeyLength |
 | 2026-09-28T12:02:10Z | PLAN-00010-STEP-09 | Re-review gate: independent review of v2.0.0..v2.1.0rc2 with no Critical or Major finding, every finding dispositioned | Pass | Review 00015 verdict approve, 0 Critical, 0 Major, 0 Medium, 1 Low; LOW-01 deferred to backlog by the owner; open questions closed on evidence (AC-13) |
 | 2026-09-28T12:15:17Z | PLAN-00010-STEP-10 | Local gate at 3600eac: tests/test_contract.py and tests/test_docs.py; full checkpoint; just crate-test; just crate-msrv; just crate-package; installed versions | Pass | contract + docs 71 passed; dual gate 1816 passed in 446.44s, TOTAL 345 stmts 120 branches 100%, -k rust 638; Rust-free 942 passed, 245 skipped, 100%; crate-test 43 + 9 + 3, sweeps 2; crate-msrv (1.89) 43 + 9 + 3; crate-package '19 entries, 0 problems', dry run aborted before upload, fpr-ff1-2.1.0.crate sha256 13ad6279a6eac7ce61f0c2a43950ee938a1a418fe7afe48627e246af447917da at 3600eac; fpr_ff1.__version__ 2.1.0, _rs.__version__ 2.1.0; logs checkpoint-120312. cargo-semver-checks against 2.1.0-rc2 is left to CI (expected to report a major change with 0 checks, as for rc2) |
+| 2026-09-28T12:35:45Z | PLAN-00010-STEP-10 | CI run 36420870504 at 85b83a5 (release commit 3600eac + work-log commits) https://github.com/joelee/fpr-ff1/actions/runs/36420870504 | Pass | completed/success, 41/41 jobs. crate-package '19 entries, 0 problems'; fpr-ff1-2.1.0.crate sha256 4501dd13c6d30df1cdcd0da9f2a77e6abf17a98b99b8ca0e38aa7d4970f2b41d at 85b83a5 (differs from 3600eac's only through the embedded commit hash). Semver step: 'fpr-ff1 v2.1.0-rc2 -> v2.1.0 (major change)', '0 checks: 0 pass, 254 skip', 'no semver update required': vacuous as predicted; ci.yml unchanged by owner choice |
 
 ### Completion summary
 
 - **Implementation status:** `blocked`
-- **Completed requirements:** PLAN-00010-REQ-01 to REQ-12; REQ-13 re-review passed (review 00015, approve, committed 38f0407), 2.1.0 release commit gated locally
-- **Incomplete requirements:** REQ-13: CI at the release commit, publication of 2.1.0 on both registries and verification
-- **Outstanding blockers:** Owner: authorize the push for STEP-10
+- **Completed requirements:** PLAN-00010-REQ-01 to REQ-12; REQ-13 re-review passed and 2.1.0 release commit green in CI
+- **Incomplete requirements:** REQ-13: 2.1.0 published on both registries and verified
+- **Outstanding blockers:** Owner: merge, tag and release v2.1.0 (STEP-11)
 - **Review request:** Not ready
 <!-- BUILDER_WORK_LOG_END -->
 
