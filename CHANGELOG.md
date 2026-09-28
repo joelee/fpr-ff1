@@ -9,6 +9,40 @@ expanding the accepted domain without changing existing behaviour is a minor ver
 
 ## [Unreleased]
 
+## [2.1.0] — 2026-09-28
+
+**The FF1 core as a Rust crate, stable.** `fpr-ff1` 2.1.0 is published on crates.io and PyPI from
+the same tagged commit, and the two will always share a version number. For Python users nothing
+changes: accepted inputs, ciphertext, the public API and the default backend are exactly as in
+2.0.0, so upgrading is drop-in. A minor version, because the crate is a new artifact rather than a
+change to this one.
+
+Everything in `[2.1.0rc1]` and `[2.1.0rc2]` ships here; those sections stay as the candidate record.
+The changes relative to `2.1.0rc2` are the version number and this documentation.
+
+### Added
+
+- **The `fpr-ff1` Rust crate**: the same FF1 core as the `backend="rust"` path, with its own public
+  API (`FF1`, `Builder`, `Error`, `ErrorKind`), its own validation matching this package's rules,
+  order and messages, and its own conformance suite over the shared fixtures. MSRV 1.89; dual
+  licensed MIT OR Apache-2.0. Published by crates.io Trusted Publishing.
+- **Shared validation cases** run by both test suites, and **guard tests for both READMEs** as PyPI
+  and crates.io render them.
+
+### Changed
+
+- The compiled backend uses `aes` 0.9 and `num-bigint` 0.5, proven bit-exact.
+- The README is a landing page for both languages; the Python API reference and the migration guide
+  live in `docs/`.
+- **Security support policy.** `2.1.x` receives bug and security fixes; `2.0.x` is superseded by
+  it with identical ciphertext. `1.1.x` keeps security fixes until 2027-03-25. See `SECURITY.md`.
+
+### Fixed
+
+- A released `memoryview` passed as a key or tweak raises the documented typed error instead of a
+  bare `ValueError`.
+- The 2.1.0rc1 registry pages: dead PyPI links and rustdoc scaffolding shown on crates.io.
+
 ## [2.1.0rc2] — 2026-09-27
 
 Second release candidate for 2.1.0: **documentation, package metadata and release automation
@@ -515,7 +549,8 @@ requiring a major version.
 
 <!-- Keep a Changelog link reference definitions (review 00003 B7): without
      these, the bracketed version headings render as literal brackets. -->
-[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v2.1.0rc2...HEAD
+[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/joelee/fpr-ff1/compare/v2.0.0...v2.1.0
 [2.1.0rc2]: https://github.com/joelee/fpr-ff1/compare/v2.1.0rc1...v2.1.0rc2
 [2.1.0rc1]: https://github.com/joelee/fpr-ff1/compare/v2.0.0...v2.1.0rc1
 [2.0.0]: https://github.com/joelee/fpr-ff1/compare/v2.0.0rc2...v2.0.0
