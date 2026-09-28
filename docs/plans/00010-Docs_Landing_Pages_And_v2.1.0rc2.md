@@ -33,14 +33,14 @@ confidence: high
 
 # Builder-maintained front matter. Builder may update only these keys after
 # explicit user approval; Delivery Planner initializes them.
-implementation_status: blocked
+implementation_status: in-progress
 builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1"
 execution_started_at: "2026-09-27T11:24:04Z"
-execution_updated_at: "2026-09-27T23:44:04Z"
+execution_updated_at: "2026-09-28T12:02:10Z"
 execution_completed_at: null
-current_step: "PLAN-00010-STEP-09"
+current_step: "PLAN-00010-STEP-10"
 ---
 
 # Delivery Plan 00010: Docs Landing Pages And v2.1.0rc2
@@ -838,8 +838,8 @@ and STEP-10. `just crate-test` runs after every step that touches the crate READ
 | PLAN-00010-STEP-06 | completed | 2026-09-27T11:57:11Z | 2026-09-27T12:07:11Z | Commit (this one); checkpoint-115849 | publish-crate's first CI run will be rc2 (STEP-08) |
 | PLAN-00010-STEP-07 | completed | 2026-09-27T12:07:18Z | 2026-09-27T16:00:25Z | 0345b0d; local gate checkpoint-120805; CI run 36330546176 green 41/41 | Semver step vacuous across pre-releases (see Deviations); left for the re-review, the user not having chosen to amend ci.yml |
 | PLAN-00010-STEP-08 | completed | 2026-09-27T16:00:25Z | 2026-09-27T22:59:30Z | PR #15 merge 6379af8 tagged v2.1.0rc2; publish run 36355953834 43/43; crate by Trusted Publishing; both registries and rendered pages verified; soak waived | Soak statement given with the release, before verification (recorded as given) |
-| PLAN-00010-STEP-09 | blocked | 2026-09-27T22:59:40Z | — | Evidence bundle prepared | Waiting on owner: commission the review, then disposition its findings |
-| PLAN-00010-STEP-10 | not-started | — | — | — | — |
+| PLAN-00010-STEP-09 | completed | 2026-09-27T22:59:40Z | 2026-09-28T12:02:10Z | Review 00015 (approve); bundle; dispositions | Review covered part 2 lightly; the owner chose to proceed |
+| PLAN-00010-STEP-10 | in-progress | 2026-09-28T12:02:10Z | — | — | — |
 | PLAN-00010-STEP-11 | not-started | — | — | — | — |
 
 Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
@@ -867,6 +867,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-27T23:00:50Z | PLAN-00010-STEP-09 | Task 1 (D2 A): evidence bundle for v2.0.0..v2.1.0rc2 (0ac0877..6379af8) in the session scratchpad, v2.1.0rc2-review-evidence-bundle.md (321 lines). Part 1 is the v2.0.0..v2.1.0rc1 bundle prepared at plan 00009 STEP-14 (recovered from the session transcript after the scratchpad loss), unchanged apart from headings. Part 2 covers v2.1.0rc1..v2.1.0rc2: the README review (plan 00010 §1 R1-R13) and its resolution; the per-step commit table; five focus areas (claims against evidence, completeness of the moves, soundness of the guards, the publish-crate change, the contract-test refinement); the evidence (CI 36330546176, publish 36355953834, Trusted Publishing data, rendered-page checks, PyPI, installs, scratch consumer, bench); eight deviations and open observations (contract-test refinement; semver-checks vacuous across pre-releases; parallelism 2.17x vs 2.9x; SECURITY.md timing row; two work-log corrections; scratchpad loss; both soaks waived, rc2's before verification; plan 00003's frozen diagram). Predecessor: review 00014 | Session scratchpad v2.1.0rc2-review-evidence-bundle.md | Owner: commission the independent review (task 2) |
 | 2026-09-27T23:44:03Z | PLAN-00010-STEP-09 | Review received: docs/reviews/00015-V2_1_0rc2_Release_Review.md (untracked in the worktree; the owner commits review reports), range v2.0.0..v2.1.0rc2 at 6379af8, reviewer model ollama-cloud/deepseek-v4-pro, read-only and static (no builds or tests run), verdict approve: 0 Critical, 0 Major, 0 Medium, 1 Low (REV-00015-LOW-01), 2 open questions. The gate (no Critical or Major) is met | docs/reviews/00015-V2_1_0rc2_Release_Review.md | Builder evaluation; owner dispositions |
 | 2026-09-27T23:44:04Z | PLAN-00010-STEP-09 | Builder evaluation. LOW-01 confirmed: the Python trace hook emits A_before/B_before (src/fpr_ff1/_ff1.py:942-943) and the Rust TraceRecord (rust/fpr-ff1/src/engine.rs:380-394) does not; grep finds no test reading them; tests/conftest.py's encrypt_traced docstring says both traces 'share the Python hook's shape', which is inaccurate. Pre-existing (Python since v0.1.0 ccf8c23; the Rust record lacked them at v2.0.0), carried through the split, test-only, no effect on ciphertext. Open question 1 resolved by execution, premise false: bytes() of a multi-byte-format (array 'i', 'd') or non-contiguous memoryview returns its raw bytes on CPython 3.12.13 and 3.14.3; FF1 accepts such a 16-byte view as a key and encrypts; nothing escapes FF1Error. Open question 2 resolved by CI run 36330546176: the semver step reports 'major change', 0 of 254 checks, as recorded at STEP-07; the owner's --release-type minor decision remains open. Coverage: the review's file list and checks cover part 1 and the tag mapping and crate README facts (46 vectors; the 193-numeral vector is radix 2, confirmed), but it does not address part 2 focus areas 1, 2, 3 and 5 (README claims against evidence, completeness of the moves, soundness of the guards, the test_contract refinement) or the bundle's open observations (SECURITY.md timing row, parallelism figure, soak waivers) | Execution of open question 1 on 3.12 and 3.14; grep; git show v2.0.0 | Owner: disposition LOW-01 and the open questions; decide whether the uncovered part 2 items need review before 2.1.0 |
+| 2026-09-28T12:02:10Z | PLAN-00010-STEP-09 | Owner dispositions (user: 'Defer LOW-01 to backlog, proceed to STEP-10'). REV-00015-LOW-01: accepted, deferred to docs/backlog.md (recorded at STEP-10); the real fix changes crate source, so it follows 2.1.0. Open questions 1 and 2: closed on the Builder's evidence (question 1's premise disproved by execution; question 2 answered by CI run 36330546176), with no separate owner statement. Part 2 coverage: the owner chose to proceed on review 00015 as it stands. The semver --release-type minor question was not answered; ci.yml stays unchanged. Review 00015 remains untracked in the worktree for the owner to commit | User message | STEP-10 |
 
 ### Deviations and blockers
 
@@ -897,6 +898,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-27T22:59:29Z | PLAN-00010-STEP-08 | Rendered pages: crates.io README HTML (static.crates.io/readmes/fpr-ff1/fpr-ff1-2.1.0-rc2.html); docs.rs; PyPI JSON description and every link in it | Pass | crates.io: no '# let', no hidden 'Ok::<' line, no literal [Error] or [`Error`]; 18 hrefs, all absolute or #anchor; shows 6124200773 and 'cargo add fpr-ff1'. docs.rs: status.json doc_status true for 2.1.0-rc2; index, struct.FF1, enum.ErrorKind 200; __internal 404; crate root shows the README examples (6124200773, 'Why trust it') and no hidden line. PyPI: summary 'NIST SP 800-38G FF1 format-preserving encryption, with an optional Rust backend.'; project URLs include 'Rust crate'; 25 description links, none relative; all 25 return 200 (crates.io/crates/fpr-ff1 answers 404 to a non-browser request and 200 with Accept: text/html, a property of its web app, not a dead link) (AC-09, AC-12) |
 | 2026-09-27T22:59:29Z | PLAN-00010-STEP-08 | PyPI fpr-ff1 2.1.0rc2: files vs run artifacts; attestations; clean installs | Pass | 7 files, 7/7 SHA-256 equal to the run's distributions and wheels, none yanked; pypi-attestations verify OK for all 7 against https://github.com/joelee/fpr-ff1. Installs: 3.12.13 and 3.14.7 (GIL) abi3 manylinux x86_64 wheel, python and rust; 3.14.3 free-threaded py3-none-any, python only (BackendError for rust); --no-binary sdist builds on 3.12 and 3.14, python only. Each passes NIST sample 2 through encrypt() and a radix-10 n=60 (d > 16) case whose ciphertext 3634...77333 equals the value recorded for 2.1.0rc1 at plan 00009 STEP-14: output unchanged across the release |
 | 2026-09-27T22:59:29Z | PLAN-00010-STEP-08 | Scratch Cargo project outside the repository on fpr-ff1 = '=2.1.0-rc2' from crates.io (public API only) | Pass | Cargo.lock source registry+crates.io-index, registry-cache .crate sha256 36a2724a...593d22; NIST sample 1 (numerals) and sample 2 (builder, alphabet, tweak -> 6124200773); the same d > 16 case equals PyPI; a 15-byte key -> ErrorKind::KeyLength |
+| 2026-09-28T12:02:10Z | PLAN-00010-STEP-09 | Re-review gate: independent review of v2.0.0..v2.1.0rc2 with no Critical or Major finding, every finding dispositioned | Pass | Review 00015 verdict approve, 0 Critical, 0 Major, 0 Medium, 1 Low; LOW-01 deferred to backlog by the owner; open questions closed on evidence (AC-13) |
 
 ### Completion summary
 

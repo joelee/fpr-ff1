@@ -7,7 +7,7 @@ name = "fpr-ff1-rust"
 # packaging.version.Version reads both as the same release, and
 # tests/test_contract.py::test_crate_version_matches_project_version
 # enforces the pair on every CI leg.
-version = "2.1.0-rc2"
+version = "2.1.0"
 edition = "2021"
 description = "PyO3 binding of the fpr-ff1 FF1 core, shipped in the fpr-ff1 platform wheels as fpr_ff1._rs."
 license = "MIT"

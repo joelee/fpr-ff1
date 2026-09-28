@@ -24,15 +24,16 @@ warranted, disclosure will be coordinated with you.
 ## Supported versions
 
 The latest `2.x` release receives bug and security fixes. The `1.1.x` line receives security
-fixes only, until `2.1.0` ships or until 2027-03-25, whichever is later. `1.0.x`
-is no longer supported: upgrade to `1.1.x` or `2.0.x` (both produce identical ciphertext).
-The Rust crate's first release is `2.1.0`; from then on it follows the same table, version for
-version.
+fixes only, until 2027-03-25. `2.0.x` is superseded by `2.1.x`, and `1.0.x` is no longer
+supported: upgrade to `2.1.x` (every `1.x` and `2.x` release produces identical ciphertext for the
+inputs both accept). The Rust crate's first stable release is `2.1.0`, after the pre-releases
+`2.1.0-rc1` and `2.1.0-rc2`; it follows the same table, version for version.
 
 | Version | Supported |
 |---|---|
-| 2.0.x | ✅ bug and security fixes |
-| 1.1.x | ✅ security fixes only, until `2.1.0` or 2027-03-25 |
+| 2.1.x | ✅ bug and security fixes |
+| 2.0.x | ❌ upgrade to `2.1.x` |
+| 1.1.x | ✅ security fixes only, until 2027-03-25 |
 | 1.0.x | ❌ |
 
 ## Scope
