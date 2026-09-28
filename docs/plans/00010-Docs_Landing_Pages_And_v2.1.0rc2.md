@@ -33,14 +33,14 @@ confidence: high
 
 # Builder-maintained front matter. Builder may update only these keys after
 # explicit user approval; Delivery Planner initializes them.
-implementation_status: blocked
+implementation_status: completed
 builder_agent: claude-code
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1"
 execution_started_at: "2026-09-27T11:24:04Z"
-execution_updated_at: "2026-09-28T12:35:45Z"
-execution_completed_at: null
-current_step: "PLAN-00010-STEP-11"
+execution_updated_at: "2026-09-28T16:16:31Z"
+execution_completed_at: "2026-09-28T16:16:31Z"
+current_step: null
 ---
 
 # Delivery Plan 00010: Docs Landing Pages And v2.1.0rc2
@@ -840,7 +840,7 @@ and STEP-10. `just crate-test` runs after every step that touches the crate READ
 | PLAN-00010-STEP-08 | completed | 2026-09-27T16:00:25Z | 2026-09-27T22:59:30Z | PR #15 merge 6379af8 tagged v2.1.0rc2; publish run 36355953834 43/43; crate by Trusted Publishing; both registries and rendered pages verified; soak waived | Soak statement given with the release, before verification (recorded as given) |
 | PLAN-00010-STEP-09 | completed | 2026-09-27T22:59:40Z | 2026-09-28T12:02:10Z | Review 00015 (approve); bundle; dispositions | Review covered part 2 lightly; the owner chose to proceed |
 | PLAN-00010-STEP-10 | completed | 2026-09-28T12:02:10Z | 2026-09-28T12:35:45Z | 3600eac; local gate checkpoint-120312; CI run 36420870504 green 41/41 | Semver step vacuous (rc2 -> 2.1.0 'major change') |
-| PLAN-00010-STEP-11 | blocked | 2026-09-28T12:35:45Z | — | Hand-off recorded | Waiting on owner: merge, tag and release, not yet visible on GitHub |
+| PLAN-00010-STEP-11 | completed | 2026-09-28T12:35:45Z | 2026-09-28T16:16:31Z | PR #16 merge faa3e9e tagged v2.1.0; release by the Builder on the owner's authorization; publish run 36446939114 43/43; both registries verified | Plan closed; closeout by PR (chore/plan-00010-closeout) |
 
 Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 `skipped`. A skipped step requires explicit user approval recorded in Evidence.
@@ -873,6 +873,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-28T12:17:37Z | PLAN-00010-STEP-10 | User authorized the push ('push authorised'). Builder pushed release/v2.1 (38f0407..85b83a5) and dispatched ci.yml | origin/release/v2.1 = 85b83a5389058f0ed844d36dc4a3a0fc7b0b9a99; run https://github.com/joelee/fpr-ff1/actions/runs/36420870504 | Watch the run |
 | 2026-09-28T12:35:45Z | PLAN-00010-STEP-10 | At 2026-09-28T12:28:18Z the user reported 'Merged, tagged and released v2.1.0' while this CI run was still in progress. GitHub showed none of it: no PR after #15, origin/main still 6379af8, no v2.1.0 tag (only v2.1.0rc1 and rc2), no v2.1.0 release, no new publish run. The Builder reported the discrepancy and asked the owner to hold until CI finished; it has now finished green, and main and the tags are still unchanged | gh pr list, gh api matching-refs/tags/v2.1, gh release list, git ls-remote (main 6379af8, no refs/tags/v2.1.0) | Owner: locate or redo the merge, tag and release (STEP-11) |
 | 2026-09-28T12:35:45Z | PLAN-00010-STEP-11 | Hand-off to owner. (1) PR release/v2.1 -> main, merged with a MERGE COMMIT. (2) Tag exactly v2.1.0 on that merge commit; publish a GitHub RELEASE, not a pre-release (notes: session scratchpad v2.1.0-release-notes.md). (3) publish.yml publishes PyPI, then publish-crate by Trusted Publishing. Then the Builder verifies both registries as at STEP-08 and that pip install fpr-ff1 and cargo add fpr-ff1 resolve to 2.1.0 without pre-release flags | Frozen release: origin/release/v2.1 at 85b83a5 | Owner release actions |
+| 2026-09-28T15:53:19Z | PLAN-00010-STEP-11 | Owner merged PR #16 (release/v2.1 -> main) as merge commit faa3e9e and tagged v2.1.0 on it (annotated tag), then authorized the Builder to release ('Merged, and tagged. I authorised you to release v2.1.0'). Checks before release: tag v2.1.0 -> faa3e9e4aa2c1acfdfb88b7f007116cba4fdc4e4 = origin/main; pyproject version 2.1.0; the merge contains the CI-gated 85b83a5 and differs from it only in docs/plans/00010 (work log d6fb8bd). Builder published the GitHub release 'v2.1.0 — FF1 for Python and Rust' (not a pre-release, marked latest; notes from the session scratchpad) at 2026-09-28T15:52:57Z; publish.yml run 36446939114 started on the release event. The earlier report of a merge and tag (2026-09-28T12:28Z) never reached GitHub; this is the one that did | https://github.com/joelee/fpr-ff1/releases/tag/v2.1.0; https://github.com/joelee/fpr-ff1/actions/runs/36446939114 | Watch the publish run; verify |
 
 ### Deviations and blockers
 
@@ -907,14 +908,18 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-09-28T12:02:10Z | PLAN-00010-STEP-09 | Re-review gate: independent review of v2.0.0..v2.1.0rc2 with no Critical or Major finding, every finding dispositioned | Pass | Review 00015 verdict approve, 0 Critical, 0 Major, 0 Medium, 1 Low; LOW-01 deferred to backlog by the owner; open questions closed on evidence (AC-13) |
 | 2026-09-28T12:15:17Z | PLAN-00010-STEP-10 | Local gate at 3600eac: tests/test_contract.py and tests/test_docs.py; full checkpoint; just crate-test; just crate-msrv; just crate-package; installed versions | Pass | contract + docs 71 passed; dual gate 1816 passed in 446.44s, TOTAL 345 stmts 120 branches 100%, -k rust 638; Rust-free 942 passed, 245 skipped, 100%; crate-test 43 + 9 + 3, sweeps 2; crate-msrv (1.89) 43 + 9 + 3; crate-package '19 entries, 0 problems', dry run aborted before upload, fpr-ff1-2.1.0.crate sha256 13ad6279a6eac7ce61f0c2a43950ee938a1a418fe7afe48627e246af447917da at 3600eac; fpr_ff1.__version__ 2.1.0, _rs.__version__ 2.1.0; logs checkpoint-120312. cargo-semver-checks against 2.1.0-rc2 is left to CI (expected to report a major change with 0 checks, as for rc2) |
 | 2026-09-28T12:35:45Z | PLAN-00010-STEP-10 | CI run 36420870504 at 85b83a5 (release commit 3600eac + work-log commits) https://github.com/joelee/fpr-ff1/actions/runs/36420870504 | Pass | completed/success, 41/41 jobs. crate-package '19 entries, 0 problems'; fpr-ff1-2.1.0.crate sha256 4501dd13c6d30df1cdcd0da9f2a77e6abf17a98b99b8ca0e38aa7d4970f2b41d at 85b83a5 (differs from 3600eac's only through the embedded commit hash). Semver step: 'fpr-ff1 v2.1.0-rc2 -> v2.1.0 (major change)', '0 checks: 0 pass, 254 skip', 'no semver update required': vacuous as predicted; ci.yml unchanged by owner choice |
+| 2026-09-28T16:16:30Z | PLAN-00010-STEP-11 | publish.yml run 36446939114 on v2.1.0 (faa3e9e) https://github.com/joelee/fpr-ff1/actions/runs/36446939114 | Pass | completed/success, 43/43 jobs: the reused CI gate, publish (PyPI), then publish-crate by Trusted Publishing |
+| 2026-09-28T16:16:30Z | PLAN-00010-STEP-11 | crates.io fpr-ff1 2.1.0; rendered page; docs.rs | Pass | Checksum d05309a7a55c3ecce9707ee42afdbd85c47a1fb48cfed6fe2e58c31f5884ac8d = the run's 'crate' artifact = the downloaded .crate = a scratch project's registry cache. trustpub_data {github, joelee/fpr-ff1, run 36446939114, sha faa3e9e4aa2c1acfdfb88b7f007116cba4fdc4e4}, published_by null; license MIT OR Apache-2.0, rust_version 1.89, not yanked; crate max_stable_version, newest_version and default_version all 2.1.0. README HTML: no hidden lines, no literal [Error], 18 links all absolute. docs.rs doc_status true for 2.1.0; index and struct.FF1 200; __internal 404 |
+| 2026-09-28T16:16:30Z | PLAN-00010-STEP-11 | PyPI fpr-ff1 2.1.0: files, attestations, description, latest version | Pass | 7 files, 7/7 SHA-256 equal to the run's artifacts, none yanked; attestations OK 7/7 (the macosx_10_12 wheel's first check failed and passed on an immediate retry: transient); summary names the optional Rust backend; 25 description links, none relative, all 200. The project JSON first reported latest 2.0.0 (a cached response); an uncached request and the simple index show 2.1.0 as latest |
+| 2026-09-28T16:16:31Z | PLAN-00010-STEP-11 | Resolution without pre-release flags; clean installs; scratch project via cargo add | Pass | uv pip install fpr-ff1 (no pin, no --pre) -> 2.1.0 on 3.12.13 and 3.14.7 (abi3 manylinux wheel, python and rust agree), 3.14.3 free-threaded (py3-none-any, python only), and --no-binary sdist builds on 3.12 and 3.14 (python only); each passes NIST sample 2 and the d > 16 case with ciphertext equal to rc1's and rc2's. cargo add fpr-ff1 writes fpr-ff1 = "2.1.0"; the program reproduces NIST samples 1 and 2, matches PyPI on d > 16, and gets ErrorKind::KeyLength for a 15-byte key (AC-14) |
 
 ### Completion summary
 
-- **Implementation status:** `blocked`
-- **Completed requirements:** PLAN-00010-REQ-01 to REQ-12; REQ-13 re-review passed and 2.1.0 release commit green in CI
-- **Incomplete requirements:** REQ-13: 2.1.0 published on both registries and verified
-- **Outstanding blockers:** Owner: merge, tag and release v2.1.0 (STEP-11)
-- **Review request:** Not ready
+- **Implementation status:** `completed`
+- **Completed requirements:** PLAN-00010-REQ-01 to REQ-13: both READMEs rewritten and guarded; 2.1.0rc2 and 2.1.0 published on PyPI and crates.io by CI (the crate by Trusted Publishing) and verified; review 00015 approve
+- **Incomplete requirements:** None
+- **Outstanding blockers:** None. Deferred: REV-00015-LOW-01 (docs/backlog.md); open observations for a later plan: cargo-semver-checks --release-type minor, SECURITY.md value-timing row
+- **Review request:** Complete; no review requested beyond review 00015
 <!-- BUILDER_WORK_LOG_END -->
 
 ## 18. Planning change log
