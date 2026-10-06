@@ -11,22 +11,26 @@ This file tracks high-level feature ideas and technical debt for `fpr-ff1`.
 - Raise the `requires-python` floor as new Python versions enter the CI matrix and pass. The
   upper-bound cap policy was retired at 1.0.0 (review 00003 B4): a cap becomes a hard resolution
   failure on future interpreters, so classifiers state the tested versions instead.
-- **Rust crate `fpr-ff1` and release `2.1.0` (plan 00009 STEP-01 to STEP-14, then plan 00010;
-  plan 00008 superseded).** The core is split into a publishable crate with its own validation,
-  public API, conformance suite and CI; `aes` 0.9 and `num-bigint` 0.5 taken first as separately
-  gated upgrades. `2.1.0rc1` published on both registries (the crate by manual bootstrap);
-  `2.1.0rc2` added the two-language README, registry-rendering guards and CI publication of
-  pre-release crates by Trusted Publishing; review 00015 approved `v2.0.0..v2.1.0rc2`. Still to
-  come: `2.1.0` on both registries by CI.
 - **Trace-hook parity (review 00015 LOW-01, deferred past `2.1.0`).** The Python per-round trace
   records `A_before`/`B_before`; the Rust `TraceRecord` does not, although the `encrypt_traced`
   fixture's docstring says both share one shape. Test-only, no current test reads the fields. Add
   them to `TraceRecord` and the binding, or document the divergence at the fixture.
 - Deferred from the crate's first release (plan 00008 D5, D6): `no_std` support (with `alloc`), and
   key zeroization behind a feature once there is a claim the crate can defend in `SECURITY.md`.
+- **Open observations from `2.1.0`, not yet planned.** `cargo-semver-checks` compares nothing across
+  pre-releases ("major change", 0 checks); passing `--release-type minor` in CI would make release
+  candidates meaningful. `SECURITY.md`'s value-dependent timing row for radix 10, length 10
+  (+0.8%) disagrees with repeated measurements (about -28%).
 
 ## Completed Items
 
+- **`2.1.0` released: the FF1 core as a Rust crate** (plans 00009 and 00010; plan 00008
+  superseded). `fpr-ff1` 2.1.0 on PyPI and crates.io from tag `v2.1.0`, the crate published by
+  Trusted Publishing. The core is a publishable crate with its own validation, public API,
+  conformance suite and CI; `aes` 0.9 and `num-bigint` 0.5; the README is a landing page for both
+  languages, with the Python API reference and migration guide in `docs/` and tests that keep the
+  registry pages rendering. `2.1.0rc1` and `2.1.0rc2` preceded it on both registries, and review
+  00015 approved `v2.0.0..v2.1.0rc2` with no blocking finding.
 - **Stable `v2.0.0` released** (plan 00007, from review 00007). Legacy-pickle restoration fixed;
   unencodable tweak lengths and bounds fail closed on both backends; the divide-and-conquer
   conversion ported to the Rust core; the release gate installs and tests all five native wheels
