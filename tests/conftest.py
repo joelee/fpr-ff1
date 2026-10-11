@@ -66,9 +66,14 @@ def encrypt_traced(backend: str) -> Callable[..., tuple[list[int], list[dict[str
 
     The python backend uses the private ``FF1._encrypt_traced`` method; the
     rust backend uses the extension's test-only ``_test_encrypt_traced``
-    binding, whose byte and big-int fields are normalized here so both
-    traces share the Python hook's shape. The returned callable takes an
-    FF1 instance, a numeral sequence, and an optional tweak.
+    binding, whose byte and big-int fields are normalized here. Every record
+    from either backend then has exactly the keys ``i, u, v, b, d, P, Q, R,
+    S, y, m, c, C, A_before, B_before``, with the same value types:
+    ``A_before``/``B_before`` (the halves before steps 6.viii and 6.ix swap
+    them) and ``C`` arrive as numeral lists from both and need no
+    normalization (plan 00011 STEP-01, review 00015 LOW-01). The returned
+    callable takes an FF1 instance, a numeral sequence, and an optional
+    tweak.
     """
     if backend == "python":
 

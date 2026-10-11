@@ -127,6 +127,8 @@ fn _rs(m: &Bound<'_, PyModule>) -> PyResult<()> {
                 dict.set_item("m", rec.m)?;
                 dict.set_item("c", rec.c)?;
                 dict.set_item("C", rec.c_block)?;
+                dict.set_item("A_before", rec.a_before)?;
+                dict.set_item("B_before", rec.b_before)?;
                 Ok(dict.unbind())
             })
             .collect::<PyResult<Vec<pyo3::Py<pyo3::types::PyDict>>>>()?;

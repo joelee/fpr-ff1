@@ -391,6 +391,11 @@ pub struct TraceRecord {
     pub m: usize,
     pub c: Vec<u8>,
     pub c_block: Vec<u16>,
+    /// `A` and `B` as this round found them, before SP 800-38G Algorithm 7
+    /// steps 6.viii and 6.ix swap them; the binding emits them as
+    /// ``A_before``/``B_before``, the Python hook's names.
+    pub a_before: Vec<u16>,
+    pub b_before: Vec<u16>,
 }
 
 /// SP 800-38G Algorithm 7 core (encrypt when `encrypt`, decrypt otherwise).
@@ -579,6 +584,8 @@ fn ff1_impl(
                 m,
                 c: c.to_bytes_be(),
                 c_block: c_block.clone(),
+                a_before: a.clone(),
+                b_before: b_side.clone(),
             });
         }
 
