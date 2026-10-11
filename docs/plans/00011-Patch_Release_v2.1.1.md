@@ -38,9 +38,9 @@ builder_agent: "claude-code"
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1.1"
 execution_started_at: "2026-10-11T12:48:21Z"
-execution_updated_at: "2026-10-11T13:20:06Z"
+execution_updated_at: "2026-10-11T13:47:14Z"
 execution_completed_at: null
-current_step: "PLAN-00011-STEP-05"
+current_step: "PLAN-00011-STEP-06"
 ---
 
 # Delivery Plan 00011: Patch Release v2.1.1
@@ -620,9 +620,9 @@ is owner actions with Builder verification, exactly as plan 00010 STEP-11 ran fo
 | PLAN-00011-STEP-01 | completed | 2026-10-11T12:48:21Z | 2026-10-11T12:51:03Z | Commit 'test(PLAN-00011-STEP-01)'; verification rows above | One deviation: Rust twin test in conformance_tests.rs |
 | PLAN-00011-STEP-02 | completed | 2026-10-11T12:51:03Z | 2026-10-11T12:56:06Z | Commit 90d7644 'test(PLAN-00011-STEP-02)'; verification rows above | Also asserts the call-time tweak path, the third _require_bytes call site. Start time corrected, see deviations |
 | PLAN-00011-STEP-03 | completed | 2026-10-11T12:56:21Z | 2026-10-11T13:00:59Z | Commit 'docs(PLAN-00011-STEP-03)'; verification rows above | Harness pyright run named explicitly; README speed observation recorded |
-| PLAN-00011-STEP-04 | in-progress | 2026-10-11T13:00:59Z | — | — | Local evidence complete; CI evidence (task 5) awaits the release-branch push. Start time corrected, see deviations |
-| PLAN-00011-STEP-05 | blocked | 2026-10-11T13:10:07Z | — | Release commit 1cd9fc8; local gate green | Awaiting push authorisation (deviations) |
-| PLAN-00011-STEP-06 | not-started | — | — | — | — |
+| PLAN-00011-STEP-04 | completed | 2026-10-11T13:00:59Z | 2026-10-11T13:47:14Z | Commit 0cfef57; local evidence; CI run 38143389651 semver step (223 checks vs 2.1.0, patch) | Deviations: sdist skip guard, directory-structure entries, stricter script inputs; start time corrected |
+| PLAN-00011-STEP-05 | completed | 2026-10-11T13:10:07Z | 2026-10-11T13:47:14Z | Release commit 1cd9fc8; local gate 9d373ed record; CI run 38143389651 green 41/41 | Push blocker resolved by the owner |
+| PLAN-00011-STEP-06 | blocked | 2026-10-11T13:47:14Z | — | — | Waiting for the owner's PR, merge, tag and release |
 
 Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 `skipped`. A skipped step requires explicit user approval recorded in Evidence.
@@ -639,6 +639,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-10-11T13:09:52Z | PLAN-00011-STEP-04 | semver_release_type.py and its tests; the crate-package semver step fetches the crates.io JSON once to RUNNER_TEMP, fails on any status other than 200 or 404, takes max_stable_version as the baseline, and passes --baseline-version and --release-type; developer guide paragraph with a local reproduction command; directory-structure entries | .github/scripts/semver_release_type.py; tests/test_ci_scripts.py; .github/workflows/ci.yml; docs/developer-guide.md; docs/directory-structure.md | Commit; STEP-05 local work; collect STEP-04's CI evidence at the release push |
 | 2026-10-11T13:11:20Z | PLAN-00011-STEP-05 | Release commit content: pyproject.toml, rust/fpr-ff1/Cargo.toml, rust/fpr-ff1-rust/Cargo.toml at 2.1.1; cargo update -w (fpr-ff1 and fpr-ff1-rust 2.1.0 -> 2.1.1 only) and uv lock (fpr-ff1 2.1.0 -> 2.1.1 only; 'Resolved 28 packages'); CHANGELOG [2.1.1] with compare links; backlog items moved to Completed; developer guide's reproduction command says to substitute the current max_stable_version (it hardcodes 2.1.0, stale once 2.1.1 is published). Pre-commit: tests/test_contract.py + tests/test_docs.py 71 passed; installed fpr_ff1.__version__ 2.1.1 | git diff of both locks: only the fpr-ff1 package versions changed (AC-09) | Commit; run the local gates at the release commit |
 | 2026-10-11T13:20:06Z | PLAN-00011-STEP-05 | Local gate complete and green at 1cd9fc8; blocked on push authorisation | Verification row above | User: authorise the push |
+| 2026-10-11T13:29:40Z | PLAN-00011-STEP-05 | Owner pushed release/v2.1.1 ('Branch pushed. Please proceed.'); origin/release/v2.1.1 = 9d373ed4b8378c7d8f612a5b76b36eee767b3ffb = local HEAD. ci.yml runs on push only for main, so the Builder dispatched it on the branch | gh workflow run ci.yml --ref release/v2.1.1; run https://github.com/joelee/fpr-ff1/actions/runs/38143389651 | Watch the run |
+| 2026-10-11T13:47:14Z | PLAN-00011-STEP-06 | Hand-off to the owner. (1) PR release/v2.1.1 -> main, merged with a MERGE COMMIT. (2) Tag exactly v2.1.1 (annotated) on that merge commit; publish a GitHub RELEASE, not a pre-release, notes = the [2.1.1] changelog section (prepared as v2.1.1-release-notes.md in the session scratchpad). (3) publish.yml publishes PyPI, then publish-crate by Trusted Publishing. Then the Builder runs the REQ-06 verification. This work-log commit is local: the owner pushes it with the branch (or authorises the Builder to), so the PR carries it | Frozen release content: 1cd9fc8; CI-gated tip 9d373ed | Owner: push this commit, PR, merge, tag, release |
 
 ### Deviations and blockers
 
@@ -649,6 +651,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-10-11T13:09:52Z | PLAN-00011-STEP-04 | Three additions to the step's file list and design, all routine: (1) tests/test_ci_scripts.py skips its module when the script file is absent. The sdist ships tests/ but not .github/, and pyproject's pytest section promises a bare pytest from an unpacked sdist does not fail; in the repository the script always exists, so every local and CI run executes it. (2) docs/directory-structure.md gains a .github/scripts/ entry listing all three scripts (the two existing ones were never listed) and the new test module, per docs/AGENTS.md. (3) The script also rejects a pre-release or missing (crates.io null) baseline and a current version that is a pre-release of the baseline; the plan's six cases are unchanged. Also: the plan says the script is type-checked by just quality, but pyproject's pyright include is src and tests only, so pyright was run on the script by path | None on behaviour or scope | None (recorded for review) |
 | 2026-10-11T13:10:07Z | PLAN-00011-STEP-04 | Work-log correction: commit 0cfef57 recorded STEP-04's start as 2026-10-11T13:01:35Z, typed by hand. Corrected to 2026-10-11T13:00:59Z, the commit time of d3b3304 (STEP-03), after which STEP-04 began. Every later timestamp is taken from date -u or a commit | Record accuracy only | None |
 | 2026-10-11T13:20:06Z | PLAN-00011-STEP-05 | BLOCKER: task 5 needs release/v2.1.1 pushed to origin so ci.yml runs at the release commit; that run is also STEP-04's CI evidence (task 5, the hand-off's single-push option). Pushing needs the owner's authorisation. The branch is local only: origin has main at 43f2bab and release/v2.1 at 6624c75 | STEP-04 and STEP-05 cannot complete; STEP-06 waits | User: authorise pushing release/v2.1.1 (the Builder then watches ci.yml and records the run) |
+| 2026-10-11T13:47:14Z | PLAN-00011-STEP-05 | RESOLVED: the push blocker of 13:20 — the owner pushed release/v2.1.1 and CI is green | STEP-04 and STEP-05 complete | None |
 
 ### Verification results
 
@@ -672,6 +675,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-10-11T13:09:52Z | PLAN-00011-STEP-04 | The developer guide's reproduction command, run verbatim from the file; uv run pytest tests/test_docs.py | Pass | '223 checks: 223 pass, 31 skip', 'no semver update required'; 8 passed |
 | 2026-10-11T13:09:52Z | PLAN-00011-STEP-04 | just quality (extension built) | Pass | 1855 passed in 256.07s (1836 + the 19 new); TOTAL 345 stmts 120 branches 100% |
 | 2026-10-11T13:20:06Z | PLAN-00011-STEP-05 | Local gates at release commit 1cd9fc882ae60b4f696cf9ec192b5c3be4829ef3, run sequentially 2026-10-11T13:11:37Z to 13:19:43Z (scratchpad gates.sh; logs in gates-1cd9fc8/) | Pass (AC-11 local part) | just backend-dev ok. Dual gate (FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR_FF1_REQUIRE_ORACLE=1, --cov-fail-under=100): 1855 passed, 0 skipped in 253.44s, 100%; 621 tests parameterised on rust. Rust-free just quality (extension moved aside): 971 passed, 245 skipped, 100%. just rust-lint ok. just crate-test: 44 + 9 + 3, sweeps 2. just crate-msrv (1.89): 44 + 9 + 3. just crate-package: docs -D warnings ok, '19 entries, 0 problems', dry run 'aborting upload due to dry run', fpr-ff1-2.1.1.crate sha256 4f403f5b04716fb40715a4e094e7fac0a8f0ccf3ff4e265339b05655c72ad3e6 (local; CI's will differ only by the commit hash in .cargo_vcs_info.json). tests/test_contract.py + tests/test_docs.py: 71 passed. Worktree clean afterwards |
+| 2026-10-11T13:47:14Z | PLAN-00011-STEP-04 | CI run 38143389651 at 9d373ed (release commit 1cd9fc8 + work-log commit 9d373ed), job 'fpr-ff1 crate docs, package and API compatibility' (114481655714), semver step log via the jobs API | Pass (AC-07) | 'fpr-ff1 2.1.1 against published 2.1.0 as a patch release'; 'Checking fpr-ff1 v2.1.0 -> v2.1.1 (assume patch change)'; '223 checks: 223 pass, 31 skip'; 'Summary no semver update required'. The command line carries --baseline-version and --release-type. Before this plan the same step ran 0 of 254 checks |
+| 2026-10-11T13:47:14Z | PLAN-00011-STEP-05 | CI run 38143389651 https://github.com/joelee/fpr-ff1/actions/runs/38143389651 | Pass (AC-11) | completed/success, 41/41 jobs: 9-leg Python matrix, rust-conformance (full suite, both backends), crate tests on three OSes, crate MSRV 1.89, crate package ('19 entries, 0 problems'; fpr-ff1-2.1.1.crate sha256 663508328d46cad1c66f52e77d96b9921a88871f2716c282e21992c0d0c5b633 at 9d373ed), dependency audit, secret scan, distributions, five platform wheels, installed-wheel jobs on all 15 platform/Python pairs, full conformance on the installed abi3 wheel, installed wheel and sdist (the sdist job ran tests/test_ci_scripts.py's skip path) |
 
 ### Completion summary
 
