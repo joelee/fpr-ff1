@@ -38,7 +38,7 @@ builder_agent: "claude-code"
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1.1"
 execution_started_at: "2026-10-11T12:48:21Z"
-execution_updated_at: "2026-10-11T13:09:52Z"
+execution_updated_at: "2026-10-11T13:11:20Z"
 execution_completed_at: null
 current_step: "PLAN-00011-STEP-05"
 ---
@@ -620,8 +620,8 @@ is owner actions with Builder verification, exactly as plan 00010 STEP-11 ran fo
 | PLAN-00011-STEP-01 | completed | 2026-10-11T12:48:21Z | 2026-10-11T12:51:03Z | Commit 'test(PLAN-00011-STEP-01)'; verification rows above | One deviation: Rust twin test in conformance_tests.rs |
 | PLAN-00011-STEP-02 | completed | 2026-10-11T12:51:03Z | 2026-10-11T12:56:06Z | Commit 90d7644 'test(PLAN-00011-STEP-02)'; verification rows above | Also asserts the call-time tweak path, the third _require_bytes call site. Start time corrected, see deviations |
 | PLAN-00011-STEP-03 | completed | 2026-10-11T12:56:21Z | 2026-10-11T13:00:59Z | Commit 'docs(PLAN-00011-STEP-03)'; verification rows above | Harness pyright run named explicitly; README speed observation recorded |
-| PLAN-00011-STEP-04 | in-progress | 2026-10-11T13:01:35Z | — | — | Local evidence complete; CI evidence (task 5) awaits the release-branch push |
-| PLAN-00011-STEP-05 | not-started | — | — | — | — |
+| PLAN-00011-STEP-04 | in-progress | 2026-10-11T13:00:59Z | — | — | Local evidence complete; CI evidence (task 5) awaits the release-branch push. Start time corrected, see deviations |
+| PLAN-00011-STEP-05 | in-progress | 2026-10-11T13:10:07Z | — | — | — |
 | PLAN-00011-STEP-06 | not-started | — | — | — | — |
 
 Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
@@ -637,6 +637,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-10-11T13:00:59Z | PLAN-00011-STEP-03 | Harness: _WARMUP_SECONDS = 0.5 untimed warm-up on the first case, then each pair timed zero-first and max-first, row = mean of the two deltas; module docstring and table heading describe it. SECURITY.md item 1: methodology sentence (date, interpreter, both orders, warm-up) and this run's table. README backend table untouched per scope | benchmarks/timing.py; SECURITY.md; raw outputs step03-before.txt, step03-after.txt, step03-bench.txt in the session scratchpad | Commit; STEP-04 |
 | 2026-10-11T13:00:59Z | PLAN-00011-STEP-03 | Observation for the owner, no action (out of scope): this run's radix-256 backend speedups (10.30x to 10.51x) are below the README's published 12.03x to 12.62x from the plan 00010 STEP-05 run; the python column moved (n1000 2117.6 vs 2542.9 µs), the rust column barely. The README states its figures are one machine's run | step03-bench.txt | Owner: decide whether a later plan re-measures the README table |
 | 2026-10-11T13:09:52Z | PLAN-00011-STEP-04 | semver_release_type.py and its tests; the crate-package semver step fetches the crates.io JSON once to RUNNER_TEMP, fails on any status other than 200 or 404, takes max_stable_version as the baseline, and passes --baseline-version and --release-type; developer guide paragraph with a local reproduction command; directory-structure entries | .github/scripts/semver_release_type.py; tests/test_ci_scripts.py; .github/workflows/ci.yml; docs/developer-guide.md; docs/directory-structure.md | Commit; STEP-05 local work; collect STEP-04's CI evidence at the release push |
+| 2026-10-11T13:11:20Z | PLAN-00011-STEP-05 | Release commit content: pyproject.toml, rust/fpr-ff1/Cargo.toml, rust/fpr-ff1-rust/Cargo.toml at 2.1.1; cargo update -w (fpr-ff1 and fpr-ff1-rust 2.1.0 -> 2.1.1 only) and uv lock (fpr-ff1 2.1.0 -> 2.1.1 only; 'Resolved 28 packages'); CHANGELOG [2.1.1] with compare links; backlog items moved to Completed; developer guide's reproduction command says to substitute the current max_stable_version (it hardcodes 2.1.0, stale once 2.1.1 is published). Pre-commit: tests/test_contract.py + tests/test_docs.py 71 passed; installed fpr_ff1.__version__ 2.1.1 | git diff of both locks: only the fpr-ff1 package versions changed (AC-09) | Commit; run the local gates at the release commit |
 
 ### Deviations and blockers
 
@@ -645,6 +646,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-10-11T12:51:03Z | PLAN-00011-STEP-01 | Affected components gain rust/fpr-ff1/src/conformance_tests.rs (not listed in the step). With the two new TraceRecord fields, 'just crate-test' and 'just crate-msrv' warned 'fields a_before and b_before are never read': the struct's cfg_attr(not(any(test, feature = "internal")), allow(dead_code)) deliberately does not apply under cfg(test), so the plan's premise that it covers the fields was wrong for the crate's own test build (clippy, which unifies the internal feature through the workspace, was clean). Resolved by adding nist_trace_halves_chain_across_rounds, the Rust twin of the Python chaining test, which reads both fields; the lint allowance is unchanged | None on scope: test-only, no source or API change beyond the step; satisfies the step's no-warning completion criterion without weakening a lint | None (recorded for review) |
 | 2026-10-11T12:56:21Z | PLAN-00011-STEP-02 | Work-log correction: commit 90d7644 recorded STEP-02's start as 2026-10-11T13:04:12Z, a value typed by hand rather than read from date -u, and later than its own completion. Corrected to 2026-10-11T12:51:03Z, the commit time of 69ac98f (STEP-01), after which STEP-02 began immediately | Record accuracy only | None |
 | 2026-10-11T13:09:52Z | PLAN-00011-STEP-04 | Three additions to the step's file list and design, all routine: (1) tests/test_ci_scripts.py skips its module when the script file is absent. The sdist ships tests/ but not .github/, and pyproject's pytest section promises a bare pytest from an unpacked sdist does not fail; in the repository the script always exists, so every local and CI run executes it. (2) docs/directory-structure.md gains a .github/scripts/ entry listing all three scripts (the two existing ones were never listed) and the new test module, per docs/AGENTS.md. (3) The script also rejects a pre-release or missing (crates.io null) baseline and a current version that is a pre-release of the baseline; the plan's six cases are unchanged. Also: the plan says the script is type-checked by just quality, but pyproject's pyright include is src and tests only, so pyright was run on the script by path | None on behaviour or scope | None (recorded for review) |
+| 2026-10-11T13:10:07Z | PLAN-00011-STEP-04 | Work-log correction: commit 0cfef57 recorded STEP-04's start as 2026-10-11T13:01:35Z, typed by hand. Corrected to 2026-10-11T13:00:59Z, the commit time of d3b3304 (STEP-03), after which STEP-04 began. Every later timestamp is taken from date -u or a commit | Record accuracy only | None |
 
 ### Verification results
 

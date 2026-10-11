@@ -9,6 +9,39 @@ expanding the accepted domain without changing existing behaviour is a minor ver
 
 ## [Unreleased]
 
+## [2.1.1] — 2026-10-11
+
+**A maintenance release.** No change to accepted inputs, ciphertext or either public API; the
+pure-Python path and the compiled backend remain bit-identical. Upgrading from 2.1.0 is drop-in in
+both languages. This release closes the observations left open at 2.1.0 (plan 00011).
+
+### Changed
+
+- **`SECURITY.md`'s value-dependent timing table is re-measured.** Two runs since 2.1.0 printed
+  about -28% for radix 10, length 10 against a published +0.8%. The cause was the harness, not the
+  cipher: that case was measured first, briefly, and absorbed the start-up transient; measured
+  later, the same case reads under 1%. The new table comes from one dated run, every row is under
+  3%, and the timing posture and its disclaimers are unchanged.
+- **The timing harness** (`benchmarks/timing.py`) warms up untimed before the value table and times
+  each all-zero/all-max pair in both orders, reporting the mean of the two deltas.
+- **The crate's API compatibility check in CI** compares against the last stable crates.io release
+  with an explicit release type. Before, it derived the type from the version alone and ran none of
+  its checks for `2.1.0rc2` or `2.1.0`; it now runs 223 checks and fails a version that precedes
+  the published one.
+- **Development lock:** `virtualenv` 21.14.6, clearing four advisories (PYSEC-2026-4011 to
+  PYSEC-2026-4014) found by the dependency audit. It is a transitive development dependency of
+  `pre-commit`; no runtime dependency changed.
+
+### Fixed
+
+- **Test-only trace-hook parity.** The Rust core's per-round test trace now records the pre-swap
+  halves (`A_before`, `B_before`) as the Python hook does, so both backends' traces share one shape,
+  and both test suites assert the SP 800-38G Algorithm 7 A/B chaining on every NIST sample (review
+  00015 LOW-01). The trace is reachable only through the crate's hidden `internal` feature.
+- **Review 00015 open question 1, closed by a test.** A `memoryview` over multi-byte items, such as
+  an `array('i')`, is accepted as a key or tweak as its raw bytes on both backends. That was already
+  the behaviour; a test now holds it.
+
 ## [2.1.0] — 2026-09-28
 
 **The FF1 core as a Rust crate, stable.** `fpr-ff1` 2.1.0 is published on crates.io and PyPI from
@@ -549,7 +582,8 @@ requiring a major version.
 
 <!-- Keep a Changelog link reference definitions (review 00003 B7): without
      these, the bracketed version headings render as literal brackets. -->
-[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/joelee/fpr-ff1/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/joelee/fpr-ff1/compare/v2.0.0...v2.1.0
 [2.1.0rc2]: https://github.com/joelee/fpr-ff1/compare/v2.1.0rc1...v2.1.0rc2
 [2.1.0rc1]: https://github.com/joelee/fpr-ff1/compare/v2.0.0...v2.1.0rc1

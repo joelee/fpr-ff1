@@ -262,7 +262,8 @@ under an explicit release type from `.github/scripts/semver_release_type.py`, wh
 suffix, so `2.2.0-rc1` against `2.1.0` is checked as a minor release and an unbumped manifest
 after a release as a patch; a version that precedes the baseline fails the job. Without the
 explicit type the tool derives it from the version alone, and at `2.1.0rc2` and `2.1.0` it ran
-none of its checks. To reproduce the job's check locally:
+none of its checks. To reproduce the job's check locally, with the crate's current
+`max_stable_version` in place of `2.1.0`:
 
 ```bash
 cargo semver-checks -p fpr-ff1 --manifest-path rust/Cargo.toml --default-features \
