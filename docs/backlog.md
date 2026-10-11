@@ -16,7 +16,9 @@ This file tracks high-level feature ideas and technical debt for `fpr-ff1`.
 
 ## Completed Items
 
-- **`2.1.1`: the observations left open at `2.1.0`** (plan 00011). Trace-hook parity: the Rust
+- **`2.1.1` released: the observations left open at `2.1.0`** (plan 00011). `fpr-ff1` 2.1.1 on
+  PyPI and crates.io from tag `v2.1.1`, the crate published by Trusted Publishing, with no change to
+  accepted inputs, ciphertext or either public API. Trace-hook parity: the Rust
   `TraceRecord` and its binding carry `A_before`/`B_before`, and both suites assert the Algorithm 7
   A/B chaining on every NIST sample (review 00015 LOW-01). The `SECURITY.md` timing row was a
   first-case artifact of the harness (-29.4% measured first, +0.9% measured last in the same run);

@@ -33,14 +33,14 @@ confidence: high
 
 # Builder-maintained front matter. Builder may update only these keys after
 # explicit user approval; Delivery Planner initializes them.
-implementation_status: in-progress
+implementation_status: completed
 builder_agent: "claude-code"
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1.1"
 execution_started_at: "2026-10-11T12:48:21Z"
-execution_updated_at: "2026-10-11T13:47:14Z"
-execution_completed_at: null
-current_step: "PLAN-00011-STEP-06"
+execution_updated_at: "2026-10-11T15:26:43Z"
+execution_completed_at: "2026-10-11T15:26:43Z"
+current_step: null
 ---
 
 # Delivery Plan 00011: Patch Release v2.1.1
@@ -622,7 +622,7 @@ is owner actions with Builder verification, exactly as plan 00010 STEP-11 ran fo
 | PLAN-00011-STEP-03 | completed | 2026-10-11T12:56:21Z | 2026-10-11T13:00:59Z | Commit 'docs(PLAN-00011-STEP-03)'; verification rows above | Harness pyright run named explicitly; README speed observation recorded |
 | PLAN-00011-STEP-04 | completed | 2026-10-11T13:00:59Z | 2026-10-11T13:47:14Z | Commit 0cfef57; local evidence; CI run 38143389651 semver step (223 checks vs 2.1.0, patch) | Deviations: sdist skip guard, directory-structure entries, stricter script inputs; start time corrected |
 | PLAN-00011-STEP-05 | completed | 2026-10-11T13:10:07Z | 2026-10-11T13:47:14Z | Release commit 1cd9fc8; local gate 9d373ed record; CI run 38143389651 green 41/41 | Push blocker resolved by the owner |
-| PLAN-00011-STEP-06 | blocked | 2026-10-11T13:47:14Z | — | — | Waiting for the owner's PR, merge, tag and release |
+| PLAN-00011-STEP-06 | completed | 2026-10-11T13:47:14Z | 2026-10-11T15:26:43Z | Publish run 38149534836 43/43; PyPI, crates.io, docs.rs and installs verified (rows above) | Plan closed |
 
 Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 `skipped`. A skipped step requires explicit user approval recorded in Evidence.
@@ -641,6 +641,9 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-10-11T13:20:06Z | PLAN-00011-STEP-05 | Local gate complete and green at 1cd9fc8; blocked on push authorisation | Verification row above | User: authorise the push |
 | 2026-10-11T13:29:40Z | PLAN-00011-STEP-05 | Owner pushed release/v2.1.1 ('Branch pushed. Please proceed.'); origin/release/v2.1.1 = 9d373ed4b8378c7d8f612a5b76b36eee767b3ffb = local HEAD. ci.yml runs on push only for main, so the Builder dispatched it on the branch | gh workflow run ci.yml --ref release/v2.1.1; run https://github.com/joelee/fpr-ff1/actions/runs/38143389651 | Watch the run |
 | 2026-10-11T13:47:14Z | PLAN-00011-STEP-06 | Hand-off to the owner. (1) PR release/v2.1.1 -> main, merged with a MERGE COMMIT. (2) Tag exactly v2.1.1 (annotated) on that merge commit; publish a GitHub RELEASE, not a pre-release, notes = the [2.1.1] changelog section (prepared as v2.1.1-release-notes.md in the session scratchpad). (3) publish.yml publishes PyPI, then publish-crate by Trusted Publishing. Then the Builder runs the REQ-06 verification. This work-log commit is local: the owner pushes it with the branch (or authorises the Builder to), so the PR carries it | Frozen release content: 1cd9fc8; CI-gated tip 9d373ed | Owner: push this commit, PR, merge, tag, release |
+| 2026-10-11T14:21:47Z | PLAN-00011-STEP-06 | Owner merged PR #24 (release/v2.1.1 -> main) with a merge commit, cb8544b65384b1b37ed7679d0d8f3a5c1c1908b2, whose tree is identical to the CI-gated 990144d (git diff empty). Owner tagged v2.1.1 (annotated, Joe Lee, 2026-10-11T14:54:21Z) on cb8544b | gh pr view 24; git for-each-ref refs/tags/v2.1.1; git diff 990144d cb8544b | Owner: GitHub release |
+| 2026-10-11T15:01:06Z | PLAN-00011-STEP-06 | Owner published the GitHub release 'v2.1.1 - maintenance release' (Latest, not a pre-release) from the Builder's draft notes; publish.yml run 38149534836 started 15:01:08Z, finished 15:18:06Z | https://github.com/joelee/fpr-ff1/actions/runs/38149534836 | Builder: REQ-06 verification |
+| 2026-10-11T15:26:43Z | PLAN-00011-STEP-06 | Plan closed. Closeout on branch chore/plan-00011-closeout from origin/main cb8544b: this work log and the backlog's 2.1.1 entry with its publication facts; submitted by PR per the release convention | This commit | Owner: push and merge the closeout PR |
 
 ### Deviations and blockers
 
@@ -677,14 +680,20 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-10-11T13:20:06Z | PLAN-00011-STEP-05 | Local gates at release commit 1cd9fc882ae60b4f696cf9ec192b5c3be4829ef3, run sequentially 2026-10-11T13:11:37Z to 13:19:43Z (scratchpad gates.sh; logs in gates-1cd9fc8/) | Pass (AC-11 local part) | just backend-dev ok. Dual gate (FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR_FF1_REQUIRE_ORACLE=1, --cov-fail-under=100): 1855 passed, 0 skipped in 253.44s, 100%; 621 tests parameterised on rust. Rust-free just quality (extension moved aside): 971 passed, 245 skipped, 100%. just rust-lint ok. just crate-test: 44 + 9 + 3, sweeps 2. just crate-msrv (1.89): 44 + 9 + 3. just crate-package: docs -D warnings ok, '19 entries, 0 problems', dry run 'aborting upload due to dry run', fpr-ff1-2.1.1.crate sha256 4f403f5b04716fb40715a4e094e7fac0a8f0ccf3ff4e265339b05655c72ad3e6 (local; CI's will differ only by the commit hash in .cargo_vcs_info.json). tests/test_contract.py + tests/test_docs.py: 71 passed. Worktree clean afterwards |
 | 2026-10-11T13:47:14Z | PLAN-00011-STEP-04 | CI run 38143389651 at 9d373ed (release commit 1cd9fc8 + work-log commit 9d373ed), job 'fpr-ff1 crate docs, package and API compatibility' (114481655714), semver step log via the jobs API | Pass (AC-07) | 'fpr-ff1 2.1.1 against published 2.1.0 as a patch release'; 'Checking fpr-ff1 v2.1.0 -> v2.1.1 (assume patch change)'; '223 checks: 223 pass, 31 skip'; 'Summary no semver update required'. The command line carries --baseline-version and --release-type. Before this plan the same step ran 0 of 254 checks |
 | 2026-10-11T13:47:14Z | PLAN-00011-STEP-05 | CI run 38143389651 https://github.com/joelee/fpr-ff1/actions/runs/38143389651 | Pass (AC-11) | completed/success, 41/41 jobs: 9-leg Python matrix, rust-conformance (full suite, both backends), crate tests on three OSes, crate MSRV 1.89, crate package ('19 entries, 0 problems'; fpr-ff1-2.1.1.crate sha256 663508328d46cad1c66f52e77d96b9921a88871f2716c282e21992c0d0c5b633 at 9d373ed), dependency audit, secret scan, distributions, five platform wheels, installed-wheel jobs on all 15 platform/Python pairs, full conformance on the installed abi3 wheel, installed wheel and sdist (the sdist job ran tests/test_ci_scripts.py's skip path) |
+| 2026-10-11T15:26:43Z | PLAN-00011-STEP-06 | publish.yml run 38149534836 on v2.1.1 (cb8544b) | Pass | completed/success, 43/43 jobs: the reused CI gate, publish (PyPI), then publish-crate by Trusted Publishing; artifacts downloaded with gh run download |
+| 2026-10-11T15:26:43Z | PLAN-00011-STEP-06 | PyPI fpr-ff1 2.1.1: per-version JSON, project JSON and simple index (no-cache); provenance via the PyPI integrity API | Pass | 7 files, 7/7 SHA-256 equal to the run's artifacts (sdist, py3-none-any, five cp312-abi3 wheels), none yanked; 7/7 provenance bundles, publisher GitHub joelee/fpr-ff1 publish.yml environment pypi; project latest 2.1.1; simple index ends 2.1.0rc2, 2.1.0, 2.1.1; description 34 links, none relative |
+| 2026-10-11T15:26:43Z | PLAN-00011-STEP-06 | crates.io fpr-ff1 2.1.1 and crate JSON | Pass | checksum 52e2f50711cc448731ee1ce5d4f37183c9318de440fbf94c61e65ddf8953469c = the run's 'crate' artifact; trustpub_data {github, joelee/fpr-ff1, run 38149534836, sha cb8544b65384b1b37ed7679d0d8f3a5c1c1908b2}, published_by null; license MIT OR Apache-2.0; rust_version 1.89; not yanked; created 15:18:02Z; max_stable_version, newest_version and default_version all 2.1.1 |
+| 2026-10-11T15:26:43Z | PLAN-00011-STEP-06 | docs.rs fpr-ff1 2.1.1 | Pass | Queued at 15:24:59Z, page served HTTP 200 at 15:26:01Z; crate root links FF1, Builder and ErrorKind; no '# let' or 'Ok::<' hidden lines on the page |
+| 2026-10-11T15:26:43Z | PLAN-00011-STEP-06 | Clean installs outside the repository: uv venv + uv pip install --no-cache --refresh fpr-ff1 (no pin, no --pre); a probe printing version, file, extension presence, NIST sample 2 and a 60-numeral radix-10 case (d > 16) on each backend; fpr-ff1==2.1.0 in a reference venv | Pass | CPython 3.12 and 3.14.7 (GIL): 2.1.1 from site-packages, fpr_ff1/_rs.abi3.so present, python and rust both give 6124200773 (NIST sample 2) and 173876027003238647201725993080113835930345769649828155960140 for the long case, round-trips. --no-binary sdist on 3.12: 2.1.1, pure Python, same ciphertexts, rust BackendError as designed. 2.1.0 reference: identical ciphertexts on both backends. Also 3.14.3 free-threaded: py3-none-any, python only, same ciphertexts (abi3 wheels do not serve free-threaded builds, as at 2.1.0) |
+| 2026-10-11T15:26:43Z | PLAN-00011-STEP-06 | Scratch Cargo project: cargo add fpr-ff1; cargo run --release with the NIST sample 2 and 60-numeral cases through the public API | Pass | Cargo.toml fpr-ff1 = "2.1.1"; Cargo.lock checksum 52e2f507...469c (= crates.io = the run artifact); output nist2=6124200773 ok=true and the same 60-numeral ciphertext as Python 2.1.0 and 2.1.1 |
 
 ### Completion summary
 
-- **Implementation status:** `not-started`
-- **Completed requirements:** None
-- **Incomplete requirements:** All
+- **Implementation status:** `completed`
+- **Completed requirements:** PLAN-00011-REQ-01 to REQ-06; acceptance criteria AC-01 to AC-12 met with the evidence above
+- **Incomplete requirements:** None
 - **Outstanding blockers:** None
-- **Review request:** Not ready
+- **Review request:** None required by the plan. Observations for the owner: the README's radix-256 speedup figures are above this release's measurement (STEP-03 log); Dependabot PRs #20, #21 and #22 wait for a rebase after this release
 <!-- BUILDER_WORK_LOG_END -->
 
 ## 18. Planning change log
