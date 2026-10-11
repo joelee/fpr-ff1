@@ -8,10 +8,10 @@ tags:
   - claude-code
 type: delivery-plan
 plan_id: "PLAN-00011"
-plan_status: draft
+plan_status: approved
 plan_kind: initial
 created_at: "2026-10-11T12:00:14Z"
-approved_at: null
+approved_at: "2026-10-11T12:47:36Z"
 planner_agent: claude-code
 planner_model: "anthropic/claude-fable-5-1"
 triggered_by: user
@@ -27,7 +27,7 @@ requirements_count: 6
 steps_count: 6
 acceptance_criteria_count: 12
 blocking_decisions: 0
-build_ready: false
+build_ready: true
 web_research_used: false
 confidence: high
 
@@ -45,12 +45,12 @@ current_step: null
 
 # Delivery Plan 00011: Patch Release v2.1.1
 
-> [!abstract] Plan status: `draft`
+> [!abstract] Plan status: `approved`
 > `fpr-ff1` 2.1.1 on PyPI and crates.io from one tag, closing every observation the `2.1.0`
 > release left in `docs/backlog.md`: trace-hook parity between the two cores, a `SECURITY.md`
 > timing table from an order-robust measurement, a meaningful `cargo-semver-checks` step across
 > pre-releases, and the `memoryview` open question pinned by a test. No change to accepted inputs,
-> ciphertext or either public API. Ready for approval; no blocking decision remains.
+> ciphertext or either public API. Approved; no blocking decision remains.
 
 ## 1. Objective and outcome
 
@@ -658,6 +658,7 @@ None
 | Timestamp (UTC) | Plan status | Change | Reason | Requested/approved by |
 |---|---|---|---|---|
 | 2026-10-11T12:00:14Z | draft | Initial draft | User request to plan `v2.1.1` from the remaining backlog; scope fixed by the four clarifying answers of 2026-10-11 | User |
+| 2026-10-11T12:47:36Z | approved | Approved; no planning content changed. The owner committed the draft as `6624c75` ("v2.1.1 release plan.") on `release/v2.1`; this approval commit is on `release/v2.1.1`, branched from it | User: "Plan 00011 approved and committed. Please begin build" | User |
 
 ## 19. External references
 
