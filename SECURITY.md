@@ -73,15 +73,17 @@ validation. This package is not FIPS 140 validated and makes no such claim.
 1. **Value-dependent — small.** FF1 converts each half of the input to an arbitrary-precision
    integer and does modular arithmetic on it. CPython's big-integer routines take time proportional
    to the limbs actually in use, so a small numeric value is marginally faster than a large one at
-   the same length. Measured on CPython 3.12 (median of 25 batches, all-zero vs all-max plaintext):
+   the same length. Measured on 2026-10-11 on CPython 3.12.13, all-zero vs all-max plaintext,
+   each pair timed in both orders after an untimed warm-up, the median of 25 batches per timing
+   and the mean of the two orders' deltas:
 
    | radix | length | delta |
    |---|---|---|
-   | 10 | 10 | +0.8% |
-   | 10 | 60 | +2.6% |
-   | 10 | 200 | +2.6% |
-   | 256 | 32 | +1.9% |
-   | 65535 | 12 | +0.6% |
+   | 10 | 10 | +0.7% |
+   | 10 | 60 | +0.9% |
+   | 10 | 200 | +2.9% |
+   | 256 | 32 | +0.9% |
+   | 65535 | 12 | +1.3% |
 
    This is at or near the noise floor for a pure-Python implementation. It is reported as measured
    rather than estimated, and it is not a guarantee — treat it as an observation about one

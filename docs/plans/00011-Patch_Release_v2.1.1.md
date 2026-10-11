@@ -38,9 +38,9 @@ builder_agent: "claude-code"
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1.1"
 execution_started_at: "2026-10-11T12:48:21Z"
-execution_updated_at: "2026-10-11T12:56:06Z"
+execution_updated_at: "2026-10-11T13:00:59Z"
 execution_completed_at: null
-current_step: "PLAN-00011-STEP-03"
+current_step: "PLAN-00011-STEP-04"
 ---
 
 # Delivery Plan 00011: Patch Release v2.1.1
@@ -618,8 +618,8 @@ is owner actions with Builder verification, exactly as plan 00010 STEP-11 ran fo
 | Step | Status | Started (UTC) | Completed (UTC) | Evidence | Builder notes |
 |---|---|---|---|---|---|
 | PLAN-00011-STEP-01 | completed | 2026-10-11T12:48:21Z | 2026-10-11T12:51:03Z | Commit 'test(PLAN-00011-STEP-01)'; verification rows above | One deviation: Rust twin test in conformance_tests.rs |
-| PLAN-00011-STEP-02 | completed | 2026-10-11T13:04:12Z | 2026-10-11T12:56:06Z | Commit 'test(PLAN-00011-STEP-02)'; verification rows above | Also asserts the call-time tweak path, the third _require_bytes call site |
-| PLAN-00011-STEP-03 | not-started | — | — | — | — |
+| PLAN-00011-STEP-02 | completed | 2026-10-11T12:51:03Z | 2026-10-11T12:56:06Z | Commit 90d7644 'test(PLAN-00011-STEP-02)'; verification rows above | Also asserts the call-time tweak path, the third _require_bytes call site. Start time corrected, see deviations |
+| PLAN-00011-STEP-03 | completed | 2026-10-11T12:56:21Z | 2026-10-11T13:00:59Z | Commit 'docs(PLAN-00011-STEP-03)'; verification rows above | Harness pyright run named explicitly; README speed observation recorded |
 | PLAN-00011-STEP-04 | not-started | — | — | — | — |
 | PLAN-00011-STEP-05 | not-started | — | — | — | — |
 | PLAN-00011-STEP-06 | not-started | — | — | — | — |
@@ -634,12 +634,15 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-10-11T12:48:21Z | — | Hand-off validated. Plan approved by the user ('Plan 00011 approved and committed. Please begin build'); approval commit 3a2c7078e13fae292710ad35d0b21faefcf6e2f2 'docs(plan): approve PLAN-00011 - Patch Release v2.1.1' on release/v2.1.1, parent 6624c75 (the owner's draft commit, pushed as origin/release/v2.1). Counts 6/6/12, blocking_decisions 0. Baseline 43f2bab..HEAD touches only the plan file, so the plan is not stale. Clean worktree; no merge/rebase state | git log; git diff --name-only 43f2bab HEAD; git status --porcelain=v1 --untracked-files=all | STEP-01 |
 | 2026-10-11T12:51:03Z | PLAN-00011-STEP-01 | Rust TraceRecord gains a_before/b_before (cloned at the existing push site, before the swap); _test_encrypt_traced emits A_before/B_before; encrypt_traced docstring states the shared key set; Python and Rust chaining tests added | engine.rs, lib.rs, conformance_tests.rs, conftest.py, test_intermediates.py | Commit; STEP-02 |
 | 2026-10-11T12:56:06Z | PLAN-00011-STEP-02 | Review 00015 open question 1 pinned by a dual-backend test; _require_bytes unchanged (D1) | tests/test_validation.py | Commit; STEP-03 |
+| 2026-10-11T13:00:59Z | PLAN-00011-STEP-03 | Harness: _WARMUP_SECONDS = 0.5 untimed warm-up on the first case, then each pair timed zero-first and max-first, row = mean of the two deltas; module docstring and table heading describe it. SECURITY.md item 1: methodology sentence (date, interpreter, both orders, warm-up) and this run's table. README backend table untouched per scope | benchmarks/timing.py; SECURITY.md; raw outputs step03-before.txt, step03-after.txt, step03-bench.txt in the session scratchpad | Commit; STEP-04 |
+| 2026-10-11T13:00:59Z | PLAN-00011-STEP-03 | Observation for the owner, no action (out of scope): this run's radix-256 backend speedups (10.30x to 10.51x) are below the README's published 12.03x to 12.62x from the plan 00010 STEP-05 run; the python column moved (n1000 2117.6 vs 2542.9 µs), the rust column barely. The README states its figures are one machine's run | step03-bench.txt | Owner: decide whether a later plan re-measures the README table |
 
 ### Deviations and blockers
 
 | Timestamp (UTC) | Step | Deviation or blocker | Impact | Decision required from |
 |---|---|---|---|---|
 | 2026-10-11T12:51:03Z | PLAN-00011-STEP-01 | Affected components gain rust/fpr-ff1/src/conformance_tests.rs (not listed in the step). With the two new TraceRecord fields, 'just crate-test' and 'just crate-msrv' warned 'fields a_before and b_before are never read': the struct's cfg_attr(not(any(test, feature = "internal")), allow(dead_code)) deliberately does not apply under cfg(test), so the plan's premise that it covers the fields was wrong for the crate's own test build (clippy, which unifies the internal feature through the workspace, was clean). Resolved by adding nist_trace_halves_chain_across_rounds, the Rust twin of the Python chaining test, which reads both fields; the lint allowance is unchanged | None on scope: test-only, no source or API change beyond the step; satisfies the step's no-warning completion criterion without weakening a lint | None (recorded for review) |
+| 2026-10-11T12:56:21Z | PLAN-00011-STEP-02 | Work-log correction: commit 90d7644 recorded STEP-02's start as 2026-10-11T13:04:12Z, a value typed by hand rather than read from date -u, and later than its own completion. Corrected to 2026-10-11T12:51:03Z, the commit time of 69ac98f (STEP-01), after which STEP-02 began immediately | Record accuracy only | None |
 
 ### Verification results
 
@@ -652,6 +655,10 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-10-11T12:51:03Z | PLAN-00011-STEP-01 | just format-check; just lint; just typecheck | Pass | 65 files formatted; ruff clean (RUF007 fixed by itertools.pairwise); pyright 0 errors |
 | 2026-10-11T12:56:06Z | PLAN-00011-STEP-02 | FPR_FF1_REQUIRE_RUST_BACKEND=1 uv run pytest tests/test_validation.py | Pass | 167 passed; test_multibyte_format_memoryview_is_accepted_as_raw_bytes passes on python and rust (key array('i') 16 bytes, tweak array('h'), plus the call-time tweak); src/ unchanged (git diff --quiet -- src/) |
 | 2026-10-11T12:56:06Z | PLAN-00011-STEP-02 | just quality (extension built, so both backends ran) | Pass | 1836 passed in 265.86s; TOTAL 345 stmts 120 branches 100%; format, ruff, pyright clean |
+| 2026-10-11T13:00:59Z | PLAN-00011-STEP-03 | Before: shipped harness value table in its own case order, then with _VALUE_CASES reversed (scratch script two_orders.py), 2026-10-11T12:57:17Z, load 1.89/2.04/1.55, CPython 3.12.13 | Bias reproduced | Own order r10/10 -29.4%, r10/60 +0.9%, r10/200 +2.6%, r256/32 +1.6%, r65535/12 +0.9%. Reversed: r10/10 +0.9%, r10/60 +1.3%, r10/200 +1.9%, r256/32 +1.4%, r65535/12 +0.1%. Only the first-measured case moves (by 30 points); corroborates D2 and plan 00007's 2026-09-22 probe (-28.2%, outlier always in the first repeat) |
+| 2026-10-11T13:00:59Z | PLAN-00011-STEP-03 | After: the changed harness, both case orders (same script), 2026-10-11T12:58:22Z, load 2.05/2.07/1.60 | Pass (AC-04) | Own order: -0.3, +0.3, +2.1, +1.3, +1.8. Reversed: +0.4, +1.3, +2.2, +0.7, +2.5 (r10/10, r10/60, r10/200, r256/32, r65535/12). Largest between-order difference 1.0 point (r10/60); bound 2. No row above 5% |
+| 2026-10-11T13:00:59Z | PLAN-00011-STEP-03 | just bench for publication, 2026-10-11T12:59:16Z to 13:00:19Z; load 1.44/1.91/1.57 before, 1.47/1.82/1.55 after; top 97.6% idle (desktop processes only); AMD RYZEN AI MAX+ PRO 395 (32 threads), Linux 7.2.5, CPython 3.12.13, rustc 1.98.1, extension from just backend-dev at 69ac98f | Pass | Value table r10/10 +0.7%, r10/60 +0.9%, r10/200 +2.9%, r256/32 +0.9%, r65535/12 +1.3% (copied to SECURITY.md as printed). Rest of the run, for the record: throughput n6 ~36,441 ops/s 27.4 µs; construction ~723,555/s 1.4 µs; per numeral 1.1/0.9/1.0/1.3 µs. Backend µs python/rust: r10 n6 27.5/4.4 6.23x; n100 106.7/37.9 2.82x; n1000 906.5/388.4 2.33x; n5000 5103.3/2089.4 2.44x; n20000 26735.2/9666.6 2.77x; r256 n100 139.7/50.1 2.79x; n1000 2117.6/205.6 10.30x; n5000 10715.7/1028.8 10.42x; n20000 43067.4/4097.2 10.51x. GIL probe python 5.11/7.43 0.69x; rust 2.07/1.13 1.83x |
+| 2026-10-11T13:00:59Z | PLAN-00011-STEP-03 | just format-check; just lint; uv run pyright benchmarks/timing.py; uv run pytest tests/test_docs.py tests/test_contract.py | Pass | ruff format and check clean; pyright 0 errors on the harness (named explicitly: pyproject's pyright include is src and tests only, so 'just typecheck' does not cover benchmarks/); 71 passed |
 
 ### Completion summary
 

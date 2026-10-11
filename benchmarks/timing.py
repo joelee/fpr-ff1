@@ -12,7 +12,9 @@ interpreter and hardware instead of trusting one machine's measurements.
 Methodology matches SECURITY.md: median of 25 batches, all-zero vs all-max
 plaintext at the same length, delta as a percentage of the all-zero time.
 The batch size adapts to the per-call cost so every measurement takes a
-similar wall-clock time regardless of input length.
+similar wall-clock time regardless of input length.  The value table runs an
+untimed warm-up first and times every pair in both orders, reporting the mean
+of the two deltas, so no case gains from its position (plan 00011 STEP-03).
 """
 
 from __future__ import annotations
@@ -48,6 +50,12 @@ _BACKEND_CASES = [
 ]
 
 _BATCHES = 25
+#: Untimed warm-up before the value table's first measurement (plan 00011
+#: STEP-03).  The cheapest case hits the batch cap, so its whole measurement
+#: lasts well under a second, and when it ran first it absorbed the
+#: interpreter and CPU start-up transient: one run published -28.6% for
+#: radix 10, length 10, where the same case measured later reads under 1%.
+_WARMUP_SECONDS = 0.5
 _BATCH_SECONDS = 0.1
 _MAX_INNER = 500
 
@@ -89,16 +97,37 @@ def _timed_encrypt(ff1: FF1, plaintext: list[int]) -> float:
     return _median_seconds_per_call(lambda: ff1.encrypt_numerals(plaintext))
 
 
+def _warm_up(fn: Callable[[], object], seconds: float) -> None:
+    """Call ``fn`` untimed until ``seconds`` have elapsed."""
+    deadline = time.perf_counter() + seconds
+    while time.perf_counter() < deadline:
+        fn()
+
+
 def value_dependent_table() -> None:
-    """Reproduce the SECURITY.md table: all-zero vs all-max timing delta."""
-    print("## Value-dependent timing (all-zero vs all-max, median of 25 batches)\n")
+    """Reproduce the SECURITY.md table: all-zero vs all-max timing delta.
+
+    After an untimed warm-up, each pair is timed twice -- all-zero then
+    all-max, then all-max then all-zero -- and the row is the mean of the two
+    deltas, so neither input benefits from being measured second.
+    """
+    print("## Value-dependent timing (all-zero vs all-max, both orders, median of 25 batches)\n")
+    first_radix, first_n = _VALUE_CASES[0]
+    warm = FF1(key=_KEY, radix=first_radix)
+    _warm_up(lambda: warm.encrypt_numerals([0] * first_n), _WARMUP_SECONDS)
+
     print("| radix | length | delta |")
     print("|---|---|---|")
     for radix, n in _VALUE_CASES:
         ff1 = FF1(key=_KEY, radix=radix)
-        t_zero = _timed_encrypt(ff1, [0] * n)
-        t_max = _timed_encrypt(ff1, [radix - 1] * n)
-        delta = (t_max - t_zero) / t_zero * 100
+        zero, top = [0] * n, [radix - 1] * n
+        t_zero_first = _timed_encrypt(ff1, zero)
+        t_max_second = _timed_encrypt(ff1, top)
+        t_max_first = _timed_encrypt(ff1, top)
+        t_zero_second = _timed_encrypt(ff1, zero)
+        delta_zero_first = (t_max_second - t_zero_first) / t_zero_first
+        delta_max_first = (t_max_first - t_zero_second) / t_zero_second
+        delta = (delta_zero_first + delta_max_first) / 2 * 100
         print(f"| {radix} | {n} | {delta:+.1f}% |")
 
 
