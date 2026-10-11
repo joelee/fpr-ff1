@@ -5,6 +5,7 @@ key lengths, radix, input lengths, numeral range, tweak bounds, and
 alphabet mismatches/duplicates.
 """
 
+from array import array
 from collections.abc import Sequence
 from decimal import Decimal
 from enum import IntEnum
@@ -233,6 +234,27 @@ def test_live_memoryview_is_still_accepted(ff1_factory: Any) -> None:
     assert ff1.encrypt_numerals([1, 2, 3, 4, 5, 6]) == ff1_factory(
         key=_VALID_KEY, radix=10, tweak=b"abc"
     ).encrypt_numerals([1, 2, 3, 4, 5, 6])
+
+
+def test_multibyte_format_memoryview_is_accepted_as_raw_bytes(ff1_factory: Any) -> None:
+    """A view over multi-byte items is bytes-like: ``bytes()`` of it is its raw
+    buffer, not a ``TypeError`` (review 00015 open question 1, answered by
+    execution at plan 00010 STEP-09 and pinned here by plan 00011 STEP-02).
+
+    ``tobytes()`` is the oracle: the key and tweak must be exactly the view's
+    bytes, whatever the item format.
+    """
+    key = memoryview(array("i", [1, 2, 3, 4]))
+    tweak = memoryview(array("h", [7, 8]))
+    assert (key.format, key.nbytes) == ("i", 16), "the test needs a 16-byte multi-byte view"
+    assert tweak.format == "h"
+    x = [1, 2, 3, 4, 5, 6]
+
+    from_views = ff1_factory(key=key, radix=10, tweak=tweak)
+    from_bytes = ff1_factory(key=key.tobytes(), radix=10, tweak=tweak.tobytes())
+    assert from_views.encrypt_numerals(x) == from_bytes.encrypt_numerals(x)
+    # The call-time tweak goes through the same normalisation.
+    assert from_bytes.encrypt_numerals(x, tweak) == from_bytes.encrypt_numerals(x, tweak.tobytes())
 
 
 def test_plaintext_too_short_raises() -> None:

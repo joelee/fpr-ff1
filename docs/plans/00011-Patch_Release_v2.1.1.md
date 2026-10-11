@@ -38,9 +38,9 @@ builder_agent: "claude-code"
 builder_model: "anthropic/claude-opus-5-5"
 execution_branch: "release/v2.1.1"
 execution_started_at: "2026-10-11T12:48:21Z"
-execution_updated_at: "2026-10-11T12:51:03Z"
+execution_updated_at: "2026-10-11T12:56:06Z"
 execution_completed_at: null
-current_step: "PLAN-00011-STEP-02"
+current_step: "PLAN-00011-STEP-03"
 ---
 
 # Delivery Plan 00011: Patch Release v2.1.1
@@ -618,7 +618,7 @@ is owner actions with Builder verification, exactly as plan 00010 STEP-11 ran fo
 | Step | Status | Started (UTC) | Completed (UTC) | Evidence | Builder notes |
 |---|---|---|---|---|---|
 | PLAN-00011-STEP-01 | completed | 2026-10-11T12:48:21Z | 2026-10-11T12:51:03Z | Commit 'test(PLAN-00011-STEP-01)'; verification rows above | One deviation: Rust twin test in conformance_tests.rs |
-| PLAN-00011-STEP-02 | not-started | — | — | — | — |
+| PLAN-00011-STEP-02 | completed | 2026-10-11T13:04:12Z | 2026-10-11T12:56:06Z | Commit 'test(PLAN-00011-STEP-02)'; verification rows above | Also asserts the call-time tweak path, the third _require_bytes call site |
 | PLAN-00011-STEP-03 | not-started | — | — | — | — |
 | PLAN-00011-STEP-04 | not-started | — | — | — | — |
 | PLAN-00011-STEP-05 | not-started | — | — | — | — |
@@ -633,6 +633,7 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 |---|---|---|---|---|
 | 2026-10-11T12:48:21Z | — | Hand-off validated. Plan approved by the user ('Plan 00011 approved and committed. Please begin build'); approval commit 3a2c7078e13fae292710ad35d0b21faefcf6e2f2 'docs(plan): approve PLAN-00011 - Patch Release v2.1.1' on release/v2.1.1, parent 6624c75 (the owner's draft commit, pushed as origin/release/v2.1). Counts 6/6/12, blocking_decisions 0. Baseline 43f2bab..HEAD touches only the plan file, so the plan is not stale. Clean worktree; no merge/rebase state | git log; git diff --name-only 43f2bab HEAD; git status --porcelain=v1 --untracked-files=all | STEP-01 |
 | 2026-10-11T12:51:03Z | PLAN-00011-STEP-01 | Rust TraceRecord gains a_before/b_before (cloned at the existing push site, before the swap); _test_encrypt_traced emits A_before/B_before; encrypt_traced docstring states the shared key set; Python and Rust chaining tests added | engine.rs, lib.rs, conformance_tests.rs, conftest.py, test_intermediates.py | Commit; STEP-02 |
+| 2026-10-11T12:56:06Z | PLAN-00011-STEP-02 | Review 00015 open question 1 pinned by a dual-backend test; _require_bytes unchanged (D1) | tests/test_validation.py | Commit; STEP-03 |
 
 ### Deviations and blockers
 
@@ -649,6 +650,8 @@ Allowed status values: `not-started`, `in-progress`, `blocked`, `completed`,
 | 2026-10-11T12:51:03Z | PLAN-00011-STEP-01 | Every module using the trace hook (test_intermediates, test_exact_arithmetic, test_thread_safety) with FPR_FF1_REQUIRE_RUST_BACKEND=1 FPR_FF1_REQUIRE_ORACLE=1 | Pass | 80 passed |
 | 2026-10-11T12:51:03Z | PLAN-00011-STEP-01 | just rust-lint; just crate-test; just crate-msrv (rustc 1.98.1 stable; 1.89 for MSRV) | Pass | fmt and clippy -D warnings clean; crate-test lib 44 passed 2 ignored (was 43), integration 9 and 3, sweeps 2 (release); crate-msrv 44 + 9 + 3; no dead-code warning after the deviation above; FPR_FF1_REQUIRE_FIXTURES=1 set by both recipes |
 | 2026-10-11T12:51:03Z | PLAN-00011-STEP-01 | just format-check; just lint; just typecheck | Pass | 65 files formatted; ruff clean (RUF007 fixed by itertools.pairwise); pyright 0 errors |
+| 2026-10-11T12:56:06Z | PLAN-00011-STEP-02 | FPR_FF1_REQUIRE_RUST_BACKEND=1 uv run pytest tests/test_validation.py | Pass | 167 passed; test_multibyte_format_memoryview_is_accepted_as_raw_bytes passes on python and rust (key array('i') 16 bytes, tweak array('h'), plus the call-time tweak); src/ unchanged (git diff --quiet -- src/) |
+| 2026-10-11T12:56:06Z | PLAN-00011-STEP-02 | just quality (extension built, so both backends ran) | Pass | 1836 passed in 265.86s; TOTAL 345 stmts 120 branches 100%; format, ruff, pyright clean |
 
 ### Completion summary
 
