@@ -7,6 +7,10 @@
 │   │   ├── ci.yml         # Quality matrix (3 OS × 3 Pythons), rust-conformance, audit,
 │   │   │                  # build, wheel-build/test, sdist-test, secret scan
 │   │   └── publish.yml    # Release gate + Trusted Publishing to PyPI (publishes the gated artifact)
+│   ├── scripts/           # Stdlib-only helpers the workflows run
+│   │   ├── assert_crate_contents.py  # The crate package holds exactly what it should
+│   │   ├── assert_installed_wheel.py # fpr_ff1 and its extension import from the wheel
+│   │   └── semver_release_type.py    # Release type for cargo-semver-checks
 │   ├── dependabot.yml     # Automated updates for pinned actions and dependencies
 │   ├── ISSUE_TEMPLATE/    # Bug report, feature request, security redirect
 │   └── PULL_REQUEST_TEMPLATE.md
@@ -79,6 +83,7 @@
 │   │                       # spec-reference implementations
 │   ├── test_docs.py        # Both READMEs as PyPI and crates.io render them; README
 │   │                       # examples executed or matched to the crate's doctests
+│   ├── test_ci_scripts.py  # .github/scripts helpers (skipped from an unpacked sdist)
 │   └── vectors/            # External test fixtures (never regenerated from this code)
 │       ├── nist_ff1_samples.json
 │       ├── nist_ff1_intermediates.json

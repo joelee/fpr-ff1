@@ -214,19 +214,33 @@ jobs:
           name: crate
           path: rust/target/package/fpr-ff1-*.crate
       # No baseline exists until the first publication; after it, a public
-      # API break without a major version fails here. Checked with default
-      # features only, so the hidden `internal` feature is never compared.
+      # API break without the matching version bump fails here. Checked with
+      # default features only, so the hidden `internal` feature is never
+      # compared. The baseline is the last stable release and the release
+      # type is passed explicitly (plan 00011 STEP-04): derived from the
+      # version alone, every release candidate was a "major change" with 0
+      # checks run. Any response other than 200 or 404 fails the step.
       - name: API compatibility with the last published version
         run: |
-          code=$(curl -s -o /dev/null -w '%{http_code}' \
+          crate_json="${RUNNER_TEMP}/fpr-ff1-crate.json"
+          code=$(curl -s -o "$crate_json" -w '%{http_code}' \
             -H 'User-Agent: fpr-ff1-ci (https://github.com/joelee/fpr-ff1)' \
             https://crates.io/api/v1/crates/fpr-ff1)
           if [ "$code" = "404" ]; then
             echo "skip: fpr-ff1 is not yet on crates.io, so there is no published baseline (plan 00009 REQ-11)"
             exit 0
           fi
+          if [ "$code" != "200" ]; then
+            echo "crates.io returned HTTP $code for fpr-ff1" >&2
+            exit 1
+          fi
+          baseline=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["crate"]["max_stable_version"])' "$crate_json")
+          current=$(grep -m1 '^version = ' rust/fpr-ff1/Cargo.toml | cut -d'"' -f2)
+          release_type=$(python3 .github/scripts/semver_release_type.py "$current" "$baseline")
+          echo "fpr-ff1 $current against published $baseline as a $release_type release"
           cargo install cargo-semver-checks --version 0.50.0 --locked
-          cargo semver-checks -p fpr-ff1 --manifest-path rust/Cargo.toml --default-features
+          cargo semver-checks -p fpr-ff1 --manifest-path rust/Cargo.toml --default-features \
+            --baseline-version "$baseline" --release-type "$release_type"
 
   audit:
     name: Dependency audit

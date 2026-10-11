@@ -13,6 +13,7 @@ backend's trace comes from the extension's test-only
 they cannot pass this one on either backend.
 """
 
+import itertools
 import json
 import pathlib
 from typing import Any
@@ -61,3 +62,47 @@ def test_nist_intermediate_values(
                 f"{vector['name']} round {expected['i']} {field} mismatch: "
                 f"got {actual[field]!r}, expected {expected[field]!r}"
             )
+
+
+#: Every key a trace record carries, on either backend, after the
+#: ``encrypt_traced`` fixture's normalisation (review 00015 LOW-01).
+_TRACE_KEYS = frozenset(
+    {"i", "u", "v", "b", "d", "P", "Q", "R", "S", "y", "m", "c", "C", "A_before", "B_before"}
+)
+
+
+@pytest.mark.parametrize("vector", _VECTORS, ids=lambda v: v["name"])
+def test_trace_shape_and_chaining(
+    ff1_factory: Any, encrypt_traced: Any, vector: dict[str, Any]
+) -> None:
+    """Both backends record the pre-swap halves, and they chain as specified.
+
+    The NIST samples publish no per-round ``A`` or ``B``, so this asserts the
+    specification's own rule rather than a fixture: SP 800-38G Algorithm 7
+    step 2 splits ``X`` at ``u``; steps 6.viii and 6.ix make each round's
+    ``A`` the previous round's ``B`` and its ``B`` the previous round's ``C``;
+    step 7 returns ``A || B`` after the last round.
+    """
+    ff1 = ff1_factory(
+        key=bytes.fromhex(vector["key"]),
+        radix=vector["radix"],
+        tweak=bytes.fromhex(vector["tweak"]),
+    )
+    x = _numerals_from_plaintext(vector["plaintext"], vector["radix"])
+    ciphertext, trace = encrypt_traced(ff1, x)
+
+    # Step 2: A = X[1..u], B = X[u+1..n]
+    u = len(x) // 2
+    assert trace[0]["A_before"] == x[:u]
+    assert trace[0]["B_before"] == x[u:]
+
+    # Steps 6.viii and 6.ix: A = B, B = C
+    for previous, current in itertools.pairwise(trace):
+        assert current["A_before"] == previous["B_before"], f"round {current['i']} A"
+        assert current["B_before"] == previous["C"], f"round {current['i']} B"
+
+    # Step 7: return A || B, where the final round's B and C are those halves
+    assert ciphertext == trace[-1]["B_before"] + trace[-1]["C"]
+
+    for record in trace:
+        assert set(record) == _TRACE_KEYS, f"round {record['i']} keys"

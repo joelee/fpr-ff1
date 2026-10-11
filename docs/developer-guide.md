@@ -256,6 +256,21 @@ contents (`.github/scripts/assert_crate_contents.py`), publish dry run and, once
 package` is reproducible, and the digest differs between commits only through the commit hash in
 `.cargo_vcs_info.json`.
 
+The semver check compares against the last stable release on crates.io (its `max_stable_version`)
+under an explicit release type from `.github/scripts/semver_release_type.py`, which
+`tests/test_ci_scripts.py` covers. The type compares release numbers and ignores the pre-release
+suffix, so `2.2.0-rc1` against `2.1.0` is checked as a minor release and an unbumped manifest
+after a release as a patch; a version that precedes the baseline fails the job. Without the
+explicit type the tool derives it from the version alone, and at `2.1.0rc2` and `2.1.0` it ran
+none of its checks. To reproduce the job's check locally, with the crate's current
+`max_stable_version` in place of `2.1.0`:
+
+```bash
+cargo semver-checks -p fpr-ff1 --manifest-path rust/Cargo.toml --default-features \
+  --baseline-version 2.1.0 --release-type "$(python3 .github/scripts/semver_release_type.py \
+  "$(grep -m1 '^version = ' rust/fpr-ff1/Cargo.toml | cut -d'"' -f2)" 2.1.0)"
+```
+
 Publication differs from PyPI in one way. crates.io Trusted Publishing cannot create a crate, so:
 
 1. **The first publication is manual** (plan 00009 D11): the owner downloads the `.crate` built by

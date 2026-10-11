@@ -11,19 +11,20 @@ This file tracks high-level feature ideas and technical debt for `fpr-ff1`.
 - Raise the `requires-python` floor as new Python versions enter the CI matrix and pass. The
   upper-bound cap policy was retired at 1.0.0 (review 00003 B4): a cap becomes a hard resolution
   failure on future interpreters, so classifiers state the tested versions instead.
-- **Trace-hook parity (review 00015 LOW-01, deferred past `2.1.0`).** The Python per-round trace
-  records `A_before`/`B_before`; the Rust `TraceRecord` does not, although the `encrypt_traced`
-  fixture's docstring says both share one shape. Test-only, no current test reads the fields. Add
-  them to `TraceRecord` and the binding, or document the divergence at the fixture.
 - Deferred from the crate's first release (plan 00008 D5, D6): `no_std` support (with `alloc`), and
   key zeroization behind a feature once there is a claim the crate can defend in `SECURITY.md`.
-- **Open observations from `2.1.0`, not yet planned.** `cargo-semver-checks` compares nothing across
-  pre-releases ("major change", 0 checks); passing `--release-type minor` in CI would make release
-  candidates meaningful. `SECURITY.md`'s value-dependent timing row for radix 10, length 10
-  (+0.8%) disagrees with repeated measurements (about -28%).
 
 ## Completed Items
 
+- **`2.1.1`: the observations left open at `2.1.0`** (plan 00011). Trace-hook parity: the Rust
+  `TraceRecord` and its binding carry `A_before`/`B_before`, and both suites assert the Algorithm 7
+  A/B chaining on every NIST sample (review 00015 LOW-01). The `SECURITY.md` timing row was a
+  first-case artifact of the harness (-29.4% measured first, +0.9% measured last in the same run);
+  the harness now warms up and times both orders, and the table is re-measured. The crate's
+  `cargo-semver-checks` step compares against the last stable release under an explicit release
+  type from `.github/scripts/semver_release_type.py`, running 223 checks instead of none. Review
+  00015 open question 1 (multi-byte-format `memoryview`) is pinned by a dual-backend test, the guard
+  unchanged.
 - **`2.1.0` released: the FF1 core as a Rust crate** (plans 00009 and 00010; plan 00008
   superseded). `fpr-ff1` 2.1.0 on PyPI and crates.io from tag `v2.1.0`, the crate published by
   Trusted Publishing. The core is a publishable crate with its own validation, public API,

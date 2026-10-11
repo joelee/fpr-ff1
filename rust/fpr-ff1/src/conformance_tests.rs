@@ -175,6 +175,50 @@ fn nist_per_round_intermediates() {
     }
 }
 
+/// The pre-swap halves chain as SP 800-38G Algorithm 7 specifies; the
+/// Python suite's `test_trace_shape_and_chaining` asserts the same rule
+/// (plan 00011 STEP-01). The samples publish no per-round `A` or `B`, so the
+/// rule itself is the expectation: step 2 splits `X` at `u`; steps 6.viii
+/// and 6.ix make each round's `A` the previous `B` and its `B` the previous
+/// `C`; step 7 returns `A || B` after the last round.
+#[test]
+fn nist_trace_halves_chain_across_rounds() {
+    let Some(vectors) = test_fixtures::load("nist_ff1_intermediates.json") else {
+        return;
+    };
+    for v in vectors["vectors"].as_array().expect("vectors") {
+        let name = str_field(v, "name");
+        let radix = u64_field(v, "radix");
+        let x = to_numerals(str_field(v, "plaintext"), &nist_alphabet(radix));
+        let (out, trace) = ff1_traced(
+            &hex(str_field(v, "key")),
+            u32::try_from(radix).expect("radix"),
+            &x,
+            &hex(str_field(v, "tweak")),
+        )
+        .expect("valid NIST input");
+        let u = x.len() / 2;
+        assert_eq!(trace[0].a_before, x[..u], "{name}: round 0 A");
+        assert_eq!(trace[0].b_before, x[u..], "{name}: round 0 B");
+        for pair in trace.windows(2) {
+            let (previous, current) = (&pair[0], &pair[1]);
+            let round = current.i;
+            assert_eq!(
+                current.a_before, previous.b_before,
+                "{name}: round {round} A"
+            );
+            assert_eq!(
+                current.b_before, previous.c_block,
+                "{name}: round {round} B"
+            );
+        }
+        let last = trace.last().expect("ten rounds");
+        let mut joined = last.b_before.clone();
+        joined.extend_from_slice(&last.c_block);
+        assert_eq!(out, joined, "{name}: output is the final A || B");
+    }
+}
+
 #[test]
 fn fips197_aes_known_answer_vectors() {
     let Some(vectors) = test_fixtures::load("aes_kat_fips197.json") else {
