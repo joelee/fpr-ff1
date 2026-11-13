@@ -18,7 +18,7 @@ name = "_fpr_ff1_rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.29", features = ["extension-module"] }
+pyo3 = { version = "0.30", features = ["extension-module"] }
 # The core, with its unvalidated entry points: the Python FF1 class validates
 # every input before calling in (plan 00003 decision D4).
 fpr-ff1 = { path = "../fpr-ff1", features = ["internal"] }
