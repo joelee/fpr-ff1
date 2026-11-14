@@ -25,12 +25,7 @@
 │   ├── python-api.md       # Full Python API reference
 │   ├── developer-guide.md  # Setup, workflow, testing, and release notes
 │   ├── directory-structure.md # This file
-│   ├── ideas/             # Immutable idea reports (see ideas/AGENTS.md)
-│   │   └── AGENTS.md      # Contract for any agent writing to ideas/
-│   ├── reviews/           # Immutable code-review reports (see reviews/AGENTS.md)
-│   │   └── AGENTS.md      # Contract for any agent writing to reviews/
-│   └── plans/             # Delivery plans (see plans/AGENTS.md)
-│       └── AGENTS.md      # Contract for any agent writing to plans/
+│   └── joedocs-AGENTS.md  # Agent rules for JoeDocs, which holds ideas, plans and reviews
 ├── src/                    # Python source root
 │   └── fpr_ff1/            # FF1 implementation package
 │       ├── __init__.py     # Public exports and __version__

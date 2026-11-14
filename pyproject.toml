@@ -114,11 +114,6 @@ features = ["pyo3/abi3-py312"]
 line-length = 100
 src = ["src", "tests"]
 target-version = "py312"
-# Review reports are verbatim records of external documents: their quoted
-# code snippets keep the formatting the reviewer wrote, exactly as NIST
-# fixtures are never regenerated.  The formatter owns project-authored code
-# and docs, not imported evidence.
-extend-exclude = ["docs/reviews"]
 
 [tool.ruff.lint]
 select = [

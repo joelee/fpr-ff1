@@ -9,15 +9,12 @@ before any code change. This file is the Claude Code entry point: it points at t
 authoritative documents and records the operational details Claude needs day to day.
 Where this file and `AGENTS.md` disagree, `AGENTS.md` wins.
 
-Directory-scoped contracts, each of which must be read before writing in that
-directory:
+Contracts that must be read before writing documentation:
 
 | Path | Contract |
 |---|---|
 | `docs/` | `docs/AGENTS.md` — which documents exist and when each must be updated |
-| `docs/ideas/` | `docs/ideas/AGENTS.md` — immutable idea reports |
-| `docs/reviews/` | `docs/reviews/AGENTS.md` — immutable code-review reports |
-| `docs/plans/` | `docs/plans/AGENTS.md` — numbered delivery plans, clean-worktree gate, Builder rules |
+| JoeDocs | `docs/joedocs-AGENTS.md` — ideas, plans, reviews, issues and other working documents live in the JoeDocs project `fpr-ff1`, never in the repository |
 
 ## What this project is
 
@@ -111,15 +108,21 @@ compensating bugs can pass an output test but cannot pass an intermediate test.
 
 Vector files live in `tests/vectors/` as JSON, never inline literals.
 
-## Working with plans
+## Ideas, plans and reviews
 
-`docs/plans/` holds numbered delivery plans. When executing one as Builder:
+These live in JoeDocs (project `fpr-ff1`, IDs `FF1-<n>`), handled by the
+`joedocs-idea-architect`, `joedocs-planner`, `joedocs-builder`, `joedocs-code-review`
+and `joedocs-issue-log` skills; `docs/joedocs-AGENTS.md` says which to use. Never write
+them into the repository.
 
-- Builder owns **only** the Builder-maintained front-matter keys and the content
-  between `<!-- BUILDER_WORK_LOG_START -->` and `<!-- BUILDER_WORK_LOG_END -->`.
-  Never edit approved planning content.
-- Record every step's status, evidence, and verification result in the work log, with
-  UTC timestamps from `date -u +%Y-%m-%dT%H:%M:%SZ` — never estimated.
+The documents formerly under `docs/ideas/`, `docs/plans/` and `docs/reviews/` were
+migrated to JoeDocs: Idea 00001 is FF1-1, Review 00001–00015 are FF1-2–FF1-16 and Plan
+00001–00011 are FF1-17–FF1-27, and the note FF1-28 maps every old path. Each carries its old name (`Plan 00007`) as an alias and
+its old path as `legacy_path`, so references such as "plan 00003 D3" in the code and
+docs can be found with `search_documents`.
+
+When building a plan, beyond what `joedocs-builder` requires:
+
 - Honour each step's **stop conditions**: escalate to the user rather than working
   around one.
 - Follow the step order and commit granularity the plan specifies; one revertible

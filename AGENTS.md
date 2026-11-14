@@ -2,6 +2,8 @@
 
 Agent contract for this repository. Read fully before any code change.
 
+Read `docs/joedocs-AGENTS.md` at the start of every session and follow it.
+
 ## Project
 
 Open-source Python implementation of **FF1**, the format-preserving encryption mode from NIST SP 800-38G. Published as a standalone PyPI library (`fpr-ff1`, live on PyPI with Trusted Publishing configured) — no network, accounts, or key-management features. It replaces `ubiq_security_fpe`, deprecated in favour of a SaaS client and no longer maintained.
@@ -150,7 +152,8 @@ Vector files live in `tests/vectors/` as JSON, never inline literals. Never rege
 - CI matrix across all supported Python versions on Linux, macOS and Windows. Publish via PyPI Trusted Publishing; do not commit tokens.
 - README must cover: what FF1 is, why FF3 is excluded, the Rev. 1 constraints applied, the FIPS disclaimer, and a migration section for `ubiq_security_fpe` users. Include `SECURITY.md` with a disclosure contact.
 - Prefer clarity over cleverness. This module is read far more often than written, and a subtle bug is invisible without the vectors.
-- When writing to `docs/` or any of its subdirectories, read the `AGENTS.md` in that directory first (`docs/AGENTS.md`, `docs/ideas/AGENTS.md`, `docs/reviews/AGENTS.md`, `docs/plans/AGENTS.md`) and follow its rules and format.
+- When writing to `docs/`, read `docs/AGENTS.md` first and follow its rules and format.
+- Ideas, delivery plans, code reviews, issues and other working documents live in JoeDocs (project `fpr-ff1`), never in the repository; `docs/joedocs-AGENTS.md` says how. The reports formerly under `docs/ideas/`, `docs/plans/` and `docs/reviews/` were migrated there (Idea 00001 = FF1-1, Review 00001–00015 = FF1-2–FF1-16, Plan 00001–00011 = FF1-17–FF1-27; the note FF1-28 maps every old path), and each keeps its old name, such as `Plan 00003`, as an alias.
 
 ## Decided
 
