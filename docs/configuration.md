@@ -73,7 +73,7 @@ Check `min_length` before migrating data from a library using the 2016 `>= 100` 
 ## Distribution and backend availability
 
 Native wheels, each built once for the stable ABI (`abi3`) and installed and tested on its own
-platform on CPython 3.12, 3.13 and 3.14 before release:
+platform on CPython 3.12, 3.13, 3.14 and 3.15 before release:
 
 | Platform | Wheel tag | Requires |
 |---|---|---|
@@ -85,7 +85,7 @@ platform on CPython 3.12, 3.13 and 3.14 before release:
 
 `backend="rust"` needs the compiled extension, which ships only in the native wheels: Linux x86_64
 and aarch64 (`manylinux_2_34`, glibc 2.34 or newer), macOS x86_64 (10.12 or newer) and arm64 (11 or
-newer), and Windows x64, all `abi3` for CPython 3.12 to 3.14. Any other environment — older glibc,
+newer), and Windows x64, all `abi3` for CPython 3.12 to 3.15. Any other environment — older glibc,
 musl, another architecture, a free-threaded interpreter — installs the pure-Python wheel or sdist.
 There the default `backend="python"` works unchanged, and `backend="rust"` raises `BackendError`.
 The backend choice is never made implicitly, so the same code runs everywhere and fails loudly only

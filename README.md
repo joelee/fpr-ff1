@@ -179,7 +179,7 @@ default and the reference implementation. Both produce bit-identical ciphertext 
 exceptions, because validation runs in Python for both.
 
 Native wheels carry the compiled backend for Linux x86_64 and aarch64 (glibc 2.34 or newer), macOS
-on Intel and Apple silicon, and Windows x64, on CPython 3.12 to 3.14 ([wheel list](https://github.com/joelee/fpr-ff1/blob/main/docs/configuration.md#distribution-and-backend-availability)).
+on Intel and Apple silicon, and Windows x64, on CPython 3.12 to 3.15 ([wheel list](https://github.com/joelee/fpr-ff1/blob/main/docs/configuration.md#distribution-and-backend-availability)).
 Elsewhere, including musl, older glibc and free-threaded builds, `pip` installs the pure-Python
 wheel, and `backend="rust"` raises `BackendError` rather than falling back silently.
 

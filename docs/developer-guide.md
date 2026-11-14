@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Python 3.12.x. The package supports CPython 3.12, 3.13 and 3.14, the versions CI exercises and
+- Python 3.12.x. The package supports CPython 3.12, 3.13, 3.14 and 3.15, the versions CI exercises and
   the trove classifiers state. `requires-python` is `>=3.12` with no upper bound: a cap would be a
   hard resolution failure on future interpreters, so the floor rises as the CI matrix grows instead.
 - `uv`
@@ -204,9 +204,9 @@ Two jobs test the platform wheels as shipped artifacts rather than as source-tre
 
 - **`wheel-test-native`** installs each of the five wheels on a runner of its own platform
   (`ubuntu-24.04`, `ubuntu-24.04-arm`, `macos-latest`, `macos-15-intel`, `windows-latest`) on
-  CPython 3.12, 3.13 and 3.14, and runs the NIST, per-round intermediate, AES KAT, frozen KAT,
-  dispatch, pickle and smoke modules on both backends. That is 15 legs.
-- **`wheel-conformance-abi3`** installs the linux x86_64 wheel on Python 3.14 and runs the full
+  CPython 3.12, 3.13, 3.14 and 3.15, and runs the NIST, per-round intermediate, AES KAT, frozen KAT,
+  dispatch, pickle and smoke modules on both backends. That is 20 legs.
+- **`wheel-conformance-abi3`** installs the linux x86_64 wheel on Python 3.15 and runs the full
   suite held to the `rust-conformance` bar: required backend and oracle, the `-k rust` floor and
   100% coverage, measured on the installed package.
 

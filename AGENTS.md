@@ -91,7 +91,7 @@ These are the failure modes that produce **plausible but wrong output** — ever
 
 ## Local development
 
-- Python `>=3.12,<3.15` (CI matrix: 3.12, 3.13, 3.14 across Linux, macOS, Windows). Local dev on 3.12. Tools: `uv`, `just`. `src/` layout; ships `py.typed`.
+- Python `>=3.12` (CI matrix: 3.12, 3.13, 3.14, 3.15 across Linux, macOS, Windows). Local dev on 3.12. Tools: `uv`, `just`. `src/` layout; ships `py.typed`.
 - `just setup` — create `.venv` and install deps.
 - `just quality` — format check, lint, typecheck, tests with coverage.
 - `just build` — quality gate plus `uv build`.
