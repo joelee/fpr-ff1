@@ -9,7 +9,7 @@ expanding the accepted domain without changing existing behaviour is a minor ver
 
 ## [Unreleased]
 
-## [2.2.0] — 2026-11-14
+## [2.2.0] — 2026-11-15
 
 **CPython 3.15 support.** No change to accepted inputs, ciphertext or either public API; the
 pure-Python path and the compiled backend remain bit-identical. Upgrading from 2.1.1 is drop-in in

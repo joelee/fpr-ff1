@@ -4,7 +4,8 @@
 
 - Python 3.12.x. The package supports CPython 3.12, 3.13, 3.14 and 3.15, the versions CI exercises and
   the trove classifiers state. `requires-python` is `>=3.12` with no upper bound: a cap would be a
-  hard resolution failure on future interpreters, so the floor rises as the CI matrix grows instead.
+  hard resolution failure on future interpreters. Adding a version to CI never raises the floor;
+  raising it is a separate decision, taken when an old version leaves upstream support.
 - `uv`
 - `just`
 - `gitleaks` (for `just secrets`)
@@ -187,6 +188,16 @@ gitleaks dir . --redact
 To run that sequence on another interpreter, set `UV_PYTHON` to it, as CI's quality matrix does on
 each leg. `uv sync --python` alone is not enough: the next `uv run` takes `.python-version` and
 rebuilds `.venv` on that version.
+
+A development extension does not follow the switch. `just backend-dev` copies it to an
+unversioned `src/fpr_ff1/_rs.so` (`_rs.pyd` on Windows) built for the old interpreter. Rebuilding
+`.venv` leaves that file in place, and the tests import it and run the Rust backend on the new
+interpreter, where it can crash. Before running the tests on another interpreter, either delete
+that file (a pure-Python run, as in CI's quality matrix), or rebuild it after the sync with
+`cargo clean --manifest-path rust/Cargo.toml` and then `just backend-dev`. Running
+`just backend-dev` alone is not enough: PyO3 caches the interpreter it built against and reuses
+it while `PYO3_PYTHON` (always the `.venv` interpreter's path) is unchanged. Do the same when
+switching back.
 
 CI also runs a `rust-conformance` job (`ubuntu-latest`): it builds the extension with the same two
 commands as `just backend-dev`, then runs the full suite on **both** backends with
