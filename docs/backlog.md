@@ -8,14 +8,42 @@ This file tracks high-level feature ideas and technical debt for `fpr-ff1`.
 
 - Track SP 800-38G Rev. 1. It is still a second public draft; if it is finalised with limits that
   differ from the 2PD, that is a breaking change requiring a major version.
-- Raise the `requires-python` floor as new Python versions enter the CI matrix and pass. The
-  upper-bound cap policy was retired at 1.0.0 (review 00003 B4): a cap becomes a hard resolution
-  failure on future interpreters, so classifiers state the tested versions instead.
+- Test each new CPython release as it ships, and add it to the CI matrix and the classifiers once
+  it passes. Raise the `requires-python` floor only as a deliberate decision, when an old version
+  leaves upstream support; adding a version never drops one (FF1-29 D3). The upper-bound cap
+  policy was retired at 1.0.0 (review 00003 B4): a cap becomes a hard resolution failure on future
+  interpreters, so classifiers state the tested versions instead.
 - Deferred from the crate's first release (plan 00008 D5, D6): `no_std` support (with `alloc`), and
   key zeroization behind a feature once there is a claim the crate can defend in `SECURITY.md`.
 
+### Candidates
+
+Not planned. Each needs an idea in JoeDocs before planning.
+
+- **Batch API** (Idea 00001, FF1-1). Its real benefit is amortising the Python-to-Rust boundary
+  under `backend="rust"`, plus caller convenience; in pure Python the measured ceiling is about
+  1.05×. It would be a new public API, in tension with the small-surface rule.
+- **Radix 65536** (Idea 00001, FF1-1). Widen the supported domain from `2 <= radix < 2**16` to
+  SP 800-38G's inclusive `2**16`. It accepts new inputs, so it is a SemVer minor change.
+- **Free-threaded CPython (3.15t)** (FF1-29 D4). Waits on `cryptography`, the only runtime
+  dependency, publishing free-threaded 3.15 wheels: 50.0.2 had `cp314t` only on 2026-11-14. Then,
+  in order: test the pure-Python path on 3.15t; audit the extension, declare `gil_used = false`
+  and add an `abi3t` wheel per platform (PyO3's `abi3t` feature, maturin 1.14 or newer); and
+  update the thread-safety docs, because without the GIL the pure-Python backend runs concurrent
+  calls in parallel. Free-threaded 3.14 needs version-specific `cp314t` wheels that `abi3t` does
+  not cover, and is not proposed. Dropping `cryptography` on free-threaded builds was considered
+  and rejected: there is no standard environment marker for it (PEP 780 is still open), per-wheel
+  dependency metadata breaks uv and Poetry locks, and free-threaded installs without a native
+  wheel could not encrypt.
+
 ## Completed Items
 
+- **`2.2.0`: CPython 3.15 support and a dependency refresh** (FF1-29). CPython 3.15 is in the
+  quality and installed-wheel CI matrices, and the full conformance run on the installed `abi3`
+  wheel uses it; the classifiers and docs state 3.12 to 3.15, with `requires-python` unchanged.
+  The native wheels and crate builds carry `pyo3` 0.30.1 and `aes` 0.9.4, and the development lock
+  `coverage` 7.17.3 (PyYAML still has no 3.15 wheels and builds from source there). No change to
+  accepted inputs, ciphertext or either public API. The release itself is recorded at closeout.
 - **`2.1.1` released: the observations left open at `2.1.0`** (plan 00011). `fpr-ff1` 2.1.1 on
   PyPI and crates.io from tag `v2.1.1`, the crate published by Trusted Publishing, with no change to
   accepted inputs, ciphertext or either public API. Trace-hook parity: the Rust

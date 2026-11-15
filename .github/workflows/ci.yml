@@ -26,7 +26,15 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.12", "3.13", "3.14"]
+        python-version: ["3.12", "3.13", "3.14", "3.15"]
+    env:
+      # Without this, `uv run` takes its interpreter from .python-version
+      # (3.12) and rebuilds .venv to match, so every leg synced on its matrix
+      # version and then ran format, lint, type check and tests on 3.12
+      # (FF1-29).  `+gil` keeps a free-threaded build of the same version from
+      # being picked, as in the wheel jobs.  The interpreter check below fails
+      # a leg that gets anything else.
+      UV_PYTHON: ${{ matrix.python-version }}+gil
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,7 +48,13 @@ jobs:
 
       # --locked: lock drift fails the build rather than silently resolving.
       - name: Sync dependencies
-        run: uv sync --locked --all-extras --dev --python ${{ matrix.python-version }}
+        run: uv sync --locked --all-extras --dev
+
+      # Every later step resolves the interpreter the same way, so if this
+      # one does not rebuild .venv on another version, none of them does.
+      - name: Check the interpreter is Python ${{ matrix.python-version }}
+        shell: bash
+        run: uv run python -c "import sys, sysconfig; v = '%d.%d' % sys.version_info[:2]; print(sys.version); assert v == '${{ matrix.python-version }}', v; assert not sysconfig.get_config_var('Py_GIL_DISABLED'), 'free-threaded'"
 
       - name: Format check
         run: uv run ruff format --check .
@@ -468,7 +482,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.12", "3.13", "3.14"]
+        python-version: ["3.12", "3.13", "3.14", "3.15"]
         target:
           - x86_64-unknown-linux-gnu
           - aarch64-unknown-linux-gnu
@@ -540,10 +554,10 @@ jobs:
   # that ships. This leg installs the published linux x86_64 wheel exactly as
   # wheel-test-native does and holds it to rust-conformance's bar: required
   # backend and oracle, the -k rust floor, and 100% coverage -- measured on
-  # the installed package. Python 3.14 is the newest interpreter the abi3
+  # the installed package. Python 3.15 is the newest interpreter the abi3
   # wheel serves and one the source-tree job never uses.
   wheel-conformance-abi3:
-    name: Full conformance on the installed abi3 wheel (linux x86_64, py3.14)
+    name: Full conformance on the installed abi3 wheel (linux x86_64, py3.15)
     runs-on: ubuntu-24.04
     needs: wheel-build
     env:
@@ -559,8 +573,8 @@ jobs:
 
       - name: Install the wheel into a clean environment
         run: |
-          uv python install 3.14
-          uv venv wheel-venv --python "3.14+gil"
+          uv python install 3.15
+          uv venv wheel-venv --python "3.15+gil"
           uv export --frozen --no-emit-project --no-hashes -o requirements-ci.txt
           uv pip install --python wheel-venv -r requirements-ci.txt dist-wheels/*.whl
 

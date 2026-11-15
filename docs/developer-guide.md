@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Python 3.12.x. The package supports CPython 3.12, 3.13 and 3.14, the versions CI exercises and
+- Python 3.12.x. The package supports CPython 3.12, 3.13, 3.14 and 3.15, the versions CI exercises and
   the trove classifiers state. `requires-python` is `>=3.12` with no upper bound: a cap would be a
   hard resolution failure on future interpreters, so the floor rises as the CI matrix grows instead.
 - `uv`
@@ -184,6 +184,10 @@ uv build
 gitleaks dir . --redact
 ```
 
+To run that sequence on another interpreter, set `UV_PYTHON` to it, as CI's quality matrix does on
+each leg. `uv sync --python` alone is not enough: the next `uv run` takes `.python-version` and
+rebuilds `.venv` on that version.
+
 CI also runs a `rust-conformance` job (`ubuntu-latest`): it builds the extension with the same two
 commands as `just backend-dev`, then runs the full suite on **both** backends with
 `FPR_FF1_REQUIRE_RUST_BACKEND=1` at the 100% coverage floor, asserts that `-k rust` still selects at
@@ -204,9 +208,9 @@ Two jobs test the platform wheels as shipped artifacts rather than as source-tre
 
 - **`wheel-test-native`** installs each of the five wheels on a runner of its own platform
   (`ubuntu-24.04`, `ubuntu-24.04-arm`, `macos-latest`, `macos-15-intel`, `windows-latest`) on
-  CPython 3.12, 3.13 and 3.14, and runs the NIST, per-round intermediate, AES KAT, frozen KAT,
-  dispatch, pickle and smoke modules on both backends. That is 15 legs.
-- **`wheel-conformance-abi3`** installs the linux x86_64 wheel on Python 3.14 and runs the full
+  CPython 3.12, 3.13, 3.14 and 3.15, and runs the NIST, per-round intermediate, AES KAT, frozen KAT,
+  dispatch, pickle and smoke modules on both backends. That is 20 legs.
+- **`wheel-conformance-abi3`** installs the linux x86_64 wheel on Python 3.15 and runs the full
   suite held to the `rust-conformance` bar: required backend and oracle, the `-k rust` floor and
   100% coverage, measured on the installed package.
 

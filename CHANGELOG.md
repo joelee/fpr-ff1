@@ -9,6 +9,41 @@ expanding the accepted domain without changing existing behaviour is a minor ver
 
 ## [Unreleased]
 
+## [2.2.0] — 2026-11-14
+
+**CPython 3.15 support.** No change to accepted inputs, ciphertext or either public API; the
+pure-Python path and the compiled backend remain bit-identical. Upgrading from 2.1.1 is drop-in in
+both languages. This release adds 3.15 to the tested and supported versions and ships the Rust
+dependency updates made since 2.1.1 (FF1-29).
+
+### Added
+
+- **CPython 3.15 support**, tested on every CI leg that tests a Python version: the quality matrix
+  on Linux, macOS and Windows, the installed native wheel on all five platforms, and the full
+  conformance suite on the installed `abi3` wheel, which now runs on 3.15. The existing `abi3`
+  wheels already load on 3.15; the trove classifiers and the documentation now say so.
+  `requires-python` is unchanged (`>=3.12`). Free-threaded builds still install the pure-Python
+  wheel.
+
+### Changed
+
+- **Native wheels and crate builds use `pyo3` 0.30.1** (was 0.29.2) for the Python binding and
+  **`aes` 0.9.4** (was 0.9.3) for the FF1 core's block cipher. Conformance on both backends, the
+  per-round intermediates and the AES known-answer tests are unchanged.
+- **Development lock:** `coverage` 7.17.3, which publishes CPython 3.15 wheels. PyYAML, a
+  development dependency of `pre-commit`, has no 3.15 wheels yet and builds from source there.
+  Development and CI dependencies were also updated since 2.1.1; no runtime dependency changed.
+- **Backlog:** the batch API, radix 65536 and free-threaded CPython are recorded as unplanned
+  candidates.
+
+### Fixed
+
+- **CI's quality matrix ran every leg on CPython 3.12.** Each leg synced its environment on the
+  matrix version, then the next `uv run` rebuilt it from `.python-version` (3.12.13), so format,
+  lint, type check and the test suite ran on 3.12 whatever the leg's name. The installed-wheel and
+  `abi3` conformance jobs were not affected. The quality job now sets `UV_PYTHON` to the matrix
+  version (a standard, not free-threaded, build) and fails a leg whose interpreter does not match.
+
 ## [2.1.1] — 2026-10-11
 
 **A maintenance release.** No change to accepted inputs, ciphertext or either public API; the
@@ -582,7 +617,8 @@ requiring a major version.
 
 <!-- Keep a Changelog link reference definitions (review 00003 B7): without
      these, the bracketed version headings render as literal brackets. -->
-[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v2.1.1...HEAD
+[Unreleased]: https://github.com/joelee/fpr-ff1/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/joelee/fpr-ff1/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/joelee/fpr-ff1/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/joelee/fpr-ff1/compare/v2.0.0...v2.1.0
 [2.1.0rc2]: https://github.com/joelee/fpr-ff1/compare/v2.1.0rc1...v2.1.0rc2
