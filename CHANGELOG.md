@@ -36,6 +36,14 @@ dependency updates made since 2.1.1 (FF1-29).
 - **Backlog:** the batch API, radix 65536 and free-threaded CPython are recorded as unplanned
   candidates.
 
+### Fixed
+
+- **CI's quality matrix ran every leg on CPython 3.12.** Each leg synced its environment on the
+  matrix version, then the next `uv run` rebuilt it from `.python-version` (3.12.13), so format,
+  lint, type check and the test suite ran on 3.12 whatever the leg's name. The installed-wheel and
+  `abi3` conformance jobs were not affected. The quality job now sets `UV_PYTHON` to the matrix
+  version (a standard, not free-threaded, build) and fails a leg whose interpreter does not match.
+
 ## [2.1.1] — 2026-10-11
 
 **A maintenance release.** No change to accepted inputs, ciphertext or either public API; the

@@ -184,6 +184,10 @@ uv build
 gitleaks dir . --redact
 ```
 
+To run that sequence on another interpreter, set `UV_PYTHON` to it, as CI's quality matrix does on
+each leg. `uv sync --python` alone is not enough: the next `uv run` takes `.python-version` and
+rebuilds `.venv` on that version.
+
 CI also runs a `rust-conformance` job (`ubuntu-latest`): it builds the extension with the same two
 commands as `just backend-dev`, then runs the full suite on **both** backends with
 `FPR_FF1_REQUIRE_RUST_BACKEND=1` at the 100% coverage floor, asserts that `-k rust` still selects at

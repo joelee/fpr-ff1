@@ -27,6 +27,14 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.12", "3.13", "3.14", "3.15"]
+    env:
+      # Without this, `uv run` takes its interpreter from .python-version
+      # (3.12) and rebuilds .venv to match, so every leg synced on its matrix
+      # version and then ran format, lint, type check and tests on 3.12
+      # (FF1-29).  `+gil` keeps a free-threaded build of the same version from
+      # being picked, as in the wheel jobs.  The interpreter check below fails
+      # a leg that gets anything else.
+      UV_PYTHON: ${{ matrix.python-version }}+gil
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,7 +48,13 @@ jobs:
 
       # --locked: lock drift fails the build rather than silently resolving.
       - name: Sync dependencies
-        run: uv sync --locked --all-extras --dev --python ${{ matrix.python-version }}
+        run: uv sync --locked --all-extras --dev
+
+      # Every later step resolves the interpreter the same way, so if this
+      # one does not rebuild .venv on another version, none of them does.
+      - name: Check the interpreter is Python ${{ matrix.python-version }}
+        shell: bash
+        run: uv run python -c "import sys, sysconfig; v = '%d.%d' % sys.version_info[:2]; print(sys.version); assert v == '${{ matrix.python-version }}', v; assert not sysconfig.get_config_var('Py_GIL_DISABLED'), 'free-threaded'"
 
       - name: Format check
         run: uv run ruff format --check .
