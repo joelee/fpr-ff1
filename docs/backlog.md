@@ -38,12 +38,16 @@ Not planned. Each needs an idea in JoeDocs before planning.
 
 ## Completed Items
 
-- **`2.2.0`: CPython 3.15 support and a dependency refresh** (FF1-29). CPython 3.15 is in the
-  quality and installed-wheel CI matrices, and the full conformance run on the installed `abi3`
-  wheel uses it; the classifiers and docs state 3.12 to 3.15, with `requires-python` unchanged.
-  The native wheels and crate builds carry `pyo3` 0.30.1 and `aes` 0.9.4, and the development lock
-  `coverage` 7.17.3 (PyYAML still has no 3.15 wheels and builds from source there). No change to
-  accepted inputs, ciphertext or either public API. The release itself is recorded at closeout.
+- **`2.2.0` released: CPython 3.15 support and a dependency refresh** (FF1-29). `fpr-ff1` 2.2.0
+  on PyPI and crates.io from tag `v2.2.0`, the crate published by Trusted Publishing, with no change
+  to accepted inputs, ciphertext or either public API. CPython 3.15 is in the quality and
+  installed-wheel CI matrices, and the full conformance run on the installed `abi3` wheel uses it;
+  the classifiers and docs state 3.12 to 3.15, with `requires-python` unchanged. The quality
+  matrix had run every leg on 3.12 because `uv run` rebuilt `.venv` from `.python-version`; each
+  leg now sets `UV_PYTHON` and checks its interpreter, so 3.13 to 3.15 run the full suite with
+  coverage on all three platforms for the first time. The native wheels and crate builds carry
+  `pyo3` 0.30.1 and `aes` 0.9.4, and the development lock `coverage` 7.17.3 (PyYAML still has no
+  3.15 wheels and builds from source there).
 - **`2.1.1` released: the observations left open at `2.1.0`** (plan 00011). `fpr-ff1` 2.1.1 on
   PyPI and crates.io from tag `v2.1.1`, the crate published by Trusted Publishing, with no change to
   accepted inputs, ciphertext or either public API. Trace-hook parity: the Rust
