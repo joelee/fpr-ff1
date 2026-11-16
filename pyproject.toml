@@ -16,7 +16,9 @@ maintainers = [{ name = "Joseph Lee", email = "joelee@users.noreply.github.com" 
 # No upper bound: a capped requires-python turns into a hard resolution
 # failure on every interpreter released after the cap, which punishes users
 # for our untested matrix.  The classifiers state the versions CI actually
-# exercises; the floor is raised as the matrix grows.
+# exercises.  Adding a version never raises the floor; raising it is a
+# separate decision, taken when an old version leaves upstream support
+# (FF1-29 D3, docs/backlog.md).
 requires-python = ">=3.12"
 keywords = [
     "ff1",
